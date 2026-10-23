@@ -155,10 +155,13 @@ button {
 }
 }
 
-.mono {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-variant-ligatures: none;
+/* A component class, so size utilities such as text-[28px] can override it. */
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-ligatures: none;
+  }
 }
 
 .shadow-pop {
