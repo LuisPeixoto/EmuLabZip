@@ -4,5 +4,6 @@ pub mod files;
 pub mod info;
 pub mod logs;
 pub mod mem;
+pub mod net;
 pub mod perf;
 pub mod screenshot;
