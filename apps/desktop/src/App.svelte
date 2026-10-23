@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { app, type View } from "./lib/stores/app.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
@@ -29,13 +29,15 @@
   // history is already there when the user switches to Logs.
   $effect(() => {
     const key = app.deviceKey;
-    const target = app.target;
-    if (target && app.online) {
-      logs.attach(key, target);
-      app.refreshApps();
-    } else {
-      logs.detach();
-    }
+    untrack(() => {
+      const target = app.target;
+      if (target && app.online) {
+        logs.attach(key, target);
+        app.refreshApps();
+      } else {
+        logs.detach();
+      }
+    });
   });
 
   const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage"];
