@@ -32,6 +32,7 @@ app and the CLI) use them the same way.
 | `emulabzip-adb` | An async client for the ADB host protocol: device listing and tracking, `shell:`, `exec:` and the `sync:` file protocol. |
 | `emulabzip-android` | Implements `Backend` for Android on top of `emulabzip-adb`. Parsers for `getprop`, logcat, `dumpsys battery`, `wm`, `ps` and `pm`. |
 | `emulabzip-apple` | Implements `Backend` for the iOS Simulator with `xcrun simctl`. Parsers for the device list, ndjson logs and app lists. |
+| `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
 | `emulabzip-cli` | The `emulabzip` command. |
 | `apps/desktop` | The Tauri 2 shell (`src-tauri`) and the Svelte 5 interface (`src`). |
 
@@ -47,6 +48,14 @@ pub trait Backend: Send + Sync {
     async fn apps(&self, id: &str) -> Result<Vec<App>>;
     async fn logs(&self, id: &str, options: LogOptions) -> Result<Stream<LogEntry>>;
     async fn screenshot(&self, id: &str) -> Result<Vec<u8>>;
+
+    // Optional: the default implementations return `Error::Unsupported`.
+    async fn perf(&self, id: &str, options: PerfOptions) -> Result<Stream<PerfSample>>;
+    async fn memory(&self, id: &str, app: &str) -> Result<MemoryReport>;
+    async fn heap_dump(&self, id: &str, app: &str) -> Result<HeapDump>;
+    async fn storage_roots(&self, id: &str, app: &str) -> Result<Vec<StorageRoot>>;
+    async fn list_files(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>>;
+    async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>>;
 }
 ```
 
@@ -61,6 +70,12 @@ aborts the task, which closes the ADB socket or kills the `log stream` child pro
 In the desktop app, each stream is a *session* owned by the Tauri state. Lines are batched every 100 ms and sent to the
 interface over a Tauri IPC channel. A batch holds at most 4,000 lines; any surplus is counted and reported as dropped
 rather than slowing the device or the UI. The interface keeps its own bounded buffer and renders only the visible rows.
+
+## Storage paths
+
+File paths are always relative to a *storage root* chosen by the backend (`data`, `external`, `bundle`…). `Lab`
+rejects absolute paths and `..` before a backend sees them, and the iOS backend also resolves symbolic links and
+refuses anything that ends up outside the container.
 
 ## Design rules
 
