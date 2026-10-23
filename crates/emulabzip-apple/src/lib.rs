@@ -9,7 +9,10 @@ pub mod apps;
 pub mod backend;
 pub mod devices;
 pub mod info;
+pub mod memory;
 pub mod oslog;
+pub mod perf;
 pub mod simctl;
+pub mod storage;
 
 pub use backend::AppleBackend;
