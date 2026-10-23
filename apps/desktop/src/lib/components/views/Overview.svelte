@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { api, errorText, osLabel, type InfoSection } from "../../api";
   import { app } from "../../stores/app.svelte";
   import Icon from "../Icon.svelte";
@@ -53,10 +54,15 @@
     setTimeout(() => copied === key && (copied = null), 1200);
   }
 
+  // Reload only when the device (or its readiness) changes. `load` reads other reactive state,
+  // such as the target object that is rebuilt on every device poll; untracking it keeps the
+  // Overview from querying the device every few seconds.
   $effect(() => {
     const key = app.deviceKey;
-    screen = null;
-    load(key);
+    untrack(() => {
+      screen = null;
+      load(key);
+    });
   });
 
   const chips = $derived(
