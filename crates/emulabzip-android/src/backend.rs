@@ -3,12 +3,13 @@
 use async_trait::async_trait;
 use emulabzip_adb::{AdbClient, DeviceEntry};
 use emulabzip_core::{
-    App, Backend, Device, DeviceKind, DeviceState, Error, InfoSection, LogEntry, LogOptions, Platform, Result, Stream,
+    App, Backend, Device, DeviceKind, DeviceState, Error, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport,
+    PerfOptions, PerfSample, Platform, Result, Stream,
 };
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, info, logcat};
+use crate::{apps, heapdump, info, logcat, meminfo, perf};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -113,6 +114,28 @@ impl Backend for AndroidBackend {
         } else {
             Err(Error::Adb(format!("screencap failed: {}", String::from_utf8_lossy(&png).trim())))
         }
+    }
+
+    async fn perf(&self, id: &str, options: PerfOptions) -> Result<Stream<PerfSample>> {
+        if let Some(app) = &options.app
+            && !emulabzip_adb::is_package_name(app)
+        {
+            return Err(Error::invalid("package name", app.clone()));
+        }
+        Ok(perf::stream(self.adb.clone(), id.to_string(), options))
+    }
+
+    async fn memory(&self, id: &str, app: &str) -> Result<MemoryReport> {
+        if !emulabzip_adb::is_package_name(app) {
+            return Err(Error::invalid("package name", app));
+        }
+        let out = self.adb.shell(id, &emulabzip_adb::command(["dumpsys", "meminfo", app])).await?;
+        meminfo::parse(app, &out)
+    }
+
+    async fn heap_dump(&self, id: &str, app: &str) -> Result<HeapDump> {
+        let stamp = self.adb.shell(id, "date +%Y%m%d-%H%M%S").await?;
+        heapdump::dump(&self.adb, id, app, stamp.trim()).await
     }
 }
 
