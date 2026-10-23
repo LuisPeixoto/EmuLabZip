@@ -33,6 +33,7 @@ app and the CLI) use them the same way.
 | `emulabzip-android` | Implements `Backend` for Android on top of `emulabzip-adb`. Parsers for `getprop`, logcat, `dumpsys battery`, `wm`, `ps` and `pm`. |
 | `emulabzip-apple` | Implements `Backend` for the iOS Simulator with `xcrun simctl`. Parsers for the device list, ndjson logs and app lists. |
 | `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
+| `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
 | `emulabzip-cli` | The `emulabzip` command. |
 | `apps/desktop` | The Tauri 2 shell (`src-tauri`) and the Svelte 5 interface (`src`). |
 
@@ -56,6 +57,10 @@ pub trait Backend: Send + Sync {
     async fn storage_roots(&self, id: &str, app: &str) -> Result<Vec<StorageRoot>>;
     async fn list_files(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>>;
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>>;
+    async fn network_status(&self, id: &str) -> Result<NetworkStatus>;
+    async fn connect_network(&self, id: &str, port: u16) -> Result<NetworkStatus>;
+    async fn disconnect_network(&self, id: &str) -> Result<NetworkStatus>;
+    async fn install_ca(&self, id: &str, pem: &str, der: &[u8]) -> Result<CaInstall>;
 }
 ```
 
@@ -70,6 +75,24 @@ aborts the task, which closes the ADB socket or kills the `log stream` child pro
 In the desktop app, each stream is a *session* owned by the Tauri state. Lines are batched every 100 ms and sent to the
 interface over a Tauri IPC channel. A batch holds at most 4,000 lines; any surplus is counted and reported as dropped
 rather than slowing the device or the UI. The interface keeps its own bounded buffer and renders only the visible rows.
+
+## The proxy
+
+`emulabzip-net` knows nothing about devices. The backends only decide how a device reaches it and how it comes to
+trust the certificate; the CLI and the desktop app start the proxy and hand it a `FlowStore`.
+
+```text
+ device ──► 127.0.0.1:<port> ──► proxy ──► the internet
+                                   │
+              CONNECT, first byte is 0x16 (TLS)?
+                 yes ─► terminate TLS with a leaf for the SNI name, serve HTTP/1.1 or HTTP/2,
+                        forward over a new TLS connection, record the flow
+                 no  ─► copy bytes both ways, record a tunnel
+              handshake refused ─► remember the host, pass it through next time
+```
+
+Response bodies stream to the client while a copy is recorded (up to 10 MB), so downloads and event streams keep
+working. Request bodies are read in full before forwarding. WebSocket upgrades are tunnelled after the handshake.
 
 ## Storage paths
 
