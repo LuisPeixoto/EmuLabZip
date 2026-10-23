@@ -128,6 +128,26 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Capture a device's HTTP(S) traffic: run the proxy, point the device at it, print each request
+    Net {
+        /// Port for the proxy, on this computer's loopback interface
+        #[arg(short, long, default_value_t = 9090, env = "EMULABZIP_PORT")]
+        port: u16,
+        /// Only run the proxy; do not change the device's settings
+        #[arg(long)]
+        no_connect: bool,
+        /// Write the captured requests to a HAR file when stopping
+        #[arg(long, value_name = "FILE")]
+        har: Option<PathBuf>,
+        /// Print one JSON object per request
+        #[arg(long)]
+        json: bool,
+    },
+    /// Manage the certificate that lets EmuLabZip decrypt HTTPS
+    Ca {
+        #[command(subcommand)]
+        action: CaAction,
+    },
     /// Inspect one of an app's SQLite databases: tables, rows or a read-only query
     Db {
         app: String,
@@ -148,6 +168,14 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum CaAction {
+    /// Make the device trust the certificate (system store when the device allows it)
+    Install,
+    /// Print where the certificate file is
+    Path,
 }
 
 #[tokio::main]
@@ -179,6 +207,11 @@ async fn main() -> ExitCode {
         Command::Pull { app, path, root, output } => {
             cmd::files::pull(&lab, device, &app, root.as_deref(), &path, output).await
         }
+        Command::Net { port, no_connect, har, json } => {
+            cmd::net::run(&lab, cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json }).await
+        }
+        Command::Ca { action: CaAction::Install } => cmd::net::install_ca(&lab, device).await,
+        Command::Ca { action: CaAction::Path } => cmd::net::path(),
         Command::Db { app, path, root, table, query, limit, offset, json } => {
             let args = cmd::files::DbArgs { app, path, root, table, query, limit, offset, json };
             cmd::files::db(&lab, device, args).await

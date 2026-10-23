@@ -26,7 +26,7 @@ impl Default for AppleBackend {
 
 impl AppleBackend {
     pub fn new() -> Self {
-        AppleBackend { state_dir: dirs::data_dir().unwrap_or_else(std::env::temp_dir).join("EmuLabZip") }
+        AppleBackend { state_dir: emulabzip_core::data_dir() }
     }
 
     /// Keeps the saved proxy settings in `dir` instead of the default folder. Used by tests.
