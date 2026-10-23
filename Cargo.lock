@@ -51,6 +51,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulabzip-android"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "emulabzip-adb",
+ "emulabzip-core",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "emulabzip-core"
 version = "0.0.0"
 dependencies = [
