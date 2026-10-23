@@ -91,13 +91,26 @@ impl AdbClient {
     }
 
     /// A connection already switched to the device, ready for a service request.
+    ///
+    /// A device that is restarting `adbd` (after `adb root`, or while an emulator boots) reports
+    /// "device offline" for a moment and comes back, so that one answer is retried for a few
+    /// seconds instead of being reported.
     async fn transport(&self, serial: &str) -> Result<Connection> {
-        let mut c = self.connect().await?;
-        c.request(&format!("host:transport:{serial}")).await.map_err(|e| match e {
-            Error::Adb(msg) if msg.contains("not found") => Error::DeviceNotFound(serial.to_string()),
-            other => other,
-        })?;
-        Ok(c)
+        const ATTEMPTS: u32 = 12;
+        for attempt in 1..=ATTEMPTS {
+            let mut c = self.connect().await?;
+            match c.request(&format!("host:transport:{serial}")).await {
+                Ok(()) => return Ok(c),
+                Err(Error::Adb(msg)) if msg.contains("device offline") && attempt < ATTEMPTS => {
+                    tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                }
+                Err(Error::Adb(msg)) if msg.contains("not found") => {
+                    return Err(Error::DeviceNotFound(serial.to_string()));
+                }
+                Err(other) => return Err(other),
+            }
+        }
+        unreachable!("the last attempt always returns")
     }
 
     /// Runs a shell command and returns its output (stdout and stderr together) as text.
@@ -166,31 +179,37 @@ impl AdbClient {
         check_reply(&c.read_to_end().await?)
     }
 
-    /// Restarts `adbd` as root, like `adb root`. Returns what the device said:
-    /// "restarting adbd as root", "adbd is already running as root", or
-    /// "adbd cannot run as root in production builds".
+    /// Restarts `adbd` as root, like `adb root`, and returns once the device answers again.
+    /// Returns what the device said: "restarting adbd as root", "adbd is already running as
+    /// root", or "adbd cannot run as root in production builds".
     pub async fn root(&self, serial: &str) -> Result<String> {
-        self.restart_adbd(serial, "root:").await
-    }
-
-    /// Restarts `adbd` as the shell user again, like `adb unroot`.
-    pub async fn unroot(&self, serial: &str) -> Result<String> {
-        self.restart_adbd(serial, "unroot:").await
-    }
-
-    async fn restart_adbd(&self, serial: &str, service: &str) -> Result<String> {
         let mut c = self.transport(serial).await?;
-        c.request(service).await?;
-        Ok(String::from_utf8_lossy(&c.read_to_end().await?).trim().to_string())
+        c.request("root:").await?;
+        let message = String::from_utf8_lossy(&c.read_to_end().await?).trim().to_string();
+        if message.contains("restarting") {
+            // The old adbd keeps answering for a moment while it shuts down; waiting until it
+            // is gone makes sure the next command reaches the new one.
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+            self.wait_until_ready(serial, std::time::Duration::from_secs(30)).await?;
+        }
+        Ok(message)
     }
 
     /// Waits until the device answers shell commands again, for example after `adbd` restarted.
+    /// Two answers in a row are needed, because the transport of an emulator can flap.
     pub async fn wait_until_ready(&self, serial: &str, timeout: std::time::Duration) -> Result<()> {
         let deadline = tokio::time::Instant::now() + timeout;
+        let mut answers = 0;
         loop {
             if self.shell(serial, "echo ready").await.is_ok_and(|out| out.trim() == "ready") {
-                return Ok(());
+                answers += 1;
+                if answers == 2 {
+                    return Ok(());
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                continue;
             }
+            answers = 0;
             if tokio::time::Instant::now() >= deadline {
                 return Err(Error::Adb(format!("{serial} did not come back in time")));
             }
