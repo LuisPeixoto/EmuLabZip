@@ -96,3 +96,25 @@ async fn browses_app_storage() {
         assert!(backend.list_files(&id, app, "data", "").await.is_err());
     }
 }
+
+/// Needs the sample app: `tools/sample-app/install.sh`.
+#[tokio::test]
+#[ignore = "needs a running emulator with the sample app"]
+async fn reads_debuggable_app_data() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let app = "dev.emulabzip.sample";
+
+    let roots = backend.storage_roots(&id, app).await.unwrap();
+    let data = roots.iter().find(|r| r.id == "data").unwrap();
+    assert!(data.unavailable.is_none(), "{data:?}");
+
+    let top = backend.list_files(&id, app, "data", "").await.unwrap();
+    let names: Vec<&str> = top.iter().map(|e| e.name.as_str()).collect();
+    assert!(names.contains(&"databases") && names.contains(&"shared_prefs"), "{names:?}");
+
+    let db = backend.read_file(&id, app, "data", "databases/notes.db").await.unwrap();
+    assert!(db.starts_with(b"SQLite format 3\0"));
+    let png = backend.read_file(&id, app, "data", "files/logo.png").await.unwrap();
+    assert!(png.starts_with(b"\x89PNG"), "binary files must survive the trip intact");
+}
