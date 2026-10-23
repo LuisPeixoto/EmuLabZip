@@ -17,6 +17,7 @@ rust-version = "1.88"
 emulabzip-core = { path = "crates/emulabzip-core" }
 emulabzip-adb = { path = "crates/emulabzip-adb" }
 emulabzip-android = { path = "crates/emulabzip-android" }
+emulabzip-apple = { path = "crates/emulabzip-apple" }
 
 anyhow = "1"
 async-trait = "0.1"
