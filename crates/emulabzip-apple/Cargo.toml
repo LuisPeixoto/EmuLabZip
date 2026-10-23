@@ -18,3 +18,4 @@ tracing.workspace = true
 
 [dev-dependencies]
 rcgen.workspace = true
+emulabzip-trace.workspace = true
