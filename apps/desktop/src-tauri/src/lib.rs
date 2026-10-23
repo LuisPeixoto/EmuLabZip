@@ -6,6 +6,7 @@ mod files;
 mod network;
 mod profiling;
 mod state;
+mod traces;
 
 use tauri::{Manager, RunEvent};
 
@@ -64,6 +65,20 @@ pub fn run() {
             network::net_clear,
             network::net_flow,
             network::net_export_har,
+            traces::trace_start,
+            traces::trace_stop,
+            traces::trace_templates,
+            traces::trace_list,
+            traces::trace_delete,
+            traces::trace_processor_status,
+            traces::trace_install_processor,
+            traces::trace_open,
+            traces::trace_flame,
+            traces::trace_folded,
+            traces::trace_query,
+            traces::trace_open_perfetto_ui,
+            traces::trace_open_external,
+            traces::trace_save,
         ])
         .build(tauri::generate_context!())
         .expect("error while building EmuLabZip");
@@ -73,6 +88,7 @@ pub fn run() {
             // Stop log streams so no `log stream` or adb socket outlives the app, and put every
             // device (and the Mac's proxy) back the way it was.
             let state = handle.state::<AppState>();
+            tauri::async_runtime::block_on(state.shutdown_traces());
             state.stop_all();
             tauri::async_runtime::block_on(state.shutdown_network());
         }
