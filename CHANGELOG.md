@@ -6,6 +6,23 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+Phase 4: tracing.
+
+### Added
+
+- **Traces**: record what a device did, then find out why it was slow, in one library of recordings.
+- **System traces** with Perfetto (Android 9+): presets for CPU and scheduling, frames and jank, and memory (with
+  native allocations of one app), or your own text configuration. A summary of CPU by process and thread, frame
+  percentiles and jank kinds, memory and the busiest slices, and a SQL console (PerfettoSQL).
+- The official `trace_processor` is downloaded once, after asking, from the Perfetto release; its SHA-256 is pinned
+  and checked. It only listens on `127.0.0.1`.
+- **CPU profiles** with simpleperf, for an app or the whole system, drawn as a flame graph (click to zoom, search,
+  process and thread pickers, hot functions, folded-stack export).
+- **Instruments** recordings with `xctrace` for any template, opened in Instruments, with a flame graph for Time
+  Profiler. Needs Developer Mode on the Mac, which EmuLabZip checks first.
+- **Open in Perfetto UI** through a one-shot local server; the trace is never uploaded.
+- **Command line**: `emulabzip trace record`, `cpu`, `instruments`, `summary`, `query`, `open` and `list`.
+
 ## [0.3.0] - 2026-10-23
 
 Phase 3: network.
