@@ -66,6 +66,38 @@ emulabzip logs --json | jq -r 'select(.level == "error") | .message'
 Saves a PNG of the screen. `-o, --output <file>` picks the path; by default the file is named after the device and the
 time.
 
+### `emulabzip perf`
+
+Prints one line per sample: app and device CPU, app and device memory, frame rate, janky frames and battery.
+
+| Option | Meaning |
+|--------|---------|
+| `-a, --app <id>` | App to sample. Without it, only device-wide values. |
+| `-i, --interval <ms>` | Time between samples (default 1000, minimum 250). |
+| `--json` | One JSON object per sample. |
+
+### `emulabzip mem <app>`
+
+A memory breakdown: PSS by category on Android, footprint by VM region on iOS. See [Memory](memory.md).
+
+### `emulabzip heapdump <app>`
+
+Saves an `.hprof` heap dump (Android, debuggable apps) or a `.memgraph` memory graph (iOS). `-o` picks the file.
+
+### `emulabzip files <app> [path]`
+
+Lists a folder of the app. `--root` picks the storage root (`data` or `external` on Android; `data`, `bundle` or
+`group:<id>` on iOS); by default the first readable one is used. See [Storage](storage.md).
+
+### `emulabzip pull <app> <path>`
+
+Copies one file to this computer. `-o` picks the destination.
+
+### `emulabzip db <app> <path>`
+
+Opens a SQLite database read-only. Without options it lists tables and views; `--table` prints rows (`--limit`,
+`--offset`); `-q, --query` runs a read-only statement. All of them accept `--json`.
+
 ## Environment
 
 | Variable | Effect |
