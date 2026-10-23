@@ -1,0 +1,16 @@
+[package]
+name = "emulabzip-android"
+description = "Android collectors for EmuLabZip: devices, logcat, device info, apps and screenshots"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+emulabzip-adb.workspace = true
+emulabzip-core.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tracing.workspace = true
