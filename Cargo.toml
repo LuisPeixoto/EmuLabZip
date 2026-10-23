@@ -11,10 +11,14 @@ repository = "https://github.com/LuisPeixoto/EmuLabZip"
 homepage = "https://github.com/LuisPeixoto/EmuLabZip"
 readme = "README.md"
 authors = ["Luis Peixoto"]
-rust-version = "1.85"
+rust-version = "1.88"
 
 [workspace.dependencies]
+emulabzip-core = { path = "crates/emulabzip-core" }
+
 anyhow = "1"
+async-trait = "0.1"
+regex = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
