@@ -69,3 +69,30 @@ async fn samples_performance_and_memory() {
         Err(e) => println!("heap dump refused, as expected on user builds: {e}"),
     }
 }
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn browses_app_storage() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let app = "com.android.chrome";
+
+    let roots = backend.storage_roots(&id, app).await.unwrap();
+    println!("{roots:#?}");
+    assert_eq!(roots.len(), 2);
+
+    let external = roots.iter().find(|r| r.id == "external").unwrap();
+    if external.unavailable.is_none() {
+        let entries = backend.list_files(&id, app, "external", "").await.unwrap();
+        println!("{entries:#?}");
+        if let Some(file) = entries.iter().find(|e| !e.is_dir) {
+            let bytes = backend.read_file(&id, app, "external", &file.path).await.unwrap();
+            assert_eq!(bytes.len() as u64, file.size);
+        }
+    }
+
+    let data = roots.iter().find(|r| r.id == "data").unwrap();
+    if data.unavailable.is_some() {
+        assert!(backend.list_files(&id, app, "data", "").await.is_err());
+    }
+}
