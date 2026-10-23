@@ -152,6 +152,31 @@ where
     }
 }
 
+/// Writes `data` to `path` with the given mode. Files are sent in chunks the device accepts.
+pub async fn push<S: AsyncRead + AsyncWrite + Unpin>(io: &mut S, path: &str, mode: u32, data: &[u8]) -> Result<()> {
+    send_request(io, b"SEND", &format!("{path},{}", mode & 0o7777 | 0o100000)).await?;
+    for chunk in data.chunks(MAX_CHUNK) {
+        let mut msg = Vec::with_capacity(8 + chunk.len());
+        msg.extend_from_slice(b"DATA");
+        msg.extend_from_slice(&(chunk.len() as u32).to_le_bytes());
+        msg.extend_from_slice(chunk);
+        io.write_all(&msg).await?;
+    }
+    let mtime =
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as u32).unwrap_or(0);
+    let mut done = b"DONE".to_vec();
+    done.extend_from_slice(&mtime.to_le_bytes());
+    io.write_all(&done).await?;
+    match &read_id(io).await? {
+        b"OKAY" => {
+            read_u32(io).await?;
+            Ok(())
+        }
+        b"FAIL" => Err(fail(io).await),
+        other => Err(Error::Adb(format!("unexpected sync reply `{}`", String::from_utf8_lossy(other)))),
+    }
+}
+
 /// Ends the sync session politely.
 pub async fn quit<S: AsyncWrite + Unpin>(io: &mut S) -> Result<()> {
     io.write_all(b"QUIT\0\0\0\0").await?;
@@ -209,6 +234,30 @@ mod tests {
         let n = pull(&mut client, "/sdcard/a.txt", &mut out).await.unwrap();
         assert_eq!(n, 11);
         assert_eq!(out, b"hello world");
+    }
+
+    #[tokio::test]
+    async fn pushes_a_file_in_chunks() {
+        let (mut client, mut server) = tokio::io::duplex(1 << 20);
+        server.write_all(b"OKAY\0\0\0\0").await.unwrap();
+
+        let data = vec![7u8; MAX_CHUNK + 10];
+        push(&mut client, "/sdcard/a.bin", 0o644, &data).await.unwrap();
+        drop(client);
+
+        let mut sent = Vec::new();
+        server.read_to_end(&mut sent).await.unwrap();
+        let spec = b"/sdcard/a.bin,33188";
+        assert_eq!(&sent[..4], b"SEND");
+        assert_eq!(u32::from_le_bytes(sent[4..8].try_into().unwrap()) as usize, spec.len());
+        assert_eq!(&sent[8..8 + spec.len()], spec);
+        let rest = &sent[8 + spec.len()..];
+        assert_eq!(&rest[..4], b"DATA");
+        assert_eq!(u32::from_le_bytes(rest[4..8].try_into().unwrap()) as usize, MAX_CHUNK);
+        let second = &rest[8 + MAX_CHUNK..];
+        assert_eq!(&second[..4], b"DATA");
+        assert_eq!(u32::from_le_bytes(second[4..8].try_into().unwrap()), 10);
+        assert_eq!(&second[18..22], b"DONE");
     }
 
     #[tokio::test]
