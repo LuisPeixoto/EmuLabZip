@@ -6,6 +6,31 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-23
+
+Phase 3: network.
+
+### Added
+
+- **Network**: a debugging proxy that decrypts HTTP/1.1 and HTTP/2 over TLS, lists every request with its headers,
+  decoded bodies (gzip, deflate, Brotli, zstd) and timing, and tunnels everything else. It listens on `127.0.0.1` only.
+- **One-click routing**: Android devices are pointed at the proxy with `adb reverse` and the global proxy setting,
+  and only the forward EmuLabZip made is removed afterwards. The iOS Simulator is captured by pointing the Mac's
+  proxy at EmuLabZip; the settings are saved first and restored exactly, also at the next start if the app was killed.
+- **Certificate**: added to the system store of rootable Android emulators (trusted by every app, without stacking
+  mounts when repeated), to the keychain of iOS simulators, and walked through step by step for Android images from
+  Google Play and physical devices, with the `network_security_config` for debug builds.
+- Apps that reject the certificate are passed through after the first failure, and a banner names them.
+- WebSocket upgrades and non-HTTP connections are tunnelled and listed.
+- HAR 1.2 export.
+- **Command line**: `emulabzip net` and `emulabzip ca install` / `path`.
+- `EMULABZIP_HOME` moves the certificate authority and saved settings to another folder.
+
+### Changed
+
+- The ADB client restarts `adbd` as root and waits for the device to come back, and retries the brief "device
+  offline" answer an emulator gives while it does.
+
 ## [0.2.0] - 2026-10-23
 
 Phase 2: performance, memory and storage.
@@ -51,6 +76,7 @@ Phase 1: connect and observe.
 - Documentation: getting started, Android, iOS Simulator, logs, CLI, architecture, troubleshooting, distribution, the
   roadmap and a write-up of how Instruments and the Android Studio profilers collect their data.
 
-[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LuisPeixoto/EmuLabZip/releases/tag/v0.1.0
