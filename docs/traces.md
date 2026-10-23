@@ -9,6 +9,10 @@ It brings together three official tools and keeps their output in one library:
 | **CPU profile** | Android 8 and newer | `simpleperf` | A flame graph with hot functions and folded-stack export |
 | **Instruments** | iOS Simulator | `xcrun xctrace` | A flame graph for Time Profiler recordings, and a button to open the `.trace` in Instruments |
 
+<p align="center">
+  <img src="images/traces-summary.png" alt="The summary of a Perfetto frames trace" />
+</p>
+
 ## Quick start
 
 1. Open **Traces** (<kbd>⌘7</kbd>) and pick your device. Pick an app in the toolbar if you want to focus on one.
@@ -87,6 +91,10 @@ tell whose code a frame is:
 | Green | Platform managed code: the Android framework, ART, `*.jar`, `*.odex`, `*.oat` |
 | Orange | Native libraries (`.so`) |
 | Grey | The kernel |
+
+<p align="center">
+  <img src="images/traces-flame.png" alt="A whole-system CPU profile as a flame graph" />
+</p>
 
 Under the graph, **Hot functions** lists where time was spent in a function itself rather than in what it called.
 **Folded stacks** saves the call tree for `flamegraph.pl` and speedscope. The raw `perf.data` is kept next to the
