@@ -43,6 +43,14 @@ async fn serve(listener: TcpListener) {
                         s.write_all(format!("{:04x}{list}", list.len()).as_bytes()).await.unwrap();
                         return;
                     }
+                    if service == "root:" {
+                        s.write_all(b"adbd cannot run as root in production builds\n").await.unwrap();
+                        return;
+                    }
+                    if service == "reverse:killforward:tcp:9998" {
+                        s.write_all(b"OKAY").await.unwrap();
+                        return;
+                    }
                     if service == "reverse:killforward-all" {
                         s.write_all(b"OKAY").await.unwrap();
                         return;
@@ -114,4 +122,15 @@ async fn manages_reverse_forwards() {
     c.reverse("emulator-5554", "tcp:9998", "tcp:9998").await.unwrap();
     assert_eq!(c.reverse_list("emulator-5554").await.unwrap(), [("tcp:9998".to_string(), "tcp:9998".to_string())]);
     c.reverse_remove_all("emulator-5554").await.unwrap();
+}
+
+#[tokio::test]
+async fn reports_whether_adbd_can_run_as_root() {
+    let reply = client().await.root("emulator-5554").await.unwrap();
+    assert!(reply.contains("cannot run as root"), "{reply}");
+}
+
+#[tokio::test]
+async fn removes_one_reverse_forward() {
+    client().await.reverse_remove("emulator-5554", "tcp:9998").await.unwrap();
 }
