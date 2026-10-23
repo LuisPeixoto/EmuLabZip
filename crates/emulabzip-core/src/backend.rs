@@ -1,5 +1,6 @@
 //! The contract between platform collectors and their consumers (the CLI and the desktop app).
 
+use std::path::Path;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -13,6 +14,7 @@ use crate::memory::{HeapDump, MemoryReport};
 use crate::network::{CaInstall, NetworkStatus};
 use crate::perf::{PerfOptions, PerfSample};
 use crate::stream::Stream;
+use crate::trace::{TraceFile, TraceRequest};
 
 /// How a log stream should start.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -105,6 +107,23 @@ pub trait Backend: Send + Sync {
     /// Makes the device trust the proxy's certificate authority, given as PEM and DER.
     async fn install_ca(&self, _id: &str, _pem: &str, _der: &[u8]) -> Result<CaInstall> {
         Err(Error::Unsupported("Certificate installation"))
+    }
+
+    /// The Instruments templates that can be recorded on this platform. Empty when there are none.
+    async fn trace_templates(&self, _id: &str) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+
+    /// Records a trace and saves it in `out_dir`. It stops early when `stop` turns `true`, keeping
+    /// what was recorded so far.
+    async fn record_trace(
+        &self,
+        _id: &str,
+        _request: &TraceRequest,
+        _out_dir: &Path,
+        _stop: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<TraceFile> {
+        Err(Error::Unsupported("Recording traces"))
     }
 }
 
@@ -224,6 +243,22 @@ impl Lab {
         self.backend(target.platform)?.install_ca(&target.id, pem, der).await
     }
 
+    pub async fn trace_templates(&self, target: &Target) -> Result<Vec<String>> {
+        self.backend(target.platform)?.trace_templates(&target.id).await
+    }
+
+    pub async fn record_trace(
+        &self,
+        target: &Target,
+        request: &TraceRequest,
+        out_dir: &Path,
+        stop: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<TraceFile> {
+        crate::trace::check_duration(request.duration_s())
+            .map_err(|_| Error::invalid("duration", request.duration_s().to_string()))?;
+        self.backend(target.platform)?.record_trace(&target.id, request, out_dir, stop).await
+    }
+
     pub async fn list_files(&self, target: &Target, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
         if !crate::files::is_safe_relative(path) {
             return Err(Error::invalid("path", path));
@@ -312,6 +347,11 @@ mod tests {
         assert!(matches!(lab.storage_roots(&t, "app").await.unwrap_err(), Error::Unsupported(_)));
         assert!(matches!(lab.connect_network(&t, 9090).await.unwrap_err(), Error::Unsupported(_)));
         assert!(matches!(lab.install_ca(&t, "", &[]).await.unwrap_err(), Error::Unsupported(_)));
+        let (_tx, rx) = tokio::sync::watch::channel(false);
+        let request = TraceRequest::CpuProfile { app: None, duration_s: 5, system_wide: true };
+        let err = lab.record_trace(&t, &request, Path::new("/tmp"), rx).await.unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)));
+        assert!(lab.trace_templates(&t).await.unwrap().is_empty());
     }
 
     #[tokio::test]
