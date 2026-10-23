@@ -12,8 +12,8 @@ use crate::commands::{CmdResult, ask_save_path, err};
 use crate::state::{AppState, scratch_dir};
 
 /// Text previews stop here; the rest of the file is still available through Save.
-const MAX_TEXT: usize = 2 * 1024 * 1024;
-const HEX_BYTES: usize = 4096;
+pub(crate) const MAX_TEXT: usize = 2 * 1024 * 1024;
+pub(crate) const HEX_BYTES: usize = 4096;
 
 #[tauri::command]
 pub async fn storage_roots(state: State<'_, AppState>, target: Target, app: String) -> CmdResult<Vec<StorageRoot>> {
