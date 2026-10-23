@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::error::{Error, Result};
+use crate::files::{FileEntry, StorageRoot};
 use crate::log::LogEntry;
+use crate::memory::{HeapDump, MemoryReport};
+use crate::perf::{PerfOptions, PerfSample};
 use crate::stream::Stream;
 
 /// How a log stream should start.
@@ -51,6 +54,36 @@ pub trait Backend: Send + Sync {
 
     /// A PNG screenshot of the device screen.
     async fn screenshot(&self, id: &str) -> Result<Vec<u8>>;
+
+    /// Samples CPU, memory, frames and battery until the returned stream is dropped.
+    async fn perf(&self, _id: &str, _options: PerfOptions) -> Result<Stream<PerfSample>> {
+        Err(Error::Unsupported("Performance sampling"))
+    }
+
+    /// A breakdown of the memory used by a running app.
+    async fn memory(&self, _id: &str, _app: &str) -> Result<MemoryReport> {
+        Err(Error::Unsupported("Memory reports"))
+    }
+
+    /// A heap snapshot of a running app (`.hprof` on Android, `.memgraph` on iOS).
+    async fn heap_dump(&self, _id: &str, _app: &str) -> Result<HeapDump> {
+        Err(Error::Unsupported("Heap dumps"))
+    }
+
+    /// The places where an app keeps files.
+    async fn storage_roots(&self, _id: &str, _app: &str) -> Result<Vec<StorageRoot>> {
+        Err(Error::Unsupported("Storage browsing"))
+    }
+
+    /// Lists a directory, given relative to a storage root.
+    async fn list_files(&self, _id: &str, _app: &str, _root: &str, _path: &str) -> Result<Vec<FileEntry>> {
+        Err(Error::Unsupported("Storage browsing"))
+    }
+
+    /// Reads a file, given relative to a storage root.
+    async fn read_file(&self, _id: &str, _app: &str, _root: &str, _path: &str) -> Result<Vec<u8>> {
+        Err(Error::Unsupported("Storage browsing"))
+    }
 }
 
 /// Every available backend behind one handle.
@@ -136,6 +169,36 @@ impl Lab {
     pub async fn screenshot(&self, target: &Target) -> Result<Vec<u8>> {
         self.backend(target.platform)?.screenshot(&target.id).await
     }
+
+    pub async fn perf(&self, target: &Target, options: PerfOptions) -> Result<Stream<PerfSample>> {
+        self.backend(target.platform)?.perf(&target.id, options).await
+    }
+
+    pub async fn memory(&self, target: &Target, app: &str) -> Result<MemoryReport> {
+        self.backend(target.platform)?.memory(&target.id, app).await
+    }
+
+    pub async fn heap_dump(&self, target: &Target, app: &str) -> Result<HeapDump> {
+        self.backend(target.platform)?.heap_dump(&target.id, app).await
+    }
+
+    pub async fn storage_roots(&self, target: &Target, app: &str) -> Result<Vec<StorageRoot>> {
+        self.backend(target.platform)?.storage_roots(&target.id, app).await
+    }
+
+    pub async fn list_files(&self, target: &Target, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
+        if !crate::files::is_safe_relative(path) {
+            return Err(Error::invalid("path", path));
+        }
+        self.backend(target.platform)?.list_files(&target.id, app, root, path).await
+    }
+
+    pub async fn read_file(&self, target: &Target, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
+        if !crate::files::is_safe_relative(path) {
+            return Err(Error::invalid("path", path));
+        }
+        self.backend(target.platform)?.read_file(&target.id, app, root, path).await
+    }
 }
 
 #[cfg(test)]
@@ -201,6 +264,21 @@ mod tests {
         assert_eq!(lab.resolve(Some("galaxy")).await.unwrap().name, "Galaxy_S24");
         assert!(lab.resolve(None).await.is_err());
         assert!(lab.resolve(Some("nexus")).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn optional_features_default_to_unsupported() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let t = Target { platform: Platform::Android, id: "x".into() };
+        assert!(matches!(lab.memory(&t, "app").await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.storage_roots(&t, "app").await.unwrap_err(), Error::Unsupported(_)));
+    }
+
+    #[tokio::test]
+    async fn rejects_paths_that_escape_the_root() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let t = Target { platform: Platform::Android, id: "x".into() };
+        assert!(matches!(lab.read_file(&t, "app", "data", "../../etc").await.unwrap_err(), Error::Invalid { .. }));
     }
 
     #[tokio::test]
