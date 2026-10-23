@@ -15,5 +15,6 @@ pub mod network;
 pub mod perf;
 pub mod props;
 pub mod storage;
+pub mod trace;
 
 pub use backend::AndroidBackend;
