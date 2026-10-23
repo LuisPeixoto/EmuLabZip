@@ -82,6 +82,72 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Sample CPU, memory, frames and battery, one line per sample
+    Perf {
+        /// App to sample (package name or bundle id). Without it, only device-wide values
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Time between samples, in milliseconds
+        #[arg(short, long, default_value_t = 1000)]
+        interval: u32,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show where an app's memory goes
+    Mem {
+        /// Package name or bundle id
+        app: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Save a heap dump (.hprof on Android) or memory graph (.memgraph on iOS)
+    Heapdump {
+        app: String,
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// List an app's files
+    Files {
+        app: String,
+        /// Folder, relative to the storage root
+        #[arg(default_value = "")]
+        path: String,
+        /// Storage root: `data` or `external` on Android; `data`, `bundle` or `group:<id>` on iOS
+        #[arg(short, long)]
+        root: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Copy one of an app's files to this computer
+    Pull {
+        app: String,
+        /// File, relative to the storage root
+        path: String,
+        #[arg(short, long)]
+        root: Option<String>,
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Inspect one of an app's SQLite databases: tables, rows or a read-only query
+    Db {
+        app: String,
+        /// Database file, relative to the storage root, for example `databases/app.db`
+        path: String,
+        #[arg(short, long)]
+        root: Option<String>,
+        /// Print the rows of this table
+        #[arg(short, long)]
+        table: Option<String>,
+        /// Run a read-only SQL statement
+        #[arg(short, long)]
+        query: Option<String>,
+        #[arg(long, default_value_t = 50)]
+        limit: u64,
+        #[arg(long, default_value_t = 0)]
+        offset: u64,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -104,6 +170,19 @@ async fn main() -> ExitCode {
             cmd::logs::run(&lab, args).await
         }
         Command::Screenshot { output } => cmd::screenshot::run(&lab, device, output).await,
+        Command::Perf { app, interval, json } => cmd::perf::run(&lab, device, app, interval, json).await,
+        Command::Mem { app, json } => cmd::mem::run(&lab, device, &app, json).await,
+        Command::Heapdump { app, output } => cmd::mem::heap_dump(&lab, device, &app, output).await,
+        Command::Files { app, path, root, json } => {
+            cmd::files::list(&lab, device, &app, root.as_deref(), &path, json).await
+        }
+        Command::Pull { app, path, root, output } => {
+            cmd::files::pull(&lab, device, &app, root.as_deref(), &path, output).await
+        }
+        Command::Db { app, path, root, table, query, limit, offset, json } => {
+            let args = cmd::files::DbArgs { app, path, root, table, query, limit, offset, json };
+            cmd::files::db(&lab, device, args).await
+        }
     };
 
     match result {

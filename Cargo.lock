@@ -1005,6 +1005,7 @@ dependencies = [
  "emulabzip-android",
  "emulabzip-apple",
  "emulabzip-core",
+ "emulabzip-storage",
  "owo-colors",
  "serde_json",
  "tokio",
