@@ -7,3 +7,4 @@ pub mod mem;
 pub mod net;
 pub mod perf;
 pub mod screenshot;
+pub mod trace;
