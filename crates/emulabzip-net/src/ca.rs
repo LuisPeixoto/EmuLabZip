@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use emulabzip_core::{Error, Result};
 use lru::LruCache;
-use md5::{Digest, Md5};
 use parking_lot::Mutex;
 use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
@@ -189,14 +188,6 @@ impl ResolvesServerCert for SniResolver {
     }
 }
 
-/// OpenSSL's `subject_hash_old`: the first four bytes of the MD5 of the DER subject, read little
-/// endian. Android names system certificates `<hash>.0`.
-pub fn subject_hash_old(cert_der: &[u8]) -> Result<String> {
-    let (_, cert) = x509_parser::parse_x509_certificate(cert_der).map_err(|e| err("certificate", e))?;
-    let digest = Md5::digest(cert.subject().as_raw());
-    Ok(format!("{:08x}", u32::from_le_bytes([digest[0], digest[1], digest[2], digest[3]])))
-}
-
 fn write_private(path: &Path, contents: &str) -> Result<()> {
     #[cfg(unix)]
     {
@@ -236,26 +227,6 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             let mode = fs::metadata(dir.join(KEY_FILE)).unwrap().permissions().mode();
             assert_eq!(mode & 0o777, 0o600, "the private key must not be readable by others");
-        }
-        fs::remove_dir_all(dir).ok();
-    }
-
-    #[test]
-    fn android_hash_matches_openssl() {
-        let ca = CertificateAuthority::generate().unwrap();
-        let ours = subject_hash_old(ca.cert_der()).unwrap();
-        assert_eq!(ours.len(), 8);
-        let dir = std::env::temp_dir().join(format!("emulabzip-hash-{}", std::process::id()));
-        fs::create_dir_all(&dir).unwrap();
-        let file = dir.join("ca.pem");
-        fs::write(&file, ca.cert_pem()).unwrap();
-        if let Ok(out) = std::process::Command::new("openssl")
-            .args(["x509", "-subject_hash_old", "-noout", "-in"])
-            .arg(&file)
-            .output()
-            && out.status.success()
-        {
-            assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), ours);
         }
         fs::remove_dir_all(dir).ok();
     }
