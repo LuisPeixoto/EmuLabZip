@@ -39,3 +39,33 @@ async fn reads_a_real_device() {
     let first = tokio::time::timeout(std::time::Duration::from_secs(10), logs.next()).await.unwrap().unwrap();
     println!("first log line: {}", first.to_line());
 }
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn samples_performance_and_memory() {
+    use emulabzip_core::PerfOptions;
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let app = "com.android.systemui".to_string();
+
+    let mut perf = backend.perf(&id, PerfOptions { app: Some(app.clone()), interval_ms: 500 }).await.unwrap();
+    let mut last = None;
+    for _ in 0..3 {
+        last = perf.next().await;
+    }
+    let sample = last.unwrap();
+    println!("{sample:#?}");
+    assert!(sample.pid.is_some());
+    assert!(sample.device_cpu.is_some());
+    assert!(sample.app_memory_kb.is_some());
+
+    let report = backend.memory(&id, &app).await.unwrap();
+    println!("{} {} KB: {:?}", report.metric, report.total_kb, &report.categories[..3]);
+    assert!(report.total_kb > 0);
+
+    match backend.heap_dump(&id, &app).await {
+        Ok(dump) => println!("heap dump {} ({} bytes)", dump.file_name, dump.bytes.len()),
+        Err(e) => println!("heap dump refused, as expected on user builds: {e}"),
+    }
+}
