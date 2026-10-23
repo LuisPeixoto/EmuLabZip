@@ -12,5 +12,6 @@ pub mod logcat;
 pub mod meminfo;
 pub mod perf;
 pub mod props;
+pub mod storage;
 
 pub use backend::AndroidBackend;

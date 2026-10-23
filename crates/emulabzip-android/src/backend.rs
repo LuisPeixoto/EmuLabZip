@@ -3,13 +3,13 @@
 use async_trait::async_trait;
 use emulabzip_adb::{AdbClient, DeviceEntry};
 use emulabzip_core::{
-    App, Backend, Device, DeviceKind, DeviceState, Error, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport,
-    PerfOptions, PerfSample, Platform, Result, Stream,
+    App, Backend, Device, DeviceKind, DeviceState, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions,
+    MemoryReport, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream,
 };
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, heapdump, info, logcat, meminfo, perf};
+use crate::{apps, heapdump, info, logcat, meminfo, perf, storage};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -136,6 +136,18 @@ impl Backend for AndroidBackend {
     async fn heap_dump(&self, id: &str, app: &str) -> Result<HeapDump> {
         let stamp = self.adb.shell(id, "date +%Y%m%d-%H%M%S").await?;
         heapdump::dump(&self.adb, id, app, stamp.trim()).await
+    }
+
+    async fn storage_roots(&self, id: &str, app: &str) -> Result<Vec<StorageRoot>> {
+        storage::roots(&self.adb, id, app).await
+    }
+
+    async fn list_files(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
+        storage::list(&self.adb, id, app, root, path).await
+    }
+
+    async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
+        storage::read(&self.adb, id, app, root, path).await
     }
 }
 
