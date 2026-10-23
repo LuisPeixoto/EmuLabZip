@@ -2,6 +2,8 @@
 //! (logs, samples) is streamed over IPC channels in batches.
 
 mod commands;
+mod files;
+mod profiling;
 mod state;
 
 use tauri::{Manager, RunEvent};
@@ -27,6 +29,16 @@ pub fn run() {
             commands::save_text,
             commands::start_logs,
             commands::stop_session,
+            profiling::start_perf,
+            profiling::memory_report,
+            profiling::memory_diff,
+            profiling::save_heap_dump,
+            files::storage_roots,
+            files::list_files,
+            files::open_file,
+            files::sqlite_rows,
+            files::sqlite_query,
+            files::save_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building EmuLabZip");
