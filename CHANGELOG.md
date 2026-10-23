@@ -6,6 +6,8 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-23
+
 Phase 4: tracing.
 
 ### Added
@@ -93,7 +95,8 @@ Phase 1: connect and observe.
 - Documentation: getting started, Android, iOS Simulator, logs, CLI, architecture, troubleshooting, distribution, the
   roadmap and a write-up of how Instruments and the Android Studio profilers collect their data.
 
-[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LuisPeixoto/EmuLabZip/releases/tag/v0.1.0
