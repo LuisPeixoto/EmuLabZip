@@ -1,0 +1,15 @@
+[package]
+name = "emulabzip-trace"
+description = "Analysis of performance traces for EmuLabZip: flame graphs from simpleperf and Instruments, and Perfetto traces"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+emulabzip-core.workspace = true
+prost.workspace = true
+serde.workspace = true
+serde_json.workspace = true
