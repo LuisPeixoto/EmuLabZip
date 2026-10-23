@@ -15,6 +15,7 @@ pub mod network;
 pub mod paths;
 pub mod perf;
 pub mod stream;
+pub mod trace;
 
 pub use backend::{Backend, Lab, LogOptions};
 pub use buffer::RingBuffer;
@@ -27,3 +28,4 @@ pub use network::{ANDROID_SECURITY_CONFIG, CaInstall, CaKind, NetworkStatus};
 pub use paths::data_dir;
 pub use perf::{PerfOptions, PerfSample};
 pub use stream::Stream;
+pub use trace::{PerfettoPreset, TraceFile, TraceFormat, TraceRequest};
