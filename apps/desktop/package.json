@@ -1,7 +1,7 @@
 {
   "name": "emulabzip-desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "EmuLabZip desktop app: inspect, monitor and debug apps in Android emulators and iOS simulators",
   "author": "Luis Peixoto",
   "license": "MIT",
