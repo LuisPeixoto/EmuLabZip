@@ -20,6 +20,7 @@ emulabzip-android = { path = "crates/emulabzip-android" }
 emulabzip-apple = { path = "crates/emulabzip-apple" }
 emulabzip-storage = { path = "crates/emulabzip-storage" }
 emulabzip-net = { path = "crates/emulabzip-net" }
+emulabzip-trace = { path = "crates/emulabzip-trace" }
 
 anyhow = "1"
 base64 = "0.22"
@@ -47,6 +48,7 @@ async-trait = "0.1"
 clap = { version = "4", features = ["derive", "env"] }
 parking_lot = "0.12"
 plist = "1"
+prost = "0.14"
 owo-colors = { version = "4", features = ["supports-colors"] }
 regex = "1"
 roxmltree = "0.21"
