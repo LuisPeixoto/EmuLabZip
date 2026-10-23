@@ -235,3 +235,76 @@ async fn trusts_the_certificate_system_wide_on_rootable_images() {
     // Installing it again must be harmless.
     assert!(backend.install_ca(&id, &pem, &der).await.unwrap().done);
 }
+
+/// Records with Perfetto and simpleperf, and checks that nothing is left on the device. Needs a
+/// rootable emulator (for the system-wide profile): `EMULABZIP_DEVICE=emulator-5558`.
+#[tokio::test]
+#[ignore = "needs a rootable emulator, selected with EMULABZIP_DEVICE"]
+async fn records_traces_and_cleans_up_after_itself() {
+    use emulabzip_core::{PerfettoPreset, TraceFormat, TraceRequest};
+    use tokio::sync::watch;
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let out = std::env::temp_dir().join(format!("emulabzip-trace-live-{}", std::process::id()));
+    let leftovers = || async {
+        let adb = backend.adb();
+        adb.shell(&id, "ls /data/local/tmp /data/misc/perfetto-traces 2>/dev/null | grep emulabzip- || true")
+            .await
+            .unwrap()
+    };
+    assert_eq!(leftovers().await.trim(), "", "start from a clean device");
+
+    // A full recording.
+    let (_keep, rx) = watch::channel(false);
+    let request = TraceRequest::Perfetto { preset: PerfettoPreset::Memory, config: None, duration_s: 3, app: None };
+    let file = backend.record_trace(&id, &request, &out.join("perfetto"), rx).await.unwrap();
+    assert_eq!(file.format, TraceFormat::Perfetto);
+    let size = std::fs::metadata(&file.path).unwrap().len();
+    println!("perfetto: {} bytes", size);
+    assert!(size > 10_000);
+
+    // Stopped early: asked for a minute, stopped after three seconds, still a usable trace.
+    let (tx, rx) = watch::channel(false);
+    let request = TraceRequest::Perfetto { preset: PerfettoPreset::Cpu, config: None, duration_s: 60, app: None };
+    let started = std::time::Instant::now();
+    let recording = tokio::spawn({
+        let (backend, id, dir) = (backend.clone(), id.clone(), out.join("early"));
+        async move { backend.record_trace(&id, &request, &dir, rx).await }
+    });
+    tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+    tx.send(true).unwrap();
+    let early = recording.await.unwrap().unwrap();
+    println!("stopped after {:?}", started.elapsed());
+    assert!(started.elapsed().as_secs() < 30 && std::fs::metadata(&early.path).unwrap().len() > 10_000);
+
+    // A whole-system CPU profile.
+    let (_keep, rx) = watch::channel(false);
+    let request = TraceRequest::CpuProfile { app: None, duration_s: 3, system_wide: true };
+    let profile = backend.record_trace(&id, &request, &out.join("cpu"), rx).await.unwrap();
+    assert_eq!(profile.format, TraceFormat::SimpleperfReport);
+    let bytes = std::fs::read(&profile.path).unwrap();
+    let parsed = emulabzip_trace::simpleperf::parse(&bytes).unwrap();
+    println!("simpleperf: {} samples", parsed.sample_count());
+    assert!(parsed.sample_count() > 0 && !profile.extras.is_empty());
+
+    // One app: its own process shows up, and one that is not running is refused at once.
+    let (_keep, rx) = watch::channel(false);
+    let request =
+        TraceRequest::CpuProfile { app: Some("com.android.systemui".into()), duration_s: 3, system_wide: false };
+    // An idle app has nothing to sample, and says so instead of saving an empty profile.
+    match backend.record_trace(&id, &request, &out.join("app"), rx.clone()).await {
+        Ok(app) => {
+            let parsed = emulabzip_trace::simpleperf::parse(&std::fs::read(&app.path).unwrap()).unwrap();
+            println!("app profile: {} samples", parsed.sample_count());
+            assert!(parsed.sample_count() > 0);
+        }
+        Err(e) => assert!(e.to_string().contains("No samples"), "{e}"),
+    }
+    let request = TraceRequest::CpuProfile { app: Some("com.not.installed".into()), duration_s: 3, system_wide: false };
+    let refused = backend.record_trace(&id, &request, &out.join("none"), rx).await.unwrap_err();
+    assert!(refused.to_string().contains("not running"), "{refused}");
+
+    assert_eq!(leftovers().await.trim(), "", "the recordings must not leave files on the device");
+    std::fs::remove_dir_all(out).ok();
+}
