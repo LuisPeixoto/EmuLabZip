@@ -12,9 +12,9 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::state::AppState;
 
-type CmdResult<T> = Result<T, String>;
+pub(crate) type CmdResult<T> = Result<T, String>;
 
-fn err(e: impl std::fmt::Display) -> String {
+pub(crate) fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 
@@ -82,7 +82,7 @@ pub async fn screenshot(state: State<'_, AppState>, target: Target) -> CmdResult
 }
 
 /// Asks where to save, on the native dialog. Files are only written to a path the user picked.
-async fn ask_save_path(app: &AppHandle, name: &str, filter: (&str, &[&str])) -> Option<PathBuf> {
+pub(crate) async fn ask_save_path(app: &AppHandle, name: &str, filter: (&str, &[&str])) -> Option<PathBuf> {
     let (tx, rx) = tokio::sync::oneshot::channel();
     app.dialog().file().set_file_name(name).add_filter(filter.0, filter.1).save_file(move |path| {
         let _ = tx.send(path.and_then(|p| p.into_path().ok()));
