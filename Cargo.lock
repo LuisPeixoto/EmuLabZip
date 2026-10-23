@@ -1146,6 +1146,7 @@ dependencies = [
  "emulabzip-core",
  "emulabzip-net",
  "emulabzip-storage",
+ "emulabzip-trace",
  "owo-colors",
  "serde_json",
  "tokio",

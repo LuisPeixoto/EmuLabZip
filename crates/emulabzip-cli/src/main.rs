@@ -6,10 +6,10 @@ mod output;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use emulabzip_android::AndroidBackend;
 use emulabzip_apple::AppleBackend;
-use emulabzip_core::{Lab, LogLevel};
+use emulabzip_core::{Lab, LogLevel, PerfettoPreset};
 
 #[derive(Parser)]
 #[command(
@@ -143,6 +143,11 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Record and analyze traces: Perfetto, simpleperf flame graphs and Instruments
+    Trace {
+        #[command(subcommand)]
+        action: TraceAction,
+    },
     /// Manage the certificate that lets EmuLabZip decrypt HTTPS
     Ca {
         #[command(subcommand)]
@@ -165,6 +170,107 @@ enum Command {
         limit: u64,
         #[arg(long, default_value_t = 0)]
         offset: u64,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum Preset {
+    /// Scheduling, CPU frequency and idle states
+    Cpu,
+    /// Frame timeline and jank
+    Frames,
+    /// Memory counters, plus native allocations of --app
+    Memory,
+    /// Your own Perfetto text configuration, from --config
+    Custom,
+}
+
+impl From<Preset> for PerfettoPreset {
+    fn from(p: Preset) -> Self {
+        match p {
+            Preset::Cpu => PerfettoPreset::Cpu,
+            Preset::Frames => PerfettoPreset::Frames,
+            Preset::Memory => PerfettoPreset::Memory,
+            Preset::Custom => PerfettoPreset::Custom,
+        }
+    }
+}
+
+#[derive(Subcommand)]
+enum TraceAction {
+    /// Record a Perfetto system trace (Android 9 and newer)
+    Record {
+        #[arg(short, long, value_enum, default_value = "cpu")]
+        preset: Preset,
+        /// Perfetto text configuration, for --preset custom
+        #[arg(long, value_name = "FILE")]
+        config: Option<PathBuf>,
+        /// Seconds to record. Ctrl+C stops earlier and keeps what was recorded
+        #[arg(short = 'D', long, default_value_t = 10)]
+        duration: u32,
+        /// App to look at more closely
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Output file. Defaults to `trace-<timestamp>.pftrace`
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Open the trace in the Perfetto UI when it is saved
+        #[arg(long)]
+        open: bool,
+    },
+    /// Sample an app's CPU (or the whole system) and print its hot functions
+    Cpu {
+        /// App to profile: it must be running, and debuggable or profileable
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Profile every process (needs root: emulator images without Google Play)
+        #[arg(long)]
+        system: bool,
+        #[arg(short = 'D', long, default_value_t = 10)]
+        duration: u32,
+        /// Save the simpleperf report (protobuf)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Save the call tree as folded stacks, for flamegraph.pl and speedscope
+        #[arg(long, value_name = "FILE")]
+        folded: Option<PathBuf>,
+        /// How many hot functions to print
+        #[arg(long, default_value_t = 15)]
+        top: usize,
+    },
+    /// Record an Instruments template from an iOS Simulator (needs Developer Mode on this Mac)
+    Instruments {
+        #[arg(short, long, default_value = "Time Profiler")]
+        template: String,
+        #[arg(short, long)]
+        app: Option<String>,
+        #[arg(short = 'D', long, default_value_t = 10)]
+        duration: u32,
+        /// Output `.trace` document. Defaults to `recording-<timestamp>.trace`
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        #[arg(long, default_value_t = 15)]
+        top: usize,
+    },
+    /// Summarize a Perfetto trace: CPU, frames, memory and the busiest slices
+    Summary {
+        file: PathBuf,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Run SQL on a Perfetto trace
+    Query {
+        file: PathBuf,
+        sql: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Open a Perfetto trace in the Perfetto UI
+    Open { file: PathBuf },
+    /// List the recordings made in the desktop app
+    List {
         #[arg(long)]
         json: bool,
     },
@@ -210,6 +316,34 @@ async fn main() -> ExitCode {
         Command::Net { port, no_connect, har, json } => {
             cmd::net::run(&lab, cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json }).await
         }
+        Command::Trace { action } => match action {
+            TraceAction::Record { preset, config, duration, app, output, open } => {
+                let args = cmd::trace::RecordArgs {
+                    device: cli.device.clone(),
+                    preset: preset.into(),
+                    config,
+                    duration,
+                    app,
+                    output,
+                    open,
+                };
+                cmd::trace::record_perfetto(&lab, args).await
+            }
+            TraceAction::Cpu { app, system, duration, output, folded, top } => {
+                let args =
+                    cmd::trace::CpuArgs { device: cli.device.clone(), app, system, duration, output, folded, top };
+                cmd::trace::record_cpu(&lab, args).await
+            }
+            TraceAction::Instruments { template, app, duration, output, top } => {
+                let args =
+                    cmd::trace::InstrumentsArgs { device: cli.device.clone(), template, app, duration, output, top };
+                cmd::trace::record_instruments(&lab, args).await
+            }
+            TraceAction::Summary { file, json } => cmd::trace::summary(&file, json).await,
+            TraceAction::Query { file, sql, json } => cmd::trace::query(&file, &sql, json).await,
+            TraceAction::Open { file } => cmd::trace::perfetto_ui(&file).await,
+            TraceAction::List { json } => cmd::trace::list(json),
+        },
         Command::Ca { action: CaAction::Install } => cmd::net::install_ca(&lab, device).await,
         Command::Ca { action: CaAction::Path } => cmd::net::path(),
         Command::Db { app, path, root, table, query, limit, offset, json } => {

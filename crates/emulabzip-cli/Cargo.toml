@@ -18,6 +18,7 @@ emulabzip-apple.workspace = true
 emulabzip-core.workspace = true
 emulabzip-net.workspace = true
 emulabzip-storage.workspace = true
+emulabzip-trace.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 owo-colors.workspace = true
