@@ -11,6 +11,7 @@ pub mod error;
 pub mod files;
 pub mod log;
 pub mod memory;
+pub mod network;
 pub mod perf;
 pub mod stream;
 
@@ -21,5 +22,6 @@ pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
 pub use memory::{CategoryDelta, HeapDump, MemoryCategory, MemoryReport};
+pub use network::{ANDROID_SECURITY_CONFIG, CaInstall, CaKind, NetworkStatus};
 pub use perf::{PerfOptions, PerfSample};
 pub use stream::Stream;
