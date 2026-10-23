@@ -15,5 +15,6 @@ pub mod oslog;
 pub mod perf;
 pub mod simctl;
 pub mod storage;
+pub mod trace;
 
 pub use backend::AppleBackend;
