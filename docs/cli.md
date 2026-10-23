@@ -110,6 +110,23 @@ device is put back when it stops, also after an error. See [Network](network.md)
 | `--har <file>` | Save the requests as a HAR file when stopping. |
 | `--json` | One JSON object per request. |
 
+### `emulabzip trace`
+
+Records and analyzes traces. See [Traces](traces.md). <kbd>Ctrl+C</kbd> during a recording stops it early and keeps
+what was recorded.
+
+| Command | What it does |
+|---------|--------------|
+| `trace record` | Records a Perfetto system trace (Android 9+). `-p, --preset cpu\|frames\|memory\|custom`, `--config <file>` for `custom`, `-D, --duration <s>` (default 10), `-a, --app <pkg>`, `-o, --output <file>`, `--open` to show it in the Perfetto UI. |
+| `trace cpu` | Samples an app (`-a, --app`) or the whole system (`--system`) with simpleperf and prints the hot functions. `-o` saves the report, `--folded <file>` the folded stacks, `--top <n>` the list length. |
+| `trace instruments` | Records an Instruments template from a simulator (`-t, --template`, default Time Profiler) into a `.trace` document. Needs Developer Mode. |
+| `trace summary <file>` | CPU, frames, memory and busiest slices of a Perfetto trace. `--json` for scripts. |
+| `trace query <file> "<sql>"` | Runs PerfettoSQL on a Perfetto trace. `--json` for scripts. |
+| `trace open <file>` | Opens a Perfetto trace in the Perfetto UI. |
+| `trace list` | Lists the recordings made in the desktop app. |
+
+`summary` and `query` download the trace processor the first time (see [Traces](traces.md#the-trace-processor)).
+
 ### `emulabzip ca install`
 
 Makes the device trust the certificate: the system store on a rootable Android emulator, the keychain on an iOS
@@ -122,6 +139,6 @@ the certificate file is.
 |----------|--------|
 | `EMULABZIP_DEVICE` | Default for `--device`. |
 | `EMULABZIP_LOG=debug` | Verbose diagnostics on stderr. |
-| `EMULABZIP_HOME` | Folder for the certificate authority and saved proxy settings. |
+| `EMULABZIP_HOME` | Folder for the certificate authority, saved proxy settings, recordings and the trace processor. |
 | `EMULABZIP_PORT` | Default for `net --port`. |
 | `ADB_SERVER_SOCKET`, `ANDROID_ADB_SERVER_PORT`, `EMULABZIP_ADB` | See [Android](android.md). |

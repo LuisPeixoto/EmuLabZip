@@ -46,8 +46,15 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   quit, and the Mac's proxy settings, which are saved first and restored exactly, also at the next start if EmuLabZip
   was killed.
 - Shell arguments sent to devices are quoted; package names and paths are validated before use.
-- Data stays on your machine. EmuLabZip has no telemetry and makes no network connections of its own.
-- Files are only written to disk after an explicit user action (export, pull, screenshot, heap dump).
+- Data stays on your machine. EmuLabZip has no telemetry and makes no network connections of its own, except the
+  one-time, opt-in download of the trace processor.
+- Files are only written to disk after an explicit user action (export, pull, screenshot, heap dump, recording).
+- The Perfetto trace processor is the one thing EmuLabZip downloads, after you agree: from the official Perfetto
+  release, checked against a SHA-256 pinned in the source, and discarded on a mismatch. It runs with the trace you
+  open, bound to `127.0.0.1`.
+- "Open in Perfetto UI" starts a short-lived server on `127.0.0.1` that answers for one file, only with CORS for
+  `https://ui.perfetto.dev`, and stops after the file was fetched or after two minutes. Nothing is uploaded.
+- Recordings leave nothing on the device: configurations, raw files and reports are removed when a recording ends.
 
 ## Responsible use
 
