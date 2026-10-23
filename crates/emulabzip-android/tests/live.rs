@@ -7,10 +7,17 @@
 use emulabzip_android::AndroidBackend;
 use emulabzip_core::{Backend, DeviceState, LogOptions};
 
+/// The device to test on: `EMULABZIP_DEVICE` (an adb serial) or the first one that is booted.
 async fn first_online(backend: &AndroidBackend) -> String {
     let devices = backend.devices().await.expect("adb server reachable");
     println!("{devices:#?}");
-    devices.into_iter().find(|d| d.state == DeviceState::Online).expect("a booted emulator").id
+    let wanted = std::env::var("EMULABZIP_DEVICE").ok();
+    devices
+        .into_iter()
+        .filter(|d| d.state == DeviceState::Online)
+        .find(|d| wanted.as_deref().is_none_or(|w| d.id == w))
+        .expect("a booted emulator")
+        .id
 }
 
 #[tokio::test]
@@ -137,4 +144,94 @@ async fn forwards_ports_and_pushes_files() {
     adb.pull(&id, "/data/local/tmp/emulabzip-push-test.bin", &mut back).await.unwrap();
     adb.shell(&id, "rm -f /data/local/tmp/emulabzip-push-test.bin").await.unwrap();
     assert_eq!(back, data);
+}
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn routes_traffic_to_a_proxy_and_back() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let before = backend.network_status(&id).await.unwrap();
+
+    // Another tool's reverse forward must survive our disconnect.
+    backend.adb().reverse(&id, "tcp:8081", "tcp:8081").await.unwrap();
+
+    let on = backend.connect_network(&id, 9091).await.unwrap();
+    assert!(on.connected, "{on:?}");
+    assert_eq!(on.proxy.as_deref(), Some("127.0.0.1:9091"));
+    assert!(backend.adb().reverse_list(&id).await.unwrap().iter().any(|(r, _)| r == "tcp:9091"));
+
+    let off = backend.disconnect_network(&id).await.unwrap();
+    assert!(!off.connected && off.proxy.is_none(), "{off:?}");
+    let remaining = backend.adb().reverse_list(&id).await.unwrap();
+    assert!(!remaining.iter().any(|(r, _)| r == "tcp:9091"), "our forward must be gone: {remaining:?}");
+    assert!(remaining.iter().any(|(r, _)| r == "tcp:8081"), "other forwards must stay: {remaining:?}");
+
+    backend.adb().reverse_remove(&id, "tcp:8081").await.unwrap();
+    assert_eq!(before.connected, backend.network_status(&id).await.unwrap().connected);
+}
+
+#[tokio::test]
+#[ignore = "needs a running emulator; opens the Settings app on it"]
+async fn guides_a_user_certificate_install_on_production_images() {
+    use emulabzip_core::CaKind;
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let ca = emulabzip_net_free_ca();
+    let result = backend.install_ca(&id, &ca.0, &ca.1).await.unwrap();
+    println!("{result:#?}");
+    // Play images cannot run adbd as root, so the certificate goes to Downloads for the user.
+    if result.kind == CaKind::User {
+        assert!(!result.done && !result.steps.is_empty());
+        assert!(result.snippet.as_deref().unwrap().contains("<debug-overrides>"));
+        let on_device = backend.adb().list(&id, "/sdcard/Download").await.unwrap();
+        assert!(on_device.iter().any(|e| e.name == "emulabzip-ca.crt"));
+        backend.adb().shell(&id, "rm -f /sdcard/Download/emulabzip-ca.crt").await.unwrap();
+    }
+}
+
+/// A throwaway CA as PEM and DER, without depending on the proxy crate.
+fn emulabzip_net_free_ca() -> (String, Vec<u8>) {
+    let key = rcgen::KeyPair::generate().unwrap();
+    let mut params = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
+    params.distinguished_name.push(rcgen::DnType::CommonName, "EmuLabZip live test CA");
+    params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+    let cert = params.self_signed(&key).unwrap();
+    (cert.pem(), cert.der().to_vec())
+}
+
+/// Needs an emulator whose image allows `adb root` (Google APIs or AOSP, not Google Play), for
+/// example: `EMULABZIP_DEVICE=emulator-5556 cargo test … -- --ignored`.
+#[tokio::test]
+#[ignore = "needs a rootable emulator, selected with EMULABZIP_DEVICE"]
+async fn trusts_the_certificate_system_wide_on_rootable_images() {
+    use emulabzip_core::CaKind;
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let adb = backend.adb();
+    let (pem, der) = emulabzip_net_free_ca();
+    let name = format!("{}.0", emulabzip_android::cert::subject_hash_old(&der).unwrap());
+
+    let result = backend.install_ca(&id, &pem, &der).await.unwrap();
+    println!("{result:#?}");
+    assert_eq!(result.kind, CaKind::System, "this device is not rootable");
+    assert!(result.done && result.steps.is_empty());
+
+    // The certificate has to be visible where apps read it, not only in the shell's view. Start an
+    // app, then look through its own mount namespace.
+    adb.shell(&id, "am start -n com.android.settings/.Settings").await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    adb.root(&id).await.unwrap();
+    let pid = adb.shell(&id, "pidof com.android.settings").await.unwrap().trim().to_string();
+    let seen = adb
+        .shell(&id, &format!("ls /proc/{pid}/root/apex/com.android.conscrypt/cacerts/{name} /proc/{pid}/root/system/etc/security/cacerts/{name} 2>&1"))
+        .await
+        .unwrap();
+    println!("{seen}");
+    assert!(!seen.contains("No such file"), "the app cannot see the certificate:\n{seen}");
+
+    // Installing it again must be harmless.
+    assert!(backend.install_ca(&id, &pem, &der).await.unwrap().done);
 }

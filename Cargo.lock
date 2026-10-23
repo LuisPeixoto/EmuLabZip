@@ -1101,8 +1101,11 @@ dependencies = [
  "async-trait",
  "emulabzip-adb",
  "emulabzip-core",
+ "md-5",
+ "rcgen",
  "tokio",
  "tracing",
+ "x509-parser",
 ]
 
 [[package]]
@@ -1183,7 +1186,6 @@ dependencies = [
  "hyper-rustls",
  "hyper-util",
  "lru",
- "md-5",
  "parking_lot",
  "rcgen",
  "rustls",
@@ -1196,7 +1198,6 @@ dependencies = [
  "tokio-rustls",
  "tracing",
  "webpki-roots",
- "x509-parser",
  "zstd",
 ]
 

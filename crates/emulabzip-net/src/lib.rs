@@ -14,7 +14,7 @@ pub mod io;
 pub mod proxy;
 pub mod store;
 
-pub use ca::{CertificateAuthority, default_dir, subject_hash_old};
+pub use ca::{CertificateAuthority, default_dir};
 pub use flow::{Flow, FlowId, FlowKind, FlowState, FlowSummary, Headers};
 pub use har::to_har;
 pub use proxy::{Proxy, ProxyConfig, ProxyHandle};
