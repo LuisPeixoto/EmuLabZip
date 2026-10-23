@@ -47,6 +47,31 @@ The error shows the reason Android gave, for example `Process not debuggable`.
 Frames are only counted while the app draws. Interact with the app; a static screen renders nothing. On the iOS
 Simulator, frame metrics arrive with Instruments traces in Phase 4.
 
+## Network: nothing shows up
+
+- Check that the device says *sending traffic here*. On Android, `adb shell settings get global http_proxy` should
+  print `127.0.0.1:<port>`.
+- Some apps ignore the system proxy (those that open sockets themselves, or use HTTP/3). They cannot be captured.
+- Apps that cache heavily may not ask the network at all. Clear their data or use a fresh URL.
+
+## Network: HTTPS requests fail or show as "Connections"
+
+The device does not trust the certificate, or the app pins its server's. Press **Certificate** and follow what it
+says. On Android images from Google Play only Chrome and apps that allow user certificates will trust it; see
+[the certificate](network.md#the-certificate). A banner names the hosts that are being passed through; use **Decrypt
+again** after fixing it.
+
+## Network: the device or the Mac is still pointing at the proxy
+
+Press **Disconnect**, or run `adb shell settings put global http_proxy :0` for Android. For the Mac, open EmuLabZip
+once: it restores the proxy settings it saved if an earlier run was killed. Otherwise turn the proxies off in
+*System Settings › Network › Details › Proxies*.
+
+## Network: macOS asks for a password
+
+Changing the Mac's proxy is a system setting. EmuLabZip tries as you first and asks for administrator rights only if
+macOS refuses.
+
 ## Getting diagnostics
 
 Start the app or the CLI with `EMULABZIP_LOG=debug` and include the output when you
