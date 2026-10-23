@@ -18,14 +18,18 @@ emulabzip-core = { path = "crates/emulabzip-core" }
 emulabzip-adb = { path = "crates/emulabzip-adb" }
 emulabzip-android = { path = "crates/emulabzip-android" }
 emulabzip-apple = { path = "crates/emulabzip-apple" }
+emulabzip-storage = { path = "crates/emulabzip-storage" }
 
 anyhow = "1"
 base64 = "0.22"
 async-trait = "0.1"
 clap = { version = "4", features = ["derive", "env"] }
 parking_lot = "0.12"
+plist = "1"
 owo-colors = { version = "4", features = ["supports-colors"] }
 regex = "1"
+roxmltree = "0.21"
+rusqlite = { version = "0.40", features = ["bundled"] }
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
