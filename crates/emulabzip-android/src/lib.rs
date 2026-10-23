@@ -6,10 +6,12 @@
 
 pub mod apps;
 pub mod backend;
+pub mod cert;
 pub mod heapdump;
 pub mod info;
 pub mod logcat;
 pub mod meminfo;
+pub mod network;
 pub mod perf;
 pub mod props;
 pub mod storage;

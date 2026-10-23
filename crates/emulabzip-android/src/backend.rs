@@ -2,14 +2,15 @@
 
 use async_trait::async_trait;
 use emulabzip_adb::{AdbClient, DeviceEntry};
+use emulabzip_core::CaInstall;
 use emulabzip_core::{
     App, Backend, Device, DeviceKind, DeviceState, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions,
-    MemoryReport, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream,
+    MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream,
 };
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, heapdump, info, logcat, meminfo, perf, storage};
+use crate::{apps, cert, heapdump, info, logcat, meminfo, network, perf, storage};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -148,6 +149,23 @@ impl Backend for AndroidBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.adb, id, app, root, path).await
+    }
+
+    async fn network_status(&self, id: &str) -> Result<NetworkStatus> {
+        network::status(&self.adb, id).await
+    }
+
+    async fn connect_network(&self, id: &str, port: u16) -> Result<NetworkStatus> {
+        network::connect(&self.adb, id, port).await
+    }
+
+    async fn disconnect_network(&self, id: &str) -> Result<NetworkStatus> {
+        network::disconnect(&self.adb, id).await
+    }
+
+    async fn install_ca(&self, id: &str, pem: &str, der: &[u8]) -> Result<CaInstall> {
+        let name = format!("{}.0", cert::subject_hash_old(der)?);
+        network::install_ca(&self.adb, id, pem, der, &name).await
     }
 }
 
