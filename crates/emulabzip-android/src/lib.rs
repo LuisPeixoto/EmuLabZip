@@ -6,8 +6,11 @@
 
 pub mod apps;
 pub mod backend;
+pub mod heapdump;
 pub mod info;
 pub mod logcat;
+pub mod meminfo;
+pub mod perf;
 pub mod props;
 
 pub use backend::AndroidBackend;
