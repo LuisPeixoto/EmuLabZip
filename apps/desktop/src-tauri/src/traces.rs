@@ -175,6 +175,8 @@ pub struct CpuView {
     /// `ns` when weights are CPU time, `events` for event counts.
     pub unit: &'static str,
     pub processes: Vec<ProcessRow>,
+    /// The `key` of the process the flame graph shows.
+    pub selected: Option<String>,
     pub flame: Node,
     pub hotspots: Vec<Hotspot>,
 }
@@ -236,10 +238,11 @@ fn cpu_view(profile: &Loaded, process: Option<&str>, thread: Option<&str>) -> Cm
     match profile {
         Loaded::Simpleperf(p) => {
             let processes = p.processes(0, false);
-            // Start with the busiest process, which is what people want to see first.
+            // Start with the busiest process other than the profiler itself, which is what people
+            // want to see first.
             let pid = match process {
                 Some(k) => Some(k.parse::<u32>().map_err(err)?),
-                None => processes.first().map(|p| p.pid),
+                None => processes.iter().find(|p| p.name != "simpleperf").or(processes.first()).map(|p| p.pid),
             };
             let tid = thread.map(|t| t.parse::<u32>().map_err(err)).transpose()?;
             let flame = p.flame(&simpleperf::Filter { pid, tid, event: 0, include_idle: false });
@@ -248,6 +251,7 @@ fn cpu_view(profile: &Loaded, process: Option<&str>, thread: Option<&str>) -> Cm
                 unit: if p.unit(0) == simpleperf::Unit::Nanoseconds { "ns" } else { "events" },
                 hotspots: hotspots(&flame, HOTSPOTS),
                 flame,
+                selected: pid.map(|p| p.to_string()),
                 processes: processes
                     .into_iter()
                     .map(|p| ProcessRow {
@@ -273,6 +277,7 @@ fn cpu_view(profile: &Loaded, process: Option<&str>, thread: Option<&str>) -> Cm
                 unit: "ns",
                 hotspots: hotspots(&flame, HOTSPOTS),
                 flame,
+                selected: name,
                 processes: processes
                     .into_iter()
                     .map(|p| ProcessRow {

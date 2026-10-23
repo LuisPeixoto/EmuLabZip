@@ -211,7 +211,7 @@ class TracesStore {
       this.opened = opened;
       if (opened.view === "cpu") {
         this.cpu = opened;
-        this.processKey = opened.processes[0]?.key ?? null;
+        this.processKey = opened.selected;
       }
     } catch (e) {
       if (ticket === this.#ticket) this.openError = errorText(e);

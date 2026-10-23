@@ -361,6 +361,8 @@ export interface CpuView {
     weight: number;
     threads: { key: string; name: string; weight: number }[];
   }[];
+  /** The process the flame graph shows. */
+  selected: string | null;
   flame: FlameNode;
   hotspots: { name: string; origin: Origin; own: number }[];
 }
