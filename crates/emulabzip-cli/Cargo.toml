@@ -16,6 +16,7 @@ path = "src/main.rs"
 emulabzip-android.workspace = true
 emulabzip-apple.workspace = true
 emulabzip-core.workspace = true
+emulabzip-net.workspace = true
 emulabzip-storage.workspace = true
 anyhow.workspace = true
 clap.workspace = true
