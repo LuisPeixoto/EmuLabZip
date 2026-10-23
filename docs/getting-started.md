@@ -39,6 +39,9 @@ first one that is ready is selected automatically.
   preview of the screen. Click any value to copy it.
 - **Logs** follows the device log from the moment the device is selected, so history is already there when you open
   it. See [Logs](logs.md).
+- **Performance** charts CPU, memory, frame rate and battery live. See [Performance](performance.md).
+- **Memory** takes snapshots, compares them and saves heap dumps. See [Memory](memory.md).
+- **Storage** browses the app's files and opens databases, preferences and property lists. See [Storage](storage.md).
 - **Screenshot** in the toolbar captures the screen and lets you save it as a PNG.
 
 ## 5. Focus on your app
