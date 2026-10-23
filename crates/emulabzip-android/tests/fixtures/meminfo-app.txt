@@ -1,0 +1,67 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 2460008 Realtime: 2460008
+
+** MEMINFO in pid 1158 [com.android.settings] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    11698    10892      796     2755    12892    28532    20190     4366
+  Dalvik Heap    10371     6940     3396       25    12652     9774     7331     2443
+ Dalvik Other     3183     2816      320      164     3636                           
+        Stack      524      460       64      332      532                           
+       Ashmem       10        0        0        0      832                           
+    Other dev      149        0      140        0      412                           
+     .so mmap     2683       80      168      141    38356                           
+    .jar mmap     2950        0      236        0    50636                           
+    .apk mmap    18264        0    16752        0    23148                           
+    .ttf mmap      283        0      124        0      688                           
+    .dex mmap      538        0      528        0     1384                           
+    .oat mmap      513        0        0        0    12724                           
+    .art mmap     2443      612     1448      444    27228                           
+   Other mmap      579        4      332        0     2688                           
+      Unknown     1279      720      556      220     1788                           
+        TOTAL    59548    22524    24860     4081   189596    38306    27521     6809
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:     9000                          39880
+         Native Heap:    10892                          12892
+                Code:    17892                         127032
+               Stack:      460                            532
+            Graphics:        0                              0
+       Private Other:     9140
+              System:    12164
+             Unknown:                                    9260
+ 
+           TOTAL PSS:    59548            TOTAL RSS:   189596       TOTAL SWAP PSS:     4081
+ 
+ Objects
+               Views:      164         ViewRootImpl:        1
+         AppContexts:        9           Activities:        1
+              Assets:       22        AssetManagers:        0
+       Local Binders:       65        Proxy Binders:      120
+       Parcel memory:      202         Parcel count:      101
+    Death Recipients:        6             WebViews:        0
+ 
+ Native Allocations
+                         Count                       Total(kB)
+                        ------                         ------
+    Other (malloced):     1843                            174
+ Other (nonmalloced):      234                            165
+ 
+ SQL
+         MEMORY_USED:      331
+  PAGECACHE_OVERFLOW:      134          MALLOC_SIZE:       46
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b) cache hits cache misses cache size  Dbname
+PER CONNECTION STATS
+         4       76             43    61    21     4  /data/user_de/0/com.android.settings/databases/slices_index.db
+         4       64             82   422   469    11  /data/user_de/0/com.android.settings/databases/battery-usage-db-v11
+         4        8                    0     0     0    (attached) temp
+         4       64             99    10    29     9  /data/user_de/0/com.android.settings/databases/battery-usage-db-v11 (1)
+POOL STATS
+     cache hits  cache misses    cache size  Dbname
+             61            22            83  /data/user_de/0/com.android.settings/databases/slices_index.db
+            432           502           934  /data/user_de/0/com.android.settings/databases/battery-usage-db-v11
