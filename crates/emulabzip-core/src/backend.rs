@@ -6,6 +6,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+use crate::control::{Control, ControlInfo};
+use crate::crash::{CrashReport, CrashSummary};
 use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
@@ -124,6 +126,27 @@ pub trait Backend: Send + Sync {
         _stop: tokio::sync::watch::Receiver<bool>,
     ) -> Result<TraceFile> {
         Err(Error::Unsupported("Recording traces"))
+    }
+
+    /// Crashes, native crashes and ANRs the device has recorded, newest first. `app` limits them
+    /// to one package or bundle id.
+    async fn crashes(&self, _id: &str, _app: Option<&str>) -> Result<Vec<CrashSummary>> {
+        Err(Error::Unsupported("Crash reports"))
+    }
+
+    /// One crash with its stacks and hints. `crash_id` comes from [`Backend::crashes`].
+    async fn crash(&self, _id: &str, _crash_id: &str) -> Result<CrashReport> {
+        Err(Error::Unsupported("Crash reports"))
+    }
+
+    /// What the device can be told to do, and its state for `app`.
+    async fn controls(&self, _id: &str, _app: Option<&str>) -> Result<ControlInfo> {
+        Err(Error::Unsupported("Device controls"))
+    }
+
+    /// Applies one control. It has been validated by [`Control::validate`] already.
+    async fn control(&self, _id: &str, _control: &Control) -> Result<()> {
+        Err(Error::Unsupported("Device controls"))
     }
 }
 
@@ -259,6 +282,32 @@ impl Lab {
         self.backend(target.platform)?.record_trace(&target.id, request, out_dir, stop).await
     }
 
+    pub async fn crashes(&self, target: &Target, app: Option<&str>) -> Result<Vec<CrashSummary>> {
+        if let Some(app) = app.filter(|a| !crate::control::is_app_id(a)) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.crashes(&target.id, app).await
+    }
+
+    pub async fn crash(&self, target: &Target, crash_id: &str) -> Result<CrashReport> {
+        if !crate::crash::is_valid_id(crash_id) {
+            return Err(Error::invalid("crash id", crash_id));
+        }
+        self.backend(target.platform)?.crash(&target.id, crash_id).await
+    }
+
+    pub async fn controls(&self, target: &Target, app: Option<&str>) -> Result<ControlInfo> {
+        if let Some(app) = app.filter(|a| !crate::control::is_app_id(a)) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.controls(&target.id, app).await
+    }
+
+    pub async fn control(&self, target: &Target, control: &Control) -> Result<()> {
+        control.validate()?;
+        self.backend(target.platform)?.control(&target.id, control).await
+    }
+
     pub async fn list_files(&self, target: &Target, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
         if !crate::files::is_safe_relative(path) {
             return Err(Error::invalid("path", path));
@@ -352,6 +401,23 @@ mod tests {
         let err = lab.record_trace(&t, &request, Path::new("/tmp"), rx).await.unwrap_err();
         assert!(matches!(err, Error::Unsupported(_)));
         assert!(lab.trace_templates(&t).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn crashes_and_controls_are_unsupported_by_default_and_validated_first() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let t = Target { platform: Platform::Android, id: "x".into() };
+        assert!(matches!(lab.crashes(&t, None).await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.crashes(&t, Some("a b")).await.unwrap_err(), Error::Invalid { .. }));
+        assert!(matches!(lab.crash(&t, "../etc/passwd").await.unwrap_err(), Error::Invalid { .. }));
+        assert!(matches!(lab.crash(&t, "dropbox:data_app_crash:1").await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.controls(&t, None).await.unwrap_err(), Error::Unsupported(_)));
+        let bad = Control::Location { lat: "99".into(), lon: "0".into() };
+        assert!(
+            matches!(lab.control(&t, &bad).await.unwrap_err(), Error::Invalid { .. }),
+            "validated before the backend"
+        );
+        assert!(matches!(lab.control(&t, &Control::ClearLocation).await.unwrap_err(), Error::Unsupported(_)));
     }
 
     #[tokio::test]
