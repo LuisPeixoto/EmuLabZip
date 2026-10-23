@@ -1175,6 +1175,7 @@ dependencies = [
  "emulabzip-core",
  "emulabzip-net",
  "emulabzip-storage",
+ "emulabzip-trace",
  "flate2",
  "parking_lot",
  "serde",

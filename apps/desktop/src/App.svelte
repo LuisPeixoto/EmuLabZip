@@ -14,7 +14,7 @@
   import Overview from "./lib/components/views/Overview.svelte";
   import Performance from "./lib/components/views/Performance.svelte";
   import Storage from "./lib/components/views/Storage.svelte";
-  import Upcoming from "./lib/components/views/Upcoming.svelte";
+  import Traces from "./lib/components/views/Traces.svelte";
 
   let screenshotOpen = $state(false);
 
@@ -44,7 +44,7 @@
     });
   });
 
-  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network"];
+  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network", "traces"];
 
   function onkeydown(e: KeyboardEvent) {
     const mod = e.metaKey || e.ctrlKey;
@@ -54,7 +54,7 @@
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault(); // never reload the webview
       app.refreshDevices();
-    } else if (mod && /^[1-6]$/.test(e.key)) {
+    } else if (mod && /^[1-7]$/.test(e.key)) {
       e.preventDefault();
       app.setView(shortcuts[Number(e.key) - 1]);
     }
@@ -99,13 +99,7 @@
       {:else if app.view === "network"}
         <Network />
       {:else}
-        <Upcoming
-          icon="route"
-          phase="Phase 4"
-          title="Traces"
-          summary="Record system traces and see exactly what happened, frame by frame."
-          features={["Perfetto recording with ready-made presets", "SQL over traces with trace_processor", "CPU flame graphs with simpleperf", "Instruments traces through xctrace"]}
-        />
+        <Traces />
       {/if}
     </main>
   </div>

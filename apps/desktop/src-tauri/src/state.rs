@@ -9,8 +9,12 @@ use emulabzip_android::AndroidBackend;
 use emulabzip_apple::AppleBackend;
 use emulabzip_core::{Lab, Target};
 use emulabzip_net::{CertificateAuthority, FlowStore, ProxyHandle};
+use emulabzip_trace::perfetto::processor::Processor;
 use parking_lot::Mutex;
 use tauri::async_runtime::JoinHandle;
+use tokio::sync::watch;
+
+use crate::traces::Loaded;
 
 /// The proxy and the devices pointed at it.
 #[derive(Default)]
@@ -32,6 +36,12 @@ pub struct AppState {
     sessions: Mutex<HashMap<u64, JoinHandle<()>>>,
     /// Database files copied from devices for the SQLite inspector, by preview id.
     databases: Mutex<HashMap<u64, PathBuf>>,
+    /// Recordings in progress, by session, so they can be stopped early.
+    pub trace_stops: Mutex<HashMap<u64, watch::Sender<bool>>>,
+    /// The trace processor that has the open Perfetto recording loaded.
+    pub processor: tokio::sync::Mutex<Option<(String, Arc<Processor>)>>,
+    /// The parsed CPU profile of the open recording.
+    pub profile: Mutex<Option<(String, Arc<Loaded>)>>,
     next_id: AtomicU64,
 }
 
@@ -43,6 +53,9 @@ impl AppState {
             net: tokio::sync::Mutex::new(NetRuntime::default()),
             sessions: Mutex::new(HashMap::new()),
             databases: Mutex::new(HashMap::new()),
+            trace_stops: Mutex::new(HashMap::new()),
+            processor: tokio::sync::Mutex::new(None),
+            profile: Mutex::new(None),
             next_id: AtomicU64::new(1),
         }
     }
@@ -54,6 +67,38 @@ impl AppState {
         sessions.retain(|_, t| !t.inner().is_finished());
         sessions.insert(id, task);
         id
+    }
+
+    /// Registers a session under an id that was handed out before its task existed.
+    pub fn register_session(&self, id: u64, task: JoinHandle<()>) {
+        self.sessions.lock().insert(id, task);
+    }
+
+    /// Lets go of whatever is open for a recording that is about to be deleted.
+    pub async fn forget_trace(&self, id: &str) {
+        let mut processor = self.processor.lock().await;
+        if processor.as_ref().is_some_and(|(open, _)| open == id) {
+            *processor = None;
+        }
+        let mut profile = self.profile.lock();
+        if profile.as_ref().is_some_and(|(open, _)| open == id) {
+            *profile = None;
+        }
+    }
+
+    /// Asks every recording to stop and waits a few seconds for them to clean the device up,
+    /// then stops the trace processor. Called on exit.
+    pub async fn shutdown_traces(&self) {
+        for stop in self.trace_stops.lock().values() {
+            let _ = stop.send(true);
+        }
+        for _ in 0..40 {
+            if self.trace_stops.lock().is_empty() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        }
+        *self.processor.lock().await = None;
     }
 
     pub fn stop_session(&self, id: u64) {

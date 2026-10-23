@@ -41,3 +41,30 @@ export function dateTime(secs: number | null): string {
   if (!secs) return "";
   return new Date(secs * 1000).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }
+
+/** A duration given in nanoseconds: "812 µs", "12.4 ms", "3.21 s". */
+export function nanos(ns: number): string {
+  if (ns < 1_000) return `${Math.round(ns)} ns`;
+  if (ns < 1_000_000) return `${(ns / 1_000).toFixed(ns < 10_000 ? 1 : 0)} µs`;
+  if (ns < 1_000_000_000) return `${(ns / 1_000_000).toFixed(ns < 10_000_000 ? 2 : 1)} ms`;
+  return `${(ns / 1_000_000_000).toFixed(2)} s`;
+}
+
+/** Milliseconds with a sensible number of digits: "8.3 ms". */
+export function millis(ms: number): string {
+  return `${ms.toFixed(ms < 10 ? 2 : 1)} ms`;
+}
+
+/** Elapsed time as a clock: "0:07". */
+export function clock(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** Bytes, for sizes that come as bytes (kb() takes kilobytes). */
+export function size(value: number): string {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(0)} KB`;
+  if (value < 1024 ** 3) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  return `${(value / 1024 ** 3).toFixed(2)} GB`;
+}
