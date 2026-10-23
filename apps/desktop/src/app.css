@@ -50,6 +50,11 @@
   /* Chart series, validated for colour-vision deficiencies on the light surface. */
   --series-1: #6a4dff;
   --series-2: #0891b2;
+  /* Flame graph origins: the first three validated categorical slots, and a neutral for the kernel. */
+  --flame-app: #2a78d6;
+  --flame-framework: #1baf7a;
+  --flame-native: #eb6834;
+  --flame-kernel: #98a0b3;
   --lv-verbose: #98a0b3;
   --lv-debug: #2563eb;
   --lv-info: #059669;
@@ -82,6 +87,10 @@
   /* Chart series, validated against the dark surface (lightness band 0.48–0.67). */
   --series-1: #8b6dff;
   --series-2: #0a9cc0;
+  --flame-app: #3987e5;
+  --flame-framework: #199e70;
+  --flame-native: #d95926;
+  --flame-kernel: #6b7388;
   --lv-verbose: #6b7388;
   --lv-debug: #60a5fa;
   --lv-info: #34d399;
