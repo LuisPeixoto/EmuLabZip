@@ -6,6 +6,8 @@
 
 pub mod backend;
 pub mod buffer;
+pub mod control;
+pub mod crash;
 pub mod device;
 pub mod error;
 pub mod files;
@@ -19,6 +21,8 @@ pub mod trace;
 
 pub use backend::{Backend, Lab, LogOptions};
 pub use buffer::RingBuffer;
+pub use control::{Appearance, Control, ControlInfo, Grant, PermissionState, StatusBar};
+pub use crash::{CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, Hint, ThreadTrace};
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
