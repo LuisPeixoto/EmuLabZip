@@ -76,6 +76,105 @@ export interface HostInfo {
   version: string;
 }
 
+export interface PerfOptions {
+  app: string | null;
+  intervalMs: number;
+}
+
+export interface PerfSample {
+  tMs: number;
+  pid: number | null;
+  appCpu: number | null;
+  deviceCpu: number | null;
+  appMemoryKb: number | null;
+  deviceMemoryUsedKb: number | null;
+  deviceMemoryTotalKb: number | null;
+  fps: number | null;
+  jankPercent: number | null;
+  batteryLevel: number | null;
+  batteryTempC: number | null;
+}
+
+export interface MemoryCategory {
+  name: string;
+  kb: number;
+}
+
+export interface MemoryReport {
+  app: string;
+  pid: number;
+  metric: string;
+  totalKb: number;
+  categories: MemoryCategory[];
+  details: [string, string][];
+}
+
+export interface CategoryDelta {
+  name: string;
+  beforeKb: number;
+  afterKb: number;
+  deltaKb: number;
+}
+
+export interface StorageRoot {
+  id: string;
+  label: string;
+  location: string;
+  unavailable: string | null;
+}
+
+export interface FileEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+  size: number;
+  modified: number | null;
+}
+
+export type FileKind = "sqlite" | "sharedPrefs" | "plist" | "json" | "image" | "text" | "binary";
+
+export interface Pref {
+  key: string;
+  kind: string;
+  value: string;
+}
+
+export interface Column {
+  name: string;
+  declType: string;
+  primaryKey: boolean;
+  notNull: boolean;
+}
+
+export interface Table {
+  name: string;
+  kind: string;
+  rows: number;
+  columns: Column[];
+  sql: string;
+}
+
+export interface Rows {
+  columns: string[];
+  rows: unknown[][];
+  truncated: boolean;
+}
+
+export interface Preview {
+  id: number;
+  name: string;
+  size: number;
+  kind: FileKind | null;
+  text: string | null;
+  truncated: boolean;
+  image: string | null;
+  prefs: Pref[] | null;
+  plist: unknown;
+  tables: Table[] | null;
+  hex: string | null;
+  error: string | null;
+}
+
 export function targetOf(d: Device): Target {
   return { platform: d.platform, id: d.id };
 }
@@ -105,4 +204,22 @@ export const api = {
     return invoke<number>("start_logs", { target, options, onBatch: channel });
   },
   stopSession: (id: number) => invoke<void>("stop_session", { id }),
+  async startPerf(target: Target, options: PerfOptions, onSample: (s: PerfSample) => void): Promise<number> {
+    const channel = new Channel<PerfSample>();
+    channel.onmessage = onSample;
+    return invoke<number>("start_perf", { target, options, onSample: channel });
+  },
+  memoryReport: (target: Target, app: string) => invoke<MemoryReport>("memory_report", { target, app }),
+  memoryDiff: (before: MemoryReport, after: MemoryReport) => invoke<CategoryDelta[]>("memory_diff", { before, after }),
+  saveHeapDump: (target: Target, pkg: string) => invoke<string | null>("save_heap_dump", { target, package: pkg }),
+  storageRoots: (target: Target, app: string) => invoke<StorageRoot[]>("storage_roots", { target, app }),
+  listFiles: (target: Target, app: string, root: string, path: string) =>
+    invoke<FileEntry[]>("list_files", { target, app, root, path }),
+  openFile: (target: Target, app: string, root: string, path: string) =>
+    invoke<Preview>("open_file", { target, app, root, path }),
+  sqliteRows: (id: number, table: string, offset: number, limit: number) =>
+    invoke<Rows>("sqlite_rows", { id, table, offset, limit }),
+  sqliteQuery: (id: number, sql: string) => invoke<Rows>("sqlite_query", { id, sql }),
+  saveFile: (target: Target, app: string, root: string, path: string) =>
+    invoke<string | null>("save_file", { target, app, root, path }),
 };
