@@ -1,12 +1,15 @@
 //! The iOS Simulator implementation of [`Backend`].
 
 use async_trait::async_trait;
-use emulabzip_core::{App, Backend, Device, Error, InfoSection, LogEntry, LogOptions, Platform, Result, Stream};
+use emulabzip_core::{
+    App, Backend, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport, PerfOptions,
+    PerfSample, Platform, Result, StorageRoot, Stream,
+};
 use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, oslog, simctl};
+use crate::{apps, memory, oslog, perf, simctl, storage};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone, Default)]
@@ -28,6 +31,14 @@ impl AppleBackend {
             .into_iter()
             .find(|d| d.udid == udid)
             .ok_or_else(|| Error::DeviceNotFound(udid.to_string()))
+    }
+
+    async fn root_path(&self, udid: &str, app: &str, root: &str) -> Result<std::path::PathBuf> {
+        storage::roots(&self.listapps(udid).await?, app)?
+            .into_iter()
+            .find(|(r, _)| r.id == root)
+            .map(|(_, p)| p)
+            .ok_or_else(|| Error::invalid("storage root", root))
     }
 
     /// The installed apps as JSON, keyed by bundle id.
@@ -98,5 +109,30 @@ impl Backend for AppleBackend {
         result?;
         let png = png?;
         if png.starts_with(b"\x89PNG") { Ok(png) } else { Err(Error::Simctl("the screenshot was empty".into())) }
+    }
+
+    async fn perf(&self, id: &str, options: PerfOptions) -> Result<Stream<PerfSample>> {
+        Ok(perf::stream(id.to_string(), options))
+    }
+
+    async fn memory(&self, id: &str, app: &str) -> Result<MemoryReport> {
+        memory::report(id, app).await
+    }
+
+    async fn heap_dump(&self, id: &str, app: &str) -> Result<HeapDump> {
+        let stamp = host_output("date", &["+%Y%m%d-%H%M%S"]).await.unwrap_or_else(|| "snapshot".into());
+        memory::memgraph(id, app, &stamp).await
+    }
+
+    async fn storage_roots(&self, id: &str, app: &str) -> Result<Vec<StorageRoot>> {
+        Ok(storage::roots(&self.listapps(id).await?, app)?.into_iter().map(|(r, _)| r).collect())
+    }
+
+    async fn list_files(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
+        storage::list(&self.root_path(id, app, root).await?, path).await
+    }
+
+    async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
+        storage::read(&self.root_path(id, app, root).await?, path).await
     }
 }
