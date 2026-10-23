@@ -1,6 +1,7 @@
 //! Terminal styling shared by the commands.
 
 use emulabzip_core::{Device, DeviceState, LogEntry, LogLevel, Platform};
+use emulabzip_net::{FlowKind, FlowState, FlowSummary};
 use owo_colors::{OwoColorize, Stream::Stdout, Style};
 
 pub fn heading(text: &str) -> String {
@@ -34,6 +35,47 @@ pub fn log_line(e: &LogEntry) -> String {
         e.tag.if_supports_color(Stdout, |t| t.style(style.bold())),
         e.message
     )
+}
+
+/// A size such as `1.4 KB`.
+pub fn size(bytes: u64) -> String {
+    match bytes {
+        0..1024 => format!("{bytes} B"),
+        1024..1_048_576 => format!("{:.1} KB", bytes as f64 / 1024.0),
+        _ => format!("{:.1} MB", bytes as f64 / 1_048_576.0),
+    }
+}
+
+/// One finished flow on one line, with the status coloured by its class.
+pub fn flow_line(f: &FlowSummary) -> String {
+    let status = match (f.status, f.state) {
+        (Some(s), _) => {
+            let style = match s {
+                200..300 => Style::new().green(),
+                300..400 => Style::new().cyan(),
+                400..500 => Style::new().yellow(),
+                _ => Style::new().red(),
+            };
+            format!("{s:>3}").if_supports_color(Stdout, |t| t.style(style)).to_string()
+        }
+        (None, FlowState::Failed) => "ERR".if_supports_color(Stdout, |t| t.red()).to_string(),
+        (None, _) => " — ".to_string(),
+    };
+    let kind = match f.kind {
+        FlowKind::Http => format!("{:<7}", f.method),
+        FlowKind::WebSocket => "WS     ".to_string(),
+        FlowKind::Tunnel => "TUNNEL ".to_string(),
+    };
+    let target = match f.kind {
+        FlowKind::Tunnel => format!("{}:{}", f.host, f.port),
+        _ => f.url.clone(),
+    };
+    let time = f.duration_ms.map(|ms| format!("{ms} ms")).unwrap_or_default();
+    let mut line = format!("{status} {kind} {target}  {}  {}", dim(&size(f.response_size)), dim(&time));
+    if let Some(error) = &f.error {
+        line.push_str(&format!("\n    {}", error.if_supports_color(Stdout, |t| t.yellow())));
+    }
+    line
 }
 
 pub fn platform_badge(p: Platform) -> String {
