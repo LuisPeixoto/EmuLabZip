@@ -15,7 +15,7 @@
 
 {#snippet bars(rows: { label: string; sub?: string; value: number; text: string }[], max: number)}
   <ul class="space-y-1.5">
-    {#each rows as r (r.label + (r.sub ?? ""))}
+    {#each rows as r, i (i)}
       <li class="grid grid-cols-[minmax(0,1fr)_84px] items-center gap-3">
         <div class="min-w-0">
           <p class="flex items-baseline gap-2 text-[12px]">

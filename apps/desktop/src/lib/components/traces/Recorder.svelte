@@ -112,7 +112,7 @@
   <p class="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted">
     <Icon name="smartphone" size={12} class="text-faint" />
     {#if app.device}
-      {app.device.name}{#if appName} · focused on <span class="font-medium text-fg">{appName}</span>{:else} · no app picked{/if}
+      {app.device.name}{" "}{#if appName} · focused on <span class="font-medium text-fg">{appName}</span>{:else} · no app picked{/if}
     {:else}
       No device selected
     {/if}
