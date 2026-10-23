@@ -34,6 +34,7 @@ app and the CLI) use them the same way.
 | `emulabzip-apple` | Implements `Backend` for the iOS Simulator with `xcrun simctl`. Parsers for the device list, ndjson logs and app lists. |
 | `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
 | `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
+| `emulabzip-trace` | Making sense of recordings: the flame graph model, parsers for simpleperf reports and `xctrace` exports, Perfetto configurations, the trace processor (download, SQL, summaries), the one-shot server for the Perfetto UI, and the library of recordings. No platform code. |
 | `emulabzip-cli` | The `emulabzip` command. |
 | `apps/desktop` | The Tauri 2 shell (`src-tauri`) and the Svelte 5 interface (`src`). |
 
@@ -57,6 +58,8 @@ pub trait Backend: Send + Sync {
     async fn storage_roots(&self, id: &str, app: &str) -> Result<Vec<StorageRoot>>;
     async fn list_files(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>>;
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>>;
+    async fn trace_templates(&self, id: &str) -> Result<Vec<String>>;
+    async fn record_trace(&self, id: &str, request: &TraceRequest, out_dir: &Path, stop: watch::Receiver<bool>) -> Result<TraceFile>;
     async fn network_status(&self, id: &str) -> Result<NetworkStatus>;
     async fn connect_network(&self, id: &str, port: u16) -> Result<NetworkStatus>;
     async fn disconnect_network(&self, id: &str) -> Result<NetworkStatus>;
