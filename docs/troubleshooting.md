@@ -72,6 +72,28 @@ once: it restores the proxy settings it saved if an earlier run was killed. Othe
 Changing the Mac's proxy is a system setting. EmuLabZip tries as you first and asks for administrator rights only if
 macOS refuses.
 
+## Traces: "Perfetto did not record a trace"
+
+Perfetto needs Android 9 or newer. If the message names a permission, restart the emulator, or run
+`adb shell setprop persist.traced.enable 1` and record again. A custom configuration with a syntax error is reported
+by Perfetto itself; check it with `adb shell perfetto --txt -c - -o /data/misc/perfetto-traces/test <config.txt`.
+
+## Traces: a CPU profile fails
+
+simpleperf only samples apps that are *debuggable* or *profileable*, and the app must be running. For the whole system
+you need an emulator image that allows `adb root` (not Google Play). "No samples were recorded" means the app did
+nothing while recording: use it, then record again.
+
+## Traces: Instruments says Developer Mode is off
+
+Run `sudo DevToolsSecurity -enable` in a terminal, enter your password, and record again. `DevToolsSecurity -status`
+shows the current state.
+
+## Traces: the download of the trace processor fails
+
+It comes from `github.com/google/perfetto/releases`. Behind a proxy, set `HTTPS_PROXY`. A file that does not match the
+pinned SHA-256 is discarded and never run. You can still open any Perfetto trace in the Perfetto UI.
+
 ## Getting diagnostics
 
 Start the app or the CLI with `EMULABZIP_LOG=debug` and include the output when you
