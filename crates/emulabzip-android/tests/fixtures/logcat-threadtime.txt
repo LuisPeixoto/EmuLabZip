@@ -1,0 +1,21 @@
+--------- beginning of system
+10-23 12:56:36.856  1059  1137 D WorkspaceItemProcessor: valid target true, marking restored: com.google.android.apps.messaging, itemType=0, restoreFlag=0
+10-23 12:56:36.857  1059  1059 D ActivityAllAppsContainerView: rebindAdapters: force: true
+10-23 12:56:36.857  1059  1059 D ActivityAllAppsContainerView: replaceAppsRVContainer: showTabs: false
+10-23 12:56:36.857  1059  1059 D AlphabeticalAppsList: Clearing FastScrollerSections.
+10-23 12:56:36.857  1059  1059 D AlphabeticalAppsList: Adding apps with sections. HasPrivateApps: true
+10-23 12:56:36.859  1059  1137 D WorkspaceItemProcessor: valid target true, marking restored: com.android.chrome, itemType=0, restoreFlag=0
+10-23 12:56:36.856   672   672 I system_server: AssetManager2(0x771c2fd219d8) locale list changing from [] to [en-US]
+10-23 12:56:36.862   672   703 I ActivityManager: Start proc 1994:com.google.android.deskclock/u0a164 for content provider {com.google.android.deskclock/com.android.deskclock.provider.ClockContentProvider}
+10-23 12:56:36.874  1487  1737 I FuseDaemon: Leveldb connection established for :internal
+10-23 12:56:36.876  1238  1939 I LocationSettings: (REDACTED) Read NLP consent from settings: %b
+10-23 12:56:36.877   672   701 I AppBindingService: Connected: com.google.android.apps.messaging/com.google.android.ims.binding.SystemBindingService u0
+10-23 12:56:36.878   672   703 I ActivityManager: ProcessObserver broadcast disabled
+10-23 12:56:36.855   672   672 W Looper  : Slow dispatch took 182ms main app=system_server main=true group=FOREGROUND h=android.app.ActivityThread$H c=android.app.LoadedApk$ReceiverDispatcher$Args$$ExternalSyntheticLambda0@31d4e31 m=0
+10-23 12:56:36.857  1385  1462 W JobInfo : Requested important-while-foreground flag for job50 is ignored and takes no effect
+10-23 12:56:36.858  1385  1462 W JobInfo : Requested important-while-foreground flag for job55 is ignored and takes no effect
+10-23 12:56:36.859  1385  1462 W JobInfo : Requested important-while-foreground flag for job51 is ignored and takes no effect
+10-23 12:56:36.849  1385  1467 E ActivityThread: Failed to find provider info for com.google.android.setupwizard.deviceorigin
+10-23 12:56:36.857  1059  1059 E RecyclerView: Cannot scroll to position a LayoutManager set. Call setLayoutManager with a non-null argument.
+10-23 12:56:36.857  1059  1059 E RecyclerView: Cannot scroll to position a LayoutManager set. Call setLayoutManager with a non-null argument.
+10-23 12:56:36.870  1385  1466 E HandwritingSuperpacksUtil: HandwritingSuperpacksUtil.getPackMappingPackName():42 No pack mapping pack found in []
