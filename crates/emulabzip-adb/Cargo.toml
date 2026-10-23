@@ -1,0 +1,15 @@
+[package]
+name = "emulabzip-adb"
+description = "A small async client for the ADB host protocol (devices, shell, exec and sync)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+emulabzip-core.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
