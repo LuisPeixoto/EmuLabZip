@@ -19,9 +19,30 @@ emulabzip-adb = { path = "crates/emulabzip-adb" }
 emulabzip-android = { path = "crates/emulabzip-android" }
 emulabzip-apple = { path = "crates/emulabzip-apple" }
 emulabzip-storage = { path = "crates/emulabzip-storage" }
+emulabzip-net = { path = "crates/emulabzip-net" }
 
 anyhow = "1"
 base64 = "0.22"
+brotli = "8"
+bytes = "1"
+dirs = "6"
+flate2 = "1"
+http = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["server", "client", "http1", "http2"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "logging"] }
+hyper-util = { version = "0.1", features = ["server-auto", "client-legacy", "tokio", "http1", "http2"] }
+lru = "0.16"
+md-5 = "0.10"
+rcgen = { version = "0.14", features = ["pem", "x509-parser"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustls-native-certs = "0.8"
+rustls-pemfile = "2"
+time = { version = "0.3", features = ["formatting"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+webpki-roots = "1"
+x509-parser = "0.18"
+zstd = "0.13"
 async-trait = "0.1"
 clap = { version = "4", features = ["derive", "env"] }
 parking_lot = "0.12"
