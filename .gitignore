@@ -1,0 +1,18 @@
+# Build output
+/target
+apps/desktop/dist
+apps/desktop/src-tauri/gen
+
+# Dependencies
+node_modules
+
+# Captures and local data
+*.hprof
+*.pftrace
+*.trace
+.emulabzip/
+
+# Editors / OS / tooling
+.DS_Store
+.idea
+.vscode
