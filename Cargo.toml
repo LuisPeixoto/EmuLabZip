@@ -49,6 +49,9 @@ clap = { version = "4", features = ["derive", "env"] }
 parking_lot = "0.12"
 plist = "1"
 prost = "0.14"
+sha2 = "0.10"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 owo-colors = { version = "4", features = ["supports-colors"] }
 regex = "1"
 roxmltree = "0.21"
