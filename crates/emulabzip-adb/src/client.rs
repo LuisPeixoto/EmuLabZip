@@ -152,11 +152,50 @@ impl AdbClient {
             .collect())
     }
 
+    /// Removes one reverse forward, leaving the others (for example Metro's `tcp:8081`) alone.
+    pub async fn reverse_remove(&self, serial: &str, remote: &str) -> Result<()> {
+        let mut c = self.transport(serial).await?;
+        c.request(&format!("reverse:killforward:{remote}")).await?;
+        check_reply(&c.read_to_end().await?)
+    }
+
     /// Removes every reverse forward on the device.
     pub async fn reverse_remove_all(&self, serial: &str) -> Result<()> {
         let mut c = self.transport(serial).await?;
         c.request("reverse:killforward-all").await?;
         check_reply(&c.read_to_end().await?)
+    }
+
+    /// Restarts `adbd` as root, like `adb root`. Returns what the device said:
+    /// "restarting adbd as root", "adbd is already running as root", or
+    /// "adbd cannot run as root in production builds".
+    pub async fn root(&self, serial: &str) -> Result<String> {
+        self.restart_adbd(serial, "root:").await
+    }
+
+    /// Restarts `adbd` as the shell user again, like `adb unroot`.
+    pub async fn unroot(&self, serial: &str) -> Result<String> {
+        self.restart_adbd(serial, "unroot:").await
+    }
+
+    async fn restart_adbd(&self, serial: &str, service: &str) -> Result<String> {
+        let mut c = self.transport(serial).await?;
+        c.request(service).await?;
+        Ok(String::from_utf8_lossy(&c.read_to_end().await?).trim().to_string())
+    }
+
+    /// Waits until the device answers shell commands again, for example after `adbd` restarted.
+    pub async fn wait_until_ready(&self, serial: &str, timeout: std::time::Duration) -> Result<()> {
+        let deadline = tokio::time::Instant::now() + timeout;
+        loop {
+            if self.shell(serial, "echo ready").await.is_ok_and(|out| out.trim() == "ready") {
+                return Ok(());
+            }
+            if tokio::time::Instant::now() >= deadline {
+                return Err(Error::Adb(format!("{serial} did not come back in time")));
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        }
     }
 
     /// Opens a file sync session.
