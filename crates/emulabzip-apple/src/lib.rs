@@ -10,6 +10,7 @@ pub mod backend;
 pub mod devices;
 pub mod info;
 pub mod memory;
+pub mod network;
 pub mod oslog;
 pub mod perf;
 pub mod simctl;

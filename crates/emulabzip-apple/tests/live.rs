@@ -67,3 +67,80 @@ async fn samples_memory_and_storage() {
     println!("{:?}", entries.iter().map(|e| &e.name).collect::<Vec<_>>());
     assert!(entries.iter().any(|e| e.name == "Library"));
 }
+
+/// Every proxy setting of every network service, as text, to compare before and after.
+fn proxy_snapshot() -> String {
+    let run = |args: &[&str]| {
+        let out = std::process::Command::new("networksetup").args(args).output().unwrap();
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+    let services = run(&["-listallnetworkservices"]);
+    services
+        .lines()
+        .skip(1)
+        .filter(|s| !s.starts_with('*'))
+        .map(|s| {
+            format!(
+                "[{s}]\n{}{}{}",
+                run(&["-getwebproxy", s]),
+                run(&["-getsecurewebproxy", s]),
+                run(&["-getproxybypassdomains", s])
+            )
+        })
+        .collect()
+}
+
+/// Changes the proxy settings of this Mac while it runs, and puts them back.
+#[tokio::test]
+#[ignore = "changes this Mac's proxy settings while it runs, then restores them"]
+async fn routes_the_mac_through_the_proxy_and_restores_it() {
+    let dir = std::env::temp_dir().join(format!("emulabzip-apple-live-{}", std::process::id()));
+    let backend = AppleBackend::with_state_dir(&dir);
+    let saved = dir.join(emulabzip_apple::network::STATE_FILE);
+    let id = backend.devices().await.unwrap().first().expect("a booted simulator").id.clone();
+    let before = proxy_snapshot();
+    assert!(
+        !backend.network_status(&id).await.unwrap().connected,
+        "the Mac already uses a local proxy; turn it off first"
+    );
+
+    // A failed assertion inside the task must not leave the Mac's traffic going nowhere.
+    let task = {
+        let (backend, id, saved) = (backend.clone(), id.clone(), saved.clone());
+        tokio::spawn(async move {
+            let on = backend.connect_network(&id, 9094).await.unwrap();
+            assert!(on.connected && on.proxy.as_deref() == Some("127.0.0.1:9094"), "{on:?}");
+            assert!(saved.exists(), "the original settings must be saved before changing them");
+
+            // Connecting again keeps the original settings, not our own.
+            backend.connect_network(&id, 9094).await.unwrap();
+        })
+    };
+    let outcome = task.await;
+    let off = backend.disconnect_network(&id).await.unwrap();
+    outcome.unwrap();
+
+    assert!(!off.connected && off.proxy.is_none(), "{off:?}");
+    assert_eq!(proxy_snapshot(), before, "the Mac's proxy settings must be exactly as they were");
+    assert!(!saved.exists(), "the saved copy is removed once it is restored");
+    assert!(!backend.restore_system_proxy().await.unwrap(), "nothing is left to restore");
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[tokio::test]
+#[ignore = "adds a throwaway root certificate to the simulator, and simctl cannot remove it again"]
+async fn trusts_a_certificate_in_the_simulator() {
+    use emulabzip_core::CaKind;
+
+    let backend = AppleBackend::new();
+    let id = backend.devices().await.unwrap().first().expect("a booted simulator").id.clone();
+    let key = rcgen::KeyPair::generate().unwrap();
+    let mut params = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
+    params.distinguished_name.push(rcgen::DnType::CommonName, "EmuLabZip live test CA");
+    params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+    let cert = params.self_signed(&key).unwrap();
+
+    let result = backend.install_ca(&id, &cert.pem(), cert.der()).await.unwrap();
+    assert_eq!(result.kind, CaKind::Simulator);
+    assert!(result.done);
+}

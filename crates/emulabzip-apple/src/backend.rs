@@ -2,22 +2,42 @@
 
 use async_trait::async_trait;
 use emulabzip_core::{
-    App, Backend, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport, PerfOptions,
-    PerfSample, Platform, Result, StorageRoot, Stream,
+    App, Backend, CaInstall, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport,
+    NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream,
 };
 use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, memory, oslog, perf, simctl, storage};
+use crate::{apps, memory, network, oslog, perf, simctl, storage};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
-#[derive(Debug, Clone, Default)]
-pub struct AppleBackend;
+#[derive(Debug, Clone)]
+pub struct AppleBackend {
+    /// Where the Mac's proxy settings are saved while the simulator's traffic is captured.
+    state_dir: std::path::PathBuf,
+}
+
+impl Default for AppleBackend {
+    fn default() -> Self {
+        AppleBackend::new()
+    }
+}
 
 impl AppleBackend {
     pub fn new() -> Self {
-        AppleBackend
+        AppleBackend { state_dir: dirs::data_dir().unwrap_or_else(std::env::temp_dir).join("EmuLabZip") }
+    }
+
+    /// Keeps the saved proxy settings in `dir` instead of the default folder. Used by tests.
+    pub fn with_state_dir(dir: impl Into<std::path::PathBuf>) -> Self {
+        AppleBackend { state_dir: dir.into() }
+    }
+
+    /// Puts the Mac's proxy back the way it was if EmuLabZip left it pointing at itself, for
+    /// example after being killed. Returns whether it had to. Call it at startup and at exit.
+    pub async fn restore_system_proxy(&self) -> Result<bool> {
+        network::restore_leftover(&self.state_dir).await
     }
 
     /// Every available iOS simulator, including the ones that are shut down.
@@ -134,5 +154,21 @@ impl Backend for AppleBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.root_path(id, app, root).await?, path).await
+    }
+
+    async fn network_status(&self, _id: &str) -> Result<NetworkStatus> {
+        network::status().await
+    }
+
+    async fn connect_network(&self, _id: &str, port: u16) -> Result<NetworkStatus> {
+        network::connect(&self.state_dir, port).await
+    }
+
+    async fn disconnect_network(&self, _id: &str) -> Result<NetworkStatus> {
+        network::disconnect(&self.state_dir).await
+    }
+
+    async fn install_ca(&self, id: &str, pem: &str, _der: &[u8]) -> Result<CaInstall> {
+        network::install_ca(id, pem).await
     }
 }
