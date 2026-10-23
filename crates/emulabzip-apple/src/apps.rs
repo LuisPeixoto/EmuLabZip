@@ -50,7 +50,7 @@ pub fn data_container(listapps: &Value, bundle_id: &str) -> Option<String> {
     Some(file_url_to_path(url))
 }
 
-fn file_url_to_path(url: &str) -> String {
+pub fn file_url_to_path(url: &str) -> String {
     let path = url.strip_prefix("file://").unwrap_or(url);
     let path = path.strip_suffix('/').unwrap_or(path);
     percent_decode(path)
