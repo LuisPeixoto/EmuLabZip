@@ -264,6 +264,112 @@ export function osLabel(d: Device): string {
   return name;
 }
 
+export type PerfettoPreset = "cpu" | "frames" | "memory" | "custom";
+
+export type TraceRequest =
+  | { kind: "perfetto"; preset: PerfettoPreset; config: string | null; durationS: number; app: string | null }
+  | { kind: "cpuProfile"; app: string | null; durationS: number; systemWide: boolean }
+  | { kind: "instruments"; template: string; app: string | null; durationS: number };
+
+export type TraceFormat = "perfetto" | "simpleperfReport" | "instrumentsBundle";
+
+export interface Recording {
+  id: string;
+  platform: Platform;
+  device: string;
+  request: TraceRequest;
+  format: TraceFormat;
+  createdMs: number;
+  file: string;
+  extras: string[];
+  sizeBytes: number;
+}
+
+export type TraceEvent =
+  | { type: "recording"; elapsedMs: number; stopping: boolean }
+  | { type: "done"; recording: Recording }
+  | { type: "failed"; message: string };
+
+export interface ProcessorStatus {
+  supported: boolean;
+  installed: boolean;
+  version: string;
+  sizeBytes: number | null;
+  url: string | null;
+}
+
+export interface DownloadProgress {
+  done: number;
+  total: number | null;
+}
+
+export interface CpuUse {
+  name: string;
+  pid: number;
+  durNs: number;
+}
+
+export interface ThreadUse {
+  name: string;
+  tid: number;
+  process: string;
+  durNs: number;
+}
+
+export interface FrameSummary {
+  total: number;
+  missed: number;
+  p50Ms: number;
+  p90Ms: number;
+  p99Ms: number;
+  worstMs: number;
+  jank: [string, number][];
+  layers: { name: string; frames: number; missed: number; avgMs: number }[];
+}
+
+export interface TraceSummary {
+  durationS: number;
+  processes: number;
+  threads: number;
+  cpu: { cpus: number; busyFraction: number; byProcess: CpuUse[]; byThread: ThreadUse[] } | null;
+  frames: FrameSummary | null;
+  memory: {
+    system: { name: string; min: number; max: number; avg: number }[];
+    processes: { name: string; pid: number; peakBytes: number; lowBytes: number }[];
+  } | null;
+  slices: { name: string; count: number; totalNs: number; maxNs: number }[];
+}
+
+export type Origin = "app" | "framework" | "native" | "kernel";
+
+export interface FlameNode {
+  name: string;
+  origin: Origin;
+  value: number;
+  own: number;
+  samples: number;
+  children: FlameNode[];
+}
+
+export interface CpuView {
+  source: "simpleperf" | "instruments";
+  unit: "ns" | "events";
+  processes: {
+    key: string;
+    name: string;
+    samples: number;
+    weight: number;
+    threads: { key: string; name: string; weight: number }[];
+  }[];
+  flame: FlameNode;
+  hotspots: { name: string; origin: Origin; own: number }[];
+}
+
+export type Opened =
+  | { view: "perfetto"; summary: TraceSummary }
+  | ({ view: "cpu" } & CpuView)
+  | { view: "external"; reason: string };
+
 export function errorText(e: unknown): string {
   return typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
 }
@@ -295,6 +401,30 @@ export const api = {
     channel.onmessage = onBatch;
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
+  traceTemplates: (target: Target) => invoke<string[]>("trace_templates", { target }),
+  async traceStart(target: Target, device: string, request: TraceRequest, onEvent: (e: TraceEvent) => void): Promise<number> {
+    const channel = new Channel<TraceEvent>();
+    channel.onmessage = onEvent;
+    return invoke<number>("trace_start", { target, device, request, onEvent: channel });
+  },
+  traceStop: (session: number) => invoke<void>("trace_stop", { session }),
+  traceList: () => invoke<Recording[]>("trace_list"),
+  traceDelete: (id: string) => invoke<void>("trace_delete", { id }),
+  traceProcessorStatus: () => invoke<ProcessorStatus>("trace_processor_status"),
+  async traceInstallProcessor(onProgress: (p: DownloadProgress) => void): Promise<void> {
+    const channel = new Channel<DownloadProgress>();
+    channel.onmessage = onProgress;
+    return invoke<void>("trace_install_processor", { onProgress: channel });
+  },
+  traceOpen: (id: string) => invoke<Opened>("trace_open", { id }),
+  traceFlame: (id: string, process: string | null, thread: string | null) =>
+    invoke<CpuView>("trace_flame", { id, process, thread }),
+  traceFolded: (id: string, process: string | null, thread: string | null) =>
+    invoke<string>("trace_folded", { id, process, thread }),
+  traceQuery: (id: string, sql: string) => invoke<Rows>("trace_query", { id, sql }),
+  traceOpenPerfettoUi: (id: string) => invoke<void>("trace_open_perfetto_ui", { id }),
+  traceOpenExternal: (id: string) => invoke<void>("trace_open_external", { id }),
+  traceSave: (id: string) => invoke<string | null>("trace_save", { id }),
   netClear: () => invoke<void>("net_clear"),
   netFlow: (id: number) => invoke<FlowDetail>("net_flow", { id }),
   netExportHar: () => invoke<string | null>("net_export_har"),
