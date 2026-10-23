@@ -18,9 +18,9 @@
     { view: "logs", icon: "terminal", label: "Logs" },
   ];
   const profile: Item[] = [
-    { view: "performance", icon: "activity", label: "Performance", soon: "Phase 2" },
-    { view: "memory", icon: "cpu", label: "Memory", soon: "Phase 2" },
-    { view: "storage", icon: "database", label: "Storage", soon: "Phase 2" },
+    { view: "performance", icon: "activity", label: "Performance" },
+    { view: "memory", icon: "cpu", label: "Memory" },
+    { view: "storage", icon: "database", label: "Storage" },
   ];
   const later: Item[] = [
     { view: "network", icon: "globe", label: "Network", soon: "Phase 3" },

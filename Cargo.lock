@@ -1031,6 +1031,7 @@ dependencies = [
  "emulabzip-android",
  "emulabzip-apple",
  "emulabzip-core",
+ "emulabzip-storage",
  "parking_lot",
  "serde",
  "serde_json",

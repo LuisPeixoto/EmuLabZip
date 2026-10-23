@@ -9,7 +9,10 @@
   import Toasts from "./lib/components/Toasts.svelte";
   import Toolbar from "./lib/components/Toolbar.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
+  import Memory from "./lib/components/views/Memory.svelte";
   import Overview from "./lib/components/views/Overview.svelte";
+  import Performance from "./lib/components/views/Performance.svelte";
+  import Storage from "./lib/components/views/Storage.svelte";
   import Upcoming from "./lib/components/views/Upcoming.svelte";
 
   let screenshotOpen = $state(false);
@@ -87,29 +90,11 @@
       {:else if app.view === "logs"}
         <Logs />
       {:else if app.view === "performance"}
-        <Upcoming
-          icon="activity"
-          phase="Phase 2"
-          title="Performance"
-          summary="Live charts for the app you pick in the toolbar, sampled straight from the device."
-          features={["CPU usage per app and per device", "Memory (PSS, Java, native, graphics) over time", "Frame rate and janky frames", "Battery level and temperature"]}
-        />
+        <Performance />
       {:else if app.view === "memory"}
-        <Upcoming
-          icon="cpu"
-          phase="Phase 2"
-          title="Memory"
-          summary="Understand where an app's memory goes, and catch leaks between two snapshots."
-          features={["Memory breakdown by category", "Snapshots with a diff between two points in time", "Heap dumps (.hprof) for Android Studio, MAT or Perfetto"]}
-        />
+        <Memory />
       {:else if app.view === "storage"}
-        <Upcoming
-          icon="database"
-          phase="Phase 2"
-          title="Storage"
-          summary="Browse an app's sandbox and look inside its databases and preferences."
-          features={["File browser for the app container", "SQLite inspector with paged rows and SQL queries", "SharedPreferences and NSUserDefaults viewers"]}
-        />
+        <Storage />
       {:else if app.view === "network"}
         <Upcoming
           icon="globe"
