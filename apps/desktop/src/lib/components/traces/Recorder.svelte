@@ -132,7 +132,11 @@
       <div class="mt-2 flex items-center gap-3">
         <span class="live-dot size-2 rounded-full bg-err"></span>
         <span class="mono flex-1 text-[12.5px]">
-          {traces.stopping ? "Finishing…" : "Recording"} {clock(Math.min(traces.elapsedMs, s.durationS * 1000))} / {clock(s.durationS * 1000)}
+          {#if traces.stopping || traces.elapsedMs >= s.durationS * 1000}
+            Processing…
+          {:else}
+            Recording {clock(traces.elapsedMs)} / {clock(s.durationS * 1000)}
+          {/if}
         </span>
         <button
           onclick={() => traces.stop()}
