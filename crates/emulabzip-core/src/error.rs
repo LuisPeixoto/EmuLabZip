@@ -26,6 +26,9 @@ pub enum Error {
     Parse { what: &'static str, detail: String },
     #[error("invalid {what}: `{value}`")]
     Invalid { what: &'static str, value: String },
+    /// Something went wrong that no other variant describes. The message is for the user.
+    #[error("{0}")]
+    Failed(String),
     #[error(transparent)]
     Io(#[from] io::Error),
 }
@@ -33,6 +36,10 @@ pub enum Error {
 impl Error {
     pub fn parse(what: &'static str, detail: impl Into<String>) -> Self {
         Error::Parse { what, detail: detail.into() }
+    }
+
+    pub fn failed(message: impl Into<String>) -> Self {
+        Error::Failed(message.into())
     }
 
     pub fn invalid(what: &'static str, value: impl Into<String>) -> Self {
