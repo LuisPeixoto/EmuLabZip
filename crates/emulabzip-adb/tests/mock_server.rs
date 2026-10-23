@@ -33,6 +33,20 @@ async fn serve(listener: TcpListener) {
                     s.write_all(b"OKAY").await.unwrap();
                     let service = read_request(&mut s).await;
                     s.write_all(b"OKAY").await.unwrap();
+                    if service.starts_with("reverse:forward:") {
+                        // The service confirms a second time, then reports the port.
+                        s.write_all(b"OKAY00049998").await.unwrap();
+                        return;
+                    }
+                    if service == "reverse:list-forward" {
+                        let list = "host-16 tcp:9998 tcp:9998\n";
+                        s.write_all(format!("{:04x}{list}", list.len()).as_bytes()).await.unwrap();
+                        return;
+                    }
+                    if service == "reverse:killforward-all" {
+                        s.write_all(b"OKAY").await.unwrap();
+                        return;
+                    }
                     let out: &[u8] = match service.as_str() {
                         "shell:getprop ro.build.version.sdk" => b"35\n",
                         "exec:screencap -p" => b"\x89PNG\r\n\x1a\n",
@@ -92,4 +106,12 @@ async fn a_missing_server_is_a_clear_error() {
     let addr = TcpListener::bind("127.0.0.1:0").await.unwrap().local_addr().unwrap();
     let err = AdbClient::with_addr(addr).version().await.unwrap_err();
     assert!(err.to_string().contains("no adb server"), "{err}");
+}
+
+#[tokio::test]
+async fn manages_reverse_forwards() {
+    let c = client().await;
+    c.reverse("emulator-5554", "tcp:9998", "tcp:9998").await.unwrap();
+    assert_eq!(c.reverse_list("emulator-5554").await.unwrap(), [("tcp:9998".to_string(), "tcp:9998".to_string())]);
+    c.reverse_remove_all("emulator-5554").await.unwrap();
 }

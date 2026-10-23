@@ -118,3 +118,23 @@ async fn reads_debuggable_app_data() {
     let png = backend.read_file(&id, app, "data", "files/logo.png").await.unwrap();
     assert!(png.starts_with(b"\x89PNG"), "binary files must survive the trip intact");
 }
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn forwards_ports_and_pushes_files() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let adb = backend.adb();
+
+    adb.reverse(&id, "tcp:9997", "tcp:9997").await.unwrap();
+    assert!(adb.reverse_list(&id).await.unwrap().iter().any(|(r, _)| r == "tcp:9997"));
+    adb.reverse_remove_all(&id).await.unwrap();
+    assert!(adb.reverse_list(&id).await.unwrap().is_empty());
+
+    let data: Vec<u8> = (0..200_000u32).map(|i| (i % 251) as u8).collect();
+    adb.push(&id, "/data/local/tmp/emulabzip-push-test.bin", 0o644, &data).await.unwrap();
+    let mut back = Vec::new();
+    adb.pull(&id, "/data/local/tmp/emulabzip-push-test.bin", &mut back).await.unwrap();
+    adb.shell(&id, "rm -f /data/local/tmp/emulabzip-push-test.bin").await.unwrap();
+    assert_eq!(back, data);
+}

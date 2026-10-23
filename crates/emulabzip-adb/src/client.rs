@@ -128,6 +128,37 @@ impl AdbClient {
         Ok(c.into_inner())
     }
 
+    /// Makes `remote` on the device reach `local` on this computer, like `adb reverse`. Both are
+    /// socket specs such as `tcp:9090`.
+    pub async fn reverse(&self, serial: &str, remote: &str, local: &str) -> Result<()> {
+        let mut c = self.transport(serial).await?;
+        c.request(&format!("reverse:forward:{remote};{local}")).await?;
+        // The service answers a second time with the result, and the port when it chose one.
+        check_reply(&c.read_to_end().await?)
+    }
+
+    /// Lists the device's reverse forwards as `(remote, local)` pairs.
+    pub async fn reverse_list(&self, serial: &str) -> Result<Vec<(String, String)>> {
+        let mut c = self.transport(serial).await?;
+        c.request("reverse:list-forward").await?;
+        let body = c.read_hex_prefixed().await?;
+        Ok(String::from_utf8_lossy(&body)
+            .lines()
+            .filter_map(|l| {
+                let mut parts = l.split_whitespace();
+                parts.next()?;
+                Some((parts.next()?.to_string(), parts.next()?.to_string()))
+            })
+            .collect())
+    }
+
+    /// Removes every reverse forward on the device.
+    pub async fn reverse_remove_all(&self, serial: &str) -> Result<()> {
+        let mut c = self.transport(serial).await?;
+        c.request("reverse:killforward-all").await?;
+        check_reply(&c.read_to_end().await?)
+    }
+
     /// Opens a file sync session.
     pub async fn sync(&self, serial: &str) -> Result<SyncSession> {
         let mut c = self.transport(serial).await?;
@@ -143,12 +174,37 @@ impl AdbClient {
         entries
     }
 
+    /// Writes a file to the device in one call.
+    pub async fn push(&self, serial: &str, path: &str, mode: u32, data: &[u8]) -> Result<()> {
+        let mut s = self.sync(serial).await?;
+        let result = s.push(path, mode, data).await;
+        s.close().await;
+        result
+    }
+
     /// Copies a remote file into `out` in one call.
     pub async fn pull<W: AsyncWrite + Unpin>(&self, serial: &str, path: &str, out: &mut W) -> Result<u64> {
         let mut s = self.sync(serial).await?;
         let n = s.pull(path, out).await;
         s.close().await;
         n
+    }
+}
+
+/// Checks the second reply of a `reverse:` service: `OKAY…`, or `FAIL` with a message.
+fn check_reply(reply: &[u8]) -> Result<()> {
+    match reply.get(..4) {
+        Some(b"OKAY") | None => Ok(()),
+        Some(b"FAIL") => {
+            let len = reply
+                .get(4..8)
+                .and_then(|l| <&[u8; 4]>::try_from(l).ok())
+                .and_then(|l| crate::protocol::parse_hex_len(l).ok())
+                .unwrap_or(0);
+            let msg = reply.get(8..8 + len).unwrap_or_default();
+            Err(Error::Adb(String::from_utf8_lossy(msg).into_owned()))
+        }
+        Some(other) => Err(Error::Adb(format!("unexpected reply `{}`", String::from_utf8_lossy(other)))),
     }
 }
 
@@ -169,6 +225,11 @@ impl SyncSession {
 
     pub async fn pull<W: AsyncWrite + Unpin>(&mut self, path: &str, out: &mut W) -> Result<u64> {
         sync::pull(self.conn.stream(), path, out).await
+    }
+
+    /// Writes `data` to `path` on the device with the given Unix mode, for example `0o644`.
+    pub async fn push(&mut self, path: &str, mode: u32, data: &[u8]) -> Result<()> {
+        sync::push(self.conn.stream(), path, mode, data).await
     }
 
     pub async fn close(mut self) {
