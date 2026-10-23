@@ -1,0 +1,21 @@
+//! EmuLabZip's debugging proxy.
+//!
+//! The proxy listens on the loopback interface. Plain HTTP requests are forwarded and recorded.
+//! For `CONNECT`, TLS is terminated with a certificate signed by the [`CertificateAuthority`] the
+//! device was told to trust, the decrypted HTTP/1.1 or HTTP/2 requests are forwarded to the real
+//! server over a new TLS connection, and everything is recorded as a [`Flow`] in a [`FlowStore`].
+//! Connections that are not TLS, and apps that refuse our certificate, are passed through.
+
+pub mod ca;
+pub mod decode;
+pub mod flow;
+pub mod har;
+pub mod io;
+pub mod proxy;
+pub mod store;
+
+pub use ca::{CertificateAuthority, default_dir, subject_hash_old};
+pub use flow::{Flow, FlowId, FlowKind, FlowState, FlowSummary, Headers};
+pub use har::to_har;
+pub use proxy::{Proxy, ProxyConfig, ProxyHandle};
+pub use store::{FlowEvent, FlowStore};
