@@ -32,6 +32,21 @@ by tag.
   black by design.
 - On iOS, `xcrun simctl io booted screenshot shot.png` must work.
 
+## Storage says "only debuggable apps can be browsed"
+
+Android only lets `run-as` read the private data of debuggable apps. Install a debug build of your app, or try the
+tools with the sample app (`tools/sample-app/install.sh`). Shared storage works for every app.
+
+## Heap dumps fail on Android
+
+`am dumpheap` needs a debuggable app, or an emulator image of the `userdebug`/`eng` type (images without Google Play).
+The error shows the reason Android gave, for example `Process not debuggable`.
+
+## Performance shows no frame rate
+
+Frames are only counted while the app draws. Interact with the app; a static screen renders nothing. On the iOS
+Simulator, frame metrics arrive with Instruments traces in Phase 4.
+
 ## Getting diagnostics
 
 Start the app or the CLI with `EMULABZIP_LOG=debug` and include the output when you
