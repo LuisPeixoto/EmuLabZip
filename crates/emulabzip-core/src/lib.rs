@@ -8,12 +8,18 @@ pub mod backend;
 pub mod buffer;
 pub mod device;
 pub mod error;
+pub mod files;
 pub mod log;
+pub mod memory;
+pub mod perf;
 pub mod stream;
 
 pub use backend::{Backend, Lab, LogOptions};
 pub use buffer::RingBuffer;
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use error::{Error, Result};
+pub use files::{FileEntry, StorageRoot};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
+pub use memory::{CategoryDelta, HeapDump, MemoryCategory, MemoryReport};
+pub use perf::{PerfOptions, PerfSample};
 pub use stream::Stream;
