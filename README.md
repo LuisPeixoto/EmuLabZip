@@ -75,6 +75,16 @@ It ships as a native desktop app and as a command-line tool.
   <sub><b>Network</b>: decrypted requests, bodies and timing, from a device in one click.</sub>
 </p>
 
+<p align="center">
+  <img src="docs/images/traces-flame.png" alt="Traces: a whole-system CPU profile of an Android emulator as a flame graph" /><br />
+  <sub><b>Traces</b>: a CPU profile as a flame graph, coloured by whose code it is.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/traces-summary.png" alt="Traces: the summary of a Perfetto frames trace, with CPU by process and thread" /><br />
+  <sub><b>Traces</b>: a Perfetto system trace, summarized, with SQL and the Perfetto UI one click away.</sub>
+</p>
+
 <table>
   <tr>
     <td width="50%"><img src="docs/images/performance.png" alt="Live CPU, memory and frame rate charts" /><br /><sub><b>Performance</b>: CPU, memory, frames and battery, live.</sub></td>
