@@ -22,12 +22,14 @@ storage, and the data, bundle and app group containers on iOS) · SQLite inspect
 queries · SharedPreferences, property list, JSON, image, text and hex viewers · `emulabzip perf`, `mem`, `heapdump`,
 `files`, `pull` and `db`. See [Performance](performance.md), [Memory](memory.md) and [Storage](storage.md).
 
-## Phase 3: Network
+## ✅ Phase 3: Network (v0.3)
 
-A standalone HTTP(S) proxy written in Rust (`emulabzip-net`) · one-click wiring of an emulator
-(`settings put global http_proxy`) or simulator (host proxy) and certificate installation
-(`simctl keychain add-root-cert`, user CA on Android) · request list, headers, bodies and timings · HAR export ·
-`emulator -tcpdump` pcap import.
+A standalone HTTP(S) proxy written in Rust (`emulabzip-net`) that decrypts HTTP/1.1 and HTTP/2 · one-click routing of
+an Android device (`adb reverse` and the global proxy setting) or of the iOS Simulator (the Mac's proxy, saved and
+restored exactly) · certificate installation: the system store on rootable emulators, a guided user certificate
+elsewhere, `simctl keychain` on simulators · request list with filters, headers, decoded bodies and timing · hosts that
+reject the certificate are passed through · WebSocket and other connections tunnelled and listed · HAR export ·
+`emulabzip net` and `emulabzip ca`. See [Network](network.md).
 
 ## Phase 4: Tracing
 
@@ -43,5 +45,5 @@ traces · plugin API for custom collectors and views.
 
 ## Phase 6: Ideas
 
-Physical iOS devices · layout inspection · accessibility audits · session recording and sharing · comparing two
+Packet capture (`emulator -tcpdump`) import · WebSocket frames · request breakpoints and mocks · HTTP/3 · physical iOS devices · layout inspection · accessibility audits · session recording and sharing · comparing two
 devices side by side · CI mode that records a session while UI tests run.

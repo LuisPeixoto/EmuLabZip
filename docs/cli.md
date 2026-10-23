@@ -98,10 +98,30 @@ Copies one file to this computer. `-o` picks the destination.
 Opens a SQLite database read-only. Without options it lists tables and views; `--table` prints rows (`--limit`,
 `--offset`); `-q, --query` runs a read-only statement. All of them accept `--json`.
 
+### `emulabzip net`
+
+Runs the proxy, points the device at it and prints each request when it finishes, until <kbd>Ctrl+C</kbd>. The
+device is put back when it stops, also after an error. See [Network](network.md).
+
+| Option | Meaning |
+|--------|---------|
+| `-p, --port <n>` | Port on `127.0.0.1` (default 9090, or `EMULABZIP_PORT`). |
+| `--no-connect` | Only run the proxy; do not change any device. |
+| `--har <file>` | Save the requests as a HAR file when stopping. |
+| `--json` | One JSON object per request. |
+
+### `emulabzip ca install`
+
+Makes the device trust the certificate: the system store on a rootable Android emulator, the keychain on an iOS
+simulator, and for other Android devices it copies the file and prints the steps. `emulabzip ca path` prints where
+the certificate file is.
+
 ## Environment
 
 | Variable | Effect |
 |----------|--------|
 | `EMULABZIP_DEVICE` | Default for `--device`. |
 | `EMULABZIP_LOG=debug` | Verbose diagnostics on stderr. |
+| `EMULABZIP_HOME` | Folder for the certificate authority and saved proxy settings. |
+| `EMULABZIP_PORT` | Default for `net --port`. |
 | `ADB_SERVER_SOCKET`, `ANDROID_ADB_SERVER_PORT`, `EMULABZIP_ADB` | See [Android](android.md). |

@@ -25,6 +25,7 @@
   <a href="docs/logs.md">Logs</a> ·
   <a href="docs/performance.md">Performance</a> ·
   <a href="docs/storage.md">Storage</a> ·
+  <a href="docs/network.md">Network</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
@@ -37,7 +38,7 @@
 
 EmuLabZip connects to your running emulators and simulators on its own and brings everything you reach for while
 debugging into one window: what the device is, what it is logging, how fast your app runs, where its memory goes and
-what it keeps on disk. Network and tracing tools arrive phase by phase, all built on the same small Rust core.
+what it keeps on disk and what it says to the internet. Tracing arrives next, built on the same small Rust core.
 It ships as a native desktop app and as a command-line tool.
 
 ## Highlights
@@ -52,6 +53,8 @@ It ships as a native desktop app and as a command-line tool.
   (`.memgraph`) one click away.
 - **Look inside the sandbox.** Browse an app's files and open SQLite databases, SharedPreferences, property lists,
   JSON and images in place, with read-only SQL queries.
+- **See the traffic.** A built-in proxy decrypts your app's HTTPS and lists every request with its headers, decoded
+  bodies and timing, and exports HAR. One click points a device at it and another puts it back.
 - **Everything about the device.** OS and build, hardware, display, battery, storage and locale, with a live screen
   preview. Click any value to copy it.
 - **Native and light.** A Rust core with a Tauri interface: a small download, a fast start and low memory use.
@@ -64,6 +67,11 @@ It ships as a native desktop app and as a command-line tool.
 <p align="center">
   <img src="docs/images/logs.png" alt="Streaming logcat with level badges and coloured tags" /><br />
   <sub><b>Logs</b>: logcat and the unified log, filtered as you type.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/network.png" alt="Network: requests decrypted from an Android emulator, with a JSON response open" /><br />
+  <sub><b>Network</b>: decrypted requests, bodies and timing, from a device in one click.</sub>
 </p>
 
 <table>
@@ -92,7 +100,7 @@ It ships as a native desktop app and as a command-line tool.
 | Memory breakdown, snapshots and diffs | ✅ | ✅ |
 | Heap dumps (`.hprof`) and memory graphs (`.memgraph`) | ✅ | ✅ |
 | File browser with SQLite, preferences and property list viewers | ✅ | ✅ |
-| Network inspector | Phase 3 | Phase 3 |
+| Network inspector: decrypted HTTP(S), HAR export | ✅ | ✅ |
 | Perfetto, simpleperf and Instruments traces | Phase 4 | Phase 4 |
 | Crashes, device controls and an MCP server | Phase 5 | Phase 5 |
 
@@ -141,6 +149,7 @@ emulabzip logs --level warn      # what it says
 emulabzip screenshot             # what it shows
 emulabzip perf --app com.example.app            # how fast it runs
 emulabzip db com.example.app databases/app.db   # what it stores
+emulabzip net --har capture.har                 # what it says to the internet
 ```
 
 In the desktop app, pick the device in the top-left corner, then your app next to it. Read the
@@ -157,6 +166,7 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Performance](docs/performance.md) | What each chart measures and where the numbers come from |
 | [Memory](docs/memory.md) | Snapshots, diffs, heap dumps and memory graphs |
 | [Storage](docs/storage.md) | Storage roots, viewers and read-only SQL |
+| [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
 | [Command line](docs/cli.md) | Every `emulabzip` command and option |
 | [Architecture](docs/architecture.md) | Crates, the backend trait, streams and design rules |
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |
@@ -173,6 +183,7 @@ crates/
   emulabzip-android    Android backend: logcat, getprop, dumpsys, /proc, run-as, screencap
   emulabzip-apple      iOS Simulator backend: simctl, log stream, listapps, footprint, leaks
   emulabzip-storage    SQLite inspector, SharedPreferences and property list viewers
+  emulabzip-net        Debugging proxy: certificate authority, TLS interception, flows, HAR
   emulabzip-cli        The `emulabzip` command
 apps/desktop
   src-tauri            Tauri 2 shell (Rust)

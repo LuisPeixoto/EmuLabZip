@@ -42,6 +42,7 @@ first one that is ready is selected automatically.
 - **Performance** charts CPU, memory, frame rate and battery live. See [Performance](performance.md).
 - **Memory** takes snapshots, compares them and saves heap dumps. See [Memory](memory.md).
 - **Storage** browses the app's files and opens databases, preferences and property lists. See [Storage](storage.md).
+- **Network** captures the device's HTTP and HTTPS traffic. See [Network](network.md).
 - **Screenshot** in the toolbar captures the screen and lets you save it as a PNG.
 
 ## 5. Focus on your app
@@ -53,7 +54,7 @@ its process wrote. EmuLabZip keeps track of the process id, so the filter keeps 
 
 | Shortcut | Action |
 |----------|--------|
-| <kbd>⌘1</kbd> … <kbd>⌘5</kbd> | Overview, Logs, Performance, Memory, Storage |
+| <kbd>⌘1</kbd> … <kbd>⌘6</kbd> | Overview, Logs, Performance, Memory, Storage, Network |
 | <kbd>⌘F</kbd> | Search the log |
 | <kbd>⌘K</kbd> | Clear the log |
 | <kbd>⌘R</kbd> | Look for devices now |
