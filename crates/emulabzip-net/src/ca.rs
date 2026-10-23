@@ -44,10 +44,9 @@ impl std::fmt::Debug for CertificateAuthority {
     }
 }
 
-/// The folder where the CA is kept: `~/Library/Application Support/EmuLabZip` on macOS,
-/// `%APPDATA%\EmuLabZip` on Windows and `~/.local/share/EmuLabZip` on Linux.
+/// The folder where the CA is kept. See [`emulabzip_core::data_dir`].
 pub fn default_dir() -> PathBuf {
-    dirs::data_dir().unwrap_or_else(std::env::temp_dir).join("EmuLabZip")
+    emulabzip_core::data_dir()
 }
 
 fn random_serial() -> Result<SerialNumber> {
