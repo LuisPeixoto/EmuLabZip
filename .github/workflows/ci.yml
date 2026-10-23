@@ -62,6 +62,9 @@ jobs:
       - name: Install frontend dependencies
         working-directory: apps/desktop
         run: npm ci
+      - name: Check that the Tauri crates and npm packages match
+        working-directory: apps/desktop
+        run: node scripts/check-tauri-versions.mjs
       - name: Type-check the interface
         working-directory: apps/desktop
         run: npm run check

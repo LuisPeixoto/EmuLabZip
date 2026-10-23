@@ -11,7 +11,7 @@ repository = "https://github.com/LuisPeixoto/EmuLabZip"
 homepage = "https://github.com/LuisPeixoto/EmuLabZip"
 readme = "README.md"
 authors = ["Luis Peixoto"]
-rust-version = "1.88"
+rust-version = "1.90"
 
 [workspace.dependencies]
 emulabzip-core = { path = "crates/emulabzip-core" }
