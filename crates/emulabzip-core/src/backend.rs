@@ -10,6 +10,7 @@ use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
 use crate::log::LogEntry;
 use crate::memory::{HeapDump, MemoryReport};
+use crate::network::{CaInstall, NetworkStatus};
 use crate::perf::{PerfOptions, PerfSample};
 use crate::stream::Stream;
 
@@ -83,6 +84,27 @@ pub trait Backend: Send + Sync {
     /// Reads a file, given relative to a storage root.
     async fn read_file(&self, _id: &str, _app: &str, _root: &str, _path: &str) -> Result<Vec<u8>> {
         Err(Error::Unsupported("Storage browsing"))
+    }
+
+    /// Whether the device sends its traffic to a proxy.
+    async fn network_status(&self, _id: &str) -> Result<NetworkStatus> {
+        Err(Error::Unsupported("Network capture"))
+    }
+
+    /// Sends the device's HTTP(S) traffic to the proxy listening on `127.0.0.1:port` of this
+    /// computer.
+    async fn connect_network(&self, _id: &str, _port: u16) -> Result<NetworkStatus> {
+        Err(Error::Unsupported("Network capture"))
+    }
+
+    /// Undoes [`Backend::connect_network`].
+    async fn disconnect_network(&self, _id: &str) -> Result<NetworkStatus> {
+        Err(Error::Unsupported("Network capture"))
+    }
+
+    /// Makes the device trust the proxy's certificate authority, given as PEM and DER.
+    async fn install_ca(&self, _id: &str, _pem: &str, _der: &[u8]) -> Result<CaInstall> {
+        Err(Error::Unsupported("Certificate installation"))
     }
 }
 
@@ -186,6 +208,22 @@ impl Lab {
         self.backend(target.platform)?.storage_roots(&target.id, app).await
     }
 
+    pub async fn network_status(&self, target: &Target) -> Result<NetworkStatus> {
+        self.backend(target.platform)?.network_status(&target.id).await
+    }
+
+    pub async fn connect_network(&self, target: &Target, port: u16) -> Result<NetworkStatus> {
+        self.backend(target.platform)?.connect_network(&target.id, port).await
+    }
+
+    pub async fn disconnect_network(&self, target: &Target) -> Result<NetworkStatus> {
+        self.backend(target.platform)?.disconnect_network(&target.id).await
+    }
+
+    pub async fn install_ca(&self, target: &Target, pem: &str, der: &[u8]) -> Result<CaInstall> {
+        self.backend(target.platform)?.install_ca(&target.id, pem, der).await
+    }
+
     pub async fn list_files(&self, target: &Target, app: &str, root: &str, path: &str) -> Result<Vec<FileEntry>> {
         if !crate::files::is_safe_relative(path) {
             return Err(Error::invalid("path", path));
@@ -272,6 +310,8 @@ mod tests {
         let t = Target { platform: Platform::Android, id: "x".into() };
         assert!(matches!(lab.memory(&t, "app").await.unwrap_err(), Error::Unsupported(_)));
         assert!(matches!(lab.storage_roots(&t, "app").await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.connect_network(&t, 9090).await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.install_ca(&t, "", &[]).await.unwrap_err(), Error::Unsupported(_)));
     }
 
     #[tokio::test]
