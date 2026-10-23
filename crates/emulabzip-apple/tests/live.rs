@@ -144,3 +144,31 @@ async fn trusts_a_certificate_in_the_simulator() {
     assert_eq!(result.kind, CaKind::Simulator);
     assert!(result.done);
 }
+
+/// Lists the real templates. Recording needs Developer Mode (`sudo DevToolsSecurity -enable`).
+#[tokio::test]
+#[ignore = "needs Xcode"]
+async fn lists_instruments_templates_and_records_when_allowed() {
+    use emulabzip_core::{Backend, TraceRequest};
+
+    let backend = emulabzip_apple::AppleBackend::new();
+    let templates = backend.trace_templates("any").await.unwrap();
+    println!("{templates:?}");
+    assert!(templates.iter().any(|t| t == "Time Profiler"));
+
+    let Some(udid) = std::env::var("EMULABZIP_DEVICE").ok() else { return };
+    let (_tx, rx) = tokio::sync::watch::channel(false);
+    let out = std::env::temp_dir().join(format!("emulabzip-xctrace-{}", std::process::id()));
+    let request = TraceRequest::Instruments { template: "Time Profiler".into(), app: None, duration_s: 5 };
+    match backend.record_trace(&udid, &request, &out, rx).await {
+        Ok(file) => {
+            println!("{file:#?}");
+            for xml in &file.extras {
+                let profile = emulabzip_trace::xctrace::parse(&std::fs::read_to_string(xml).unwrap()).unwrap();
+                println!("{} samples, {:?}", profile.samples.len(), profile.processes().first());
+            }
+        }
+        Err(e) => println!("not recorded: {e}"),
+    }
+    std::fs::remove_dir_all(out).ok();
+}

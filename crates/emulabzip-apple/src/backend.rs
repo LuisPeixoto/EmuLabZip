@@ -3,13 +3,13 @@
 use async_trait::async_trait;
 use emulabzip_core::{
     App, Backend, CaInstall, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport,
-    NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream,
+    NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile, TraceRequest,
 };
 use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, memory, network, oslog, perf, simctl, storage};
+use crate::{apps, memory, network, oslog, perf, simctl, storage, trace};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -154,6 +154,20 @@ impl Backend for AppleBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.root_path(id, app, root).await?, path).await
+    }
+
+    async fn trace_templates(&self, _id: &str) -> Result<Vec<String>> {
+        trace::templates().await
+    }
+
+    async fn record_trace(
+        &self,
+        id: &str,
+        request: &TraceRequest,
+        out_dir: &std::path::Path,
+        stop: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<TraceFile> {
+        trace::record(id, request, out_dir, stop).await
     }
 
     async fn network_status(&self, _id: &str) -> Result<NetworkStatus> {

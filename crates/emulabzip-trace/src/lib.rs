@@ -3,5 +3,6 @@
 pub mod flame;
 pub mod perfetto;
 pub mod simpleperf;
+pub mod xctrace;
 
 pub use flame::{FlameBuilder, Hotspot, Node, Origin, folded, hotspots};
