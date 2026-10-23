@@ -31,11 +31,12 @@ elsewhere, `simctl keychain` on simulators · request list with filters, headers
 reject the certificate are passed through · WebSocket and other connections tunnelled and listed · HAR export ·
 `emulabzip net` and `emulabzip ca`. See [Network](network.md).
 
-## Phase 4: Tracing
+## ✅ Phase 4: Tracing (v0.4)
 
-Perfetto recording with presets (CPU scheduling, frames, memory, battery) · SQL over traces with `trace_processor` ·
-CPU flame graphs from `simpleperf` · Instruments traces recorded and exported with `xctrace` · open traces in
-ui.perfetto.dev.
+Perfetto system traces with presets (CPU and scheduling, frames and jank, memory, custom) · a summary and a SQL console
+backed by the official `trace_processor`, downloaded once, pinned and verified · CPU flame graphs from `simpleperf`
+(an app or the whole system) · Instruments recordings with `xctrace`, with a flame graph for Time Profiler · open
+traces in the Perfetto UI or in Instruments · a library of recordings · `emulabzip trace`. See [Traces](traces.md).
 
 ## Phase 5: Crashes and automation
 

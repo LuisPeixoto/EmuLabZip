@@ -26,6 +26,7 @@
   <a href="docs/performance.md">Performance</a> ·
   <a href="docs/storage.md">Storage</a> ·
   <a href="docs/network.md">Network</a> ·
+  <a href="docs/traces.md">Traces</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
@@ -96,12 +97,13 @@ It ships as a native desktop app and as a command-line tool.
 | Screenshots and live screen preview | ✅ | ✅ |
 | Command line | ✅ | ✅ |
 | CPU and memory charts | ✅ | ✅ |
-| Frame rate, janky frames and battery charts | ✅ | Phase 4 |
+| Frame rate, janky frames and battery charts | ✅ | — |
 | Memory breakdown, snapshots and diffs | ✅ | ✅ |
 | Heap dumps (`.hprof`) and memory graphs (`.memgraph`) | ✅ | ✅ |
 | File browser with SQLite, preferences and property list viewers | ✅ | ✅ |
 | Network inspector: decrypted HTTP(S), HAR export | ✅ | ✅ |
-| Perfetto, simpleperf and Instruments traces | Phase 4 | Phase 4 |
+| Perfetto system traces with summary and SQL | ✅ | — |
+| CPU flame graphs (simpleperf, Time Profiler) and Instruments recordings | ✅ | ✅ |
 | Crashes, device controls and an MCP server | Phase 5 | Phase 5 |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
@@ -167,6 +169,7 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Memory](docs/memory.md) | Snapshots, diffs, heap dumps and memory graphs |
 | [Storage](docs/storage.md) | Storage roots, viewers and read-only SQL |
 | [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
+| [Traces](docs/traces.md) | Perfetto, simpleperf and Instruments recordings, flame graphs, SQL |
 | [Command line](docs/cli.md) | Every `emulabzip` command and option |
 | [Architecture](docs/architecture.md) | Crates, the backend trait, streams and design rules |
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |
