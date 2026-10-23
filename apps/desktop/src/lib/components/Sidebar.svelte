@@ -21,11 +21,9 @@
     { view: "performance", icon: "activity", label: "Performance" },
     { view: "memory", icon: "cpu", label: "Memory" },
     { view: "storage", icon: "database", label: "Storage" },
+    { view: "network", icon: "globe", label: "Network" },
   ];
-  const later: Item[] = [
-    { view: "network", icon: "globe", label: "Network", soon: "Phase 3" },
-    { view: "traces", icon: "route", label: "Traces", soon: "Phase 4" },
-  ];
+  const later: Item[] = [{ view: "traces", icon: "route", label: "Traces", soon: "Phase 4" }];
 </script>
 
 {#snippet section(title: string, items: Item[])}

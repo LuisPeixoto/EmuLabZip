@@ -99,7 +99,7 @@ impl Flow {
         }
     }
 
-    pub fn header<'a>(headers: &'a Headers, name: &str) -> Option<&'a str> {
+    pub fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
         headers.iter().find(|(k, _)| k.eq_ignore_ascii_case(name)).map(|(_, v)| v.as_str())
     }
 

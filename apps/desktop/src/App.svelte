@@ -10,6 +10,7 @@
   import Toolbar from "./lib/components/Toolbar.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
   import Memory from "./lib/components/views/Memory.svelte";
+  import Network from "./lib/components/views/Network.svelte";
   import Overview from "./lib/components/views/Overview.svelte";
   import Performance from "./lib/components/views/Performance.svelte";
   import Storage from "./lib/components/views/Storage.svelte";
@@ -43,7 +44,7 @@
     });
   });
 
-  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage"];
+  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network"];
 
   function onkeydown(e: KeyboardEvent) {
     const mod = e.metaKey || e.ctrlKey;
@@ -53,7 +54,7 @@
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault(); // never reload the webview
       app.refreshDevices();
-    } else if (mod && /^[1-5]$/.test(e.key)) {
+    } else if (mod && /^[1-6]$/.test(e.key)) {
       e.preventDefault();
       app.setView(shortcuts[Number(e.key) - 1]);
     }
@@ -96,13 +97,7 @@
       {:else if app.view === "storage"}
         <Storage />
       {:else if app.view === "network"}
-        <Upcoming
-          icon="globe"
-          phase="Phase 3"
-          title="Network"
-          summary="See every request your app makes, without changing its code."
-          features={["Built-in HTTP(S) proxy, wired to the emulator or simulator in one click", "Certificate installation for the device", "HAR export and pcap import"]}
-        />
+        <Network />
       {:else}
         <Upcoming
           icon="route"

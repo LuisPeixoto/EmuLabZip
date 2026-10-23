@@ -17,6 +17,7 @@
       logTail: Math.min(10_000, Math.max(0, Math.round(draft.logTail))),
       logVerbose: draft.logVerbose,
       pollSeconds: Math.min(30, Math.max(1, Math.round(draft.pollSeconds))),
+      proxyPort: Math.min(65535, Math.max(1024, Math.round(draft.proxyPort))),
     });
     if (streamChanged && app.target) logs.restart(app.target, app.deviceKey);
     app.toast("Settings saved", "ok");
@@ -78,6 +79,12 @@
       <label class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Refresh every", "How often EmuLabZip looks for new emulators and simulators, in seconds.")}
         <input type="number" min="1" max="30" bind:value={draft.pollSeconds} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
+      </label>
+
+      <p class="px-2 pt-3 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Network</p>
+      <label class="flex items-center gap-4 rounded-xl px-2 py-2">
+        {@render row("Proxy port", "Where the proxy listens, on this computer only. Applies the next time it starts.")}
+        <input type="number" min="1024" max="65535" bind:value={draft.proxyPort} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
       </label>
     </div>
 

@@ -175,6 +175,84 @@ export interface Preview {
   error: string | null;
 }
 
+export type FlowKind = "http" | "tunnel" | "webSocket";
+export type FlowState = "pending" | "completed" | "failed";
+
+export interface FlowSummary {
+  id: number;
+  startedMs: number;
+  kind: FlowKind;
+  state: FlowState;
+  method: string;
+  scheme: string;
+  host: string;
+  port: number;
+  path: string;
+  url: string;
+  httpVersion: string;
+  status: number | null;
+  contentType: string | null;
+  requestSize: number;
+  responseSize: number;
+  durationMs: number | null;
+  error: string | null;
+}
+
+export interface NetBatch {
+  cleared: boolean;
+  flows: FlowSummary[];
+}
+
+export interface NetState {
+  running: boolean;
+  port: number | null;
+  caPath: string | null;
+  bypassed: string[];
+  connected: string[];
+}
+
+export interface NetworkStatus {
+  proxy: string | null;
+  connected: boolean;
+  note: string | null;
+}
+
+export type CaKind = "system" | "user" | "simulator";
+
+export interface CaInstall {
+  kind: CaKind;
+  done: boolean;
+  message: string;
+  steps: string[];
+  snippet: string | null;
+}
+
+export interface BodyView {
+  size: number;
+  decodedSize: number;
+  truncated: boolean;
+  encoding: string | null;
+  kind: FileKind | null;
+  text: string | null;
+  image: string | null;
+  hex: string | null;
+  error: string | null;
+}
+
+export interface Flow extends Omit<FlowSummary, "contentType" | "durationMs"> {
+  requestHeaders: [string, string][];
+  responseHeaders: [string, string][];
+  requestTruncated: boolean;
+  responseTruncated: boolean;
+  timing: { ttfbMs: number | null; totalMs: number | null };
+}
+
+export interface FlowDetail {
+  flow: Flow;
+  request: BodyView | null;
+  response: BodyView | null;
+}
+
 export function targetOf(d: Device): Target {
   return { platform: d.platform, id: d.id };
 }
@@ -204,6 +282,22 @@ export const api = {
     return invoke<number>("start_logs", { target, options, onBatch: channel });
   },
   stopSession: (id: number) => invoke<void>("stop_session", { id }),
+  netState: () => invoke<NetState>("net_state"),
+  netStart: (port: number) => invoke<NetState>("net_start", { port }),
+  netStop: () => invoke<NetState>("net_stop"),
+  netStatus: (target: Target) => invoke<NetworkStatus>("net_status", { target }),
+  netConnect: (target: Target) => invoke<NetworkStatus>("net_connect", { target }),
+  netDisconnect: (target: Target) => invoke<NetworkStatus>("net_disconnect", { target }),
+  netInstallCa: (target: Target) => invoke<CaInstall>("net_install_ca", { target }),
+  netClearBypass: () => invoke<NetState>("net_clear_bypass"),
+  async netSubscribe(onBatch: (b: NetBatch) => void): Promise<number> {
+    const channel = new Channel<NetBatch>();
+    channel.onmessage = onBatch;
+    return invoke<number>("net_subscribe", { onBatch: channel });
+  },
+  netClear: () => invoke<void>("net_clear"),
+  netFlow: (id: number) => invoke<FlowDetail>("net_flow", { id }),
+  netExportHar: () => invoke<string | null>("net_export_har"),
   async startPerf(target: Target, options: PerfOptions, onSample: (s: PerfSample) => void): Promise<number> {
     const channel = new Channel<PerfSample>();
     channel.onmessage = onSample;
