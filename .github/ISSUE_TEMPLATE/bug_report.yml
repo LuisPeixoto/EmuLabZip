@@ -1,0 +1,86 @@
+name: Bug report
+description: Something is not working as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please check the
+        [troubleshooting guide](https://github.com/LuisPeixoto/EmuLabZip/blob/main/docs/troubleshooting.md) first.
+        **Remove secrets** (tokens, personal data) from logs and files you paste.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a Pixel 9 emulator (API 35)
+        2. Open EmuLabZip and select the device
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Desktop app
+        - Command line
+        - Device discovery
+        - Logs
+        - Performance
+        - Memory
+        - Storage / databases
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target
+      multiple: true
+      options:
+        - Android emulator
+        - Android physical device
+        - iOS Simulator
+    validations:
+      required: true
+  - type: input
+    id: target-version
+    attributes:
+      label: Target OS version
+      placeholder: "Android 15 (API 35) / iOS 26.2"
+  - type: input
+    id: version
+    attributes:
+      label: EmuLabZip version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Host operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Host OS version
+      placeholder: "macOS 26.1 / Windows 11 24H2 / Ubuntu 24.04"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run with `EMULABZIP_LOG=debug` and paste the relevant lines.
+      render: shell

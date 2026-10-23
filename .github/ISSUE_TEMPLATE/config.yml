@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/LuisPeixoto/EmuLabZip/blob/main/docs/troubleshooting.md
+    about: Devices that do not show up, empty logs, and other common problems.
+  - name: Report a security vulnerability
+    url: https://github.com/LuisPeixoto/EmuLabZip/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.
