@@ -13,13 +13,14 @@ the unified log: level, tag, text and regular-expression filters, per-app filter
 thousands of lines per second, plain-text and JSON-lines export · `emulabzip` command line: `devices`, `info`, `apps`,
 `logs`, `screenshot`.
 
-## Phase 2: Performance, memory and storage (v0.2)
+## ✅ Phase 2: Performance, memory and storage (v0.2)
 
 Live CPU, memory, frame rate, janky frames and battery charts for the selected app · memory breakdown (Java, native,
-graphics, code, stack) with snapshots and a diff · heap dumps (`.hprof`) for Android · file browser for the app sandbox
-(`run-as` for debuggable Android apps, the data container on iOS) · SQLite inspector with paged rows and read-only
-queries · SharedPreferences and property list viewers · `emulabzip perf`, `emulabzip mem`, `emulabzip ls`,
-`emulabzip pull` and `emulabzip db`.
+graphics, code, stack on Android; VM regions on iOS) with snapshots and a diff · heap dumps (`.hprof`) on Android and
+memory graphs (`.memgraph`) on iOS · file browser for the app sandbox (`run-as` for debuggable Android apps, shared
+storage, and the data, bundle and app group containers on iOS) · SQLite inspector with paged rows and read-only
+queries · SharedPreferences, property list, JSON, image, text and hex viewers · `emulabzip perf`, `mem`, `heapdump`,
+`files`, `pull` and `db`. See [Performance](performance.md), [Memory](memory.md) and [Storage](storage.md).
 
 ## Phase 3: Network
 

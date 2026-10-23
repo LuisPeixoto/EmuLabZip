@@ -53,6 +53,7 @@ Tips:
 | Android collectors (logcat, info, perf, memory) | `crates/emulabzip-android/src` |
 | iOS Simulator collectors (simctl, log stream) | `crates/emulabzip-apple/src` |
 | Files, SQLite, preferences and plists | `crates/emulabzip-storage/src` |
+| Debuggable sample app for storage tests | `tools/sample-app` |
 | Command line | `crates/emulabzip-cli/src` |
 | Desktop commands | `apps/desktop/src-tauri/src/commands.rs` |
 | Interface | `apps/desktop/src/lib/components` |

@@ -23,6 +23,8 @@
   <a href="#features">Features</a> ·
   <a href="docs/getting-started.md">Getting started</a> ·
   <a href="docs/logs.md">Logs</a> ·
+  <a href="docs/performance.md">Performance</a> ·
+  <a href="docs/storage.md">Storage</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
@@ -34,8 +36,8 @@
 </p>
 
 EmuLabZip connects to your running emulators and simulators on its own and brings everything you reach for while
-debugging into one window: what the device is, what it is logging, which apps are running and what is on its screen.
-Performance, memory, storage, network and tracing tools arrive phase by phase, all built on the same small Rust core.
+debugging into one window: what the device is, what it is logging, how fast your app runs, where its memory goes and
+what it keeps on disk. Network and tracing tools arrive phase by phase, all built on the same small Rust core.
 It ships as a native desktop app and as a command-line tool.
 
 ## Highlights
@@ -45,6 +47,11 @@ It ships as a native desktop app and as a command-line tool.
 - **Zero setup.** Start an emulator or boot a simulator and it shows up. Nothing is installed on the device.
 - **Logs that keep up.** logcat and the iOS unified log in one virtualized table that stays smooth at thousands of
   lines per second, with level, tag, text, regex and per-app filters.
+- **Live performance.** CPU, memory, frame rate, janky frames and battery for the app you pick, charted as it runs.
+- **Find what grew.** Memory snapshots with a diff by category, and heap dumps (`.hprof`) or memory graphs
+  (`.memgraph`) one click away.
+- **Look inside the sandbox.** Browse an app's files and open SQLite databases, SharedPreferences, property lists,
+  JSON and images in place, with read-only SQL queries.
 - **Everything about the device.** OS and build, hardware, display, battery, storage and locale, with a live screen
   preview. Click any value to copy it.
 - **Native and light.** A Rust core with a Tauri interface: a small download, a fast start and low memory use.
@@ -61,8 +68,12 @@ It ships as a native desktop app and as a command-line tool.
 
 <table>
   <tr>
+    <td width="50%"><img src="docs/images/performance.png" alt="Live CPU, memory and frame rate charts" /><br /><sub><b>Performance</b>: CPU, memory, frames and battery, live.</sub></td>
+    <td width="50%"><img src="docs/images/memory.png" alt="Memory snapshots compared category by category" /><br /><sub><b>Memory</b>: snapshots, diffs and heap dumps.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/storage.png" alt="SQLite inspector showing a table of notes" /><br /><sub><b>Storage</b>: SQLite, preferences and files, in place.</sub></td>
     <td width="50%"><img src="docs/images/devices.png" alt="Device picker with an Android emulator and an iOS simulator" /><br /><sub><b>Devices</b>: Android emulators and iOS simulators in one picker.</sub></td>
-    <td width="50%"><img src="docs/images/overview-light.png" alt="Overview in the light theme" /><br /><sub><b>Light theme</b>: every screen in light and dark.</sub></td>
   </tr>
 </table>
 
@@ -76,9 +87,11 @@ It ships as a native desktop app and as a command-line tool.
 | Live log streaming with filters and export | ✅ | ✅ |
 | Screenshots and live screen preview | ✅ | ✅ |
 | Command line | ✅ | ✅ |
-| CPU, memory, frame rate and battery charts | Phase 2 | Phase 2 |
-| Memory breakdown, snapshots and heap dumps | Phase 2 | Phase 2 |
-| File browser, SQLite inspector, preferences | Phase 2 | Phase 2 |
+| CPU and memory charts | ✅ | ✅ |
+| Frame rate, janky frames and battery charts | ✅ | Phase 4 |
+| Memory breakdown, snapshots and diffs | ✅ | ✅ |
+| Heap dumps (`.hprof`) and memory graphs (`.memgraph`) | ✅ | ✅ |
+| File browser with SQLite, preferences and property list viewers | ✅ | ✅ |
 | Network inspector | Phase 3 | Phase 3 |
 | Perfetto, simpleperf and Instruments traces | Phase 4 | Phase 4 |
 | Crashes, device controls and an MCP server | Phase 5 | Phase 5 |
@@ -126,6 +139,8 @@ emulabzip devices                # what is running
 emulabzip info                   # what it is
 emulabzip logs --level warn      # what it says
 emulabzip screenshot             # what it shows
+emulabzip perf --app com.example.app            # how fast it runs
+emulabzip db com.example.app databases/app.db   # what it stores
 ```
 
 In the desktop app, pick the device in the top-left corner, then your app next to it. Read the
@@ -139,6 +154,9 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Android](docs/android.md) | How EmuLabZip talks to ADB, environment variables, device states |
 | [iOS Simulator](docs/ios-simulator.md) | Requirements, what `simctl` provides, taming the unified log |
 | [Logs](docs/logs.md) | Filters, regular expressions, pausing and export |
+| [Performance](docs/performance.md) | What each chart measures and where the numbers come from |
+| [Memory](docs/memory.md) | Snapshots, diffs, heap dumps and memory graphs |
+| [Storage](docs/storage.md) | Storage roots, viewers and read-only SQL |
 | [Command line](docs/cli.md) | Every `emulabzip` command and option |
 | [Architecture](docs/architecture.md) | Crates, the backend trait, streams and design rules |
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |
@@ -152,12 +170,14 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 crates/
   emulabzip-core       Device model, log filters, streams and the backend trait
   emulabzip-adb        Async client for the ADB host protocol (devices, shell, exec, sync)
-  emulabzip-android    Android backend: logcat, getprop, dumpsys, pm, ps, screencap
-  emulabzip-apple      iOS Simulator backend: simctl, log stream, listapps
+  emulabzip-android    Android backend: logcat, getprop, dumpsys, /proc, run-as, screencap
+  emulabzip-apple      iOS Simulator backend: simctl, log stream, listapps, footprint, leaks
+  emulabzip-storage    SQLite inspector, SharedPreferences and property list viewers
   emulabzip-cli        The `emulabzip` command
 apps/desktop
   src-tauri            Tauri 2 shell (Rust)
   src                  Svelte 5 + TypeScript + Tailwind CSS UI
+tools/sample-app       A debuggable Android app with demo data, for trying the Storage tools
 ```
 
 ## Contributing
