@@ -19,9 +19,11 @@ export interface Settings {
   logVerbose: boolean;
   /** How often the device list is refreshed, in seconds. */
   pollSeconds: number;
+  /** The port the proxy listens on, on this computer. */
+  proxyPort: number;
 }
 
-export const defaultSettings: Settings = { logBuffer: 50_000, logTail: 500, logVerbose: true, pollSeconds: 3 };
+export const defaultSettings: Settings = { logBuffer: 50_000, logTail: 500, logVerbose: true, pollSeconds: 3, proxyPort: 9090 };
 
 class AppStore {
   theme = $state<Theme>(loadValue<Theme>("theme", "dark"));
