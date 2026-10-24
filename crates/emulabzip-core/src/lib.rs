@@ -4,6 +4,7 @@
 //! [`Backend`] trait that the Android and iOS collectors implement, and [`Lab`], which puts every
 //! backend behind one handle for the CLI and the desktop app.
 
+pub mod a11y;
 pub mod backend;
 pub mod buffer;
 pub mod control;
@@ -11,6 +12,7 @@ pub mod crash;
 pub mod device;
 pub mod error;
 pub mod files;
+pub mod layout;
 pub mod log;
 pub mod memory;
 pub mod network;
@@ -19,6 +21,7 @@ pub mod perf;
 pub mod stream;
 pub mod trace;
 
+pub use a11y::{Audit, Finding, Severity};
 pub use backend::{Backend, Lab, LogOptions};
 pub use buffer::RingBuffer;
 pub use control::{Appearance, Control, ControlInfo, Grant, PermissionState, StatusBar};
@@ -26,6 +29,7 @@ pub use crash::{CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, Hint, 
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
+pub use layout::{Bounds, LayoutSnapshot, Screen, UiNode};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
 pub use memory::{CategoryDelta, HeapDump, MemoryCategory, MemoryReport};
 pub use network::{ANDROID_SECURITY_CONFIG, CaInstall, CaKind, NetworkStatus};
