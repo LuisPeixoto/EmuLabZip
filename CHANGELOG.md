@@ -29,6 +29,13 @@ Phase 5: crashes and automation.
 - `tools/crash-app` and `tools/crash-app-ios`: tiny apps that crash, hang and segfault on purpose, and
   `tools/live-tests.sh` to run every test that needs a device.
 
+### Fixed
+
+- Starting the adb server no longer hangs on Windows. The server it leaves behind kept the output of EmuLabZip open, so
+  anything reading that output (a script, a pipe) waited forever.
+- A plugin run ends when its program exits, even if the program left a background process holding its output, and a
+  failing program's error output is no longer lost.
+
 ## [0.4.0] - 2026-10-23
 
 Phase 4: tracing.
