@@ -332,3 +332,78 @@ async fn lists_and_reads_real_crashes() {
     assert!(backend.crashes(&id, Some("com.not.installed")).await.unwrap().is_empty());
     assert!(backend.crash(&id, "dropbox:data_app_crash:19700101000000").await.is_err());
 }
+
+/// Applies every control on a real emulator, reads each back where Android lets us, and puts the
+/// emulator the way it was. Needs an emulator: `EMULABZIP_DEVICE=emulator-5560`.
+#[tokio::test]
+#[ignore = "changes the emulator's settings and puts them back"]
+async fn applies_every_control_and_resets_it() {
+    use emulabzip_core::{Appearance, Control, Grant, StatusBar};
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let adb = backend.adb();
+    let shell = |cmd: &'static str| {
+        let (adb, id) = (adb.clone(), id.clone());
+        async move { adb.shell(&id, cmd).await.unwrap() }
+    };
+    let app = "com.google.android.apps.messaging";
+
+    let info = backend.controls(&id, Some(app)).await.unwrap();
+    println!("{info:#?}");
+    assert!(info.supported.iter().any(|s| s == "location") && info.supported.iter().any(|s| s == "permission"));
+    let original = info.appearance.expect("this emulator reports its appearance");
+
+    // Appearance, read back from the device.
+    let other = if original == Appearance::Dark { Appearance::Light } else { Appearance::Dark };
+    backend.control(&id, &Control::Appearance { appearance: other }).await.unwrap();
+    assert_eq!(backend.controls(&id, None).await.unwrap().appearance, Some(other));
+    backend.control(&id, &Control::Appearance { appearance: original }).await.unwrap();
+    assert_eq!(backend.controls(&id, None).await.unwrap().appearance, Some(original));
+
+    // Permissions: revoke, see it, grant, see it. An unknown permission is an error.
+    let permission = "android.permission.READ_PHONE_STATE";
+    let granted =
+        |info: &emulabzip_core::ControlInfo| info.permissions.iter().find(|p| p.name == permission).map(|p| p.granted);
+    let change = |grant| Control::Permission { app: app.into(), permission: permission.into(), grant };
+    backend.control(&id, &change(Grant::Revoke)).await.unwrap();
+    assert_eq!(granted(&backend.controls(&id, Some(app)).await.unwrap()), Some(false));
+    backend.control(&id, &change(Grant::Grant)).await.unwrap();
+    assert_eq!(granted(&backend.controls(&id, Some(app)).await.unwrap()), Some(true));
+    let unknown = Control::Permission { app: app.into(), permission: "not.a.permission".into(), grant: Grant::Grant };
+    assert!(backend.control(&id, &unknown).await.unwrap_err().to_string().contains("Unknown permission"));
+
+    // Battery.
+    backend.control(&id, &Control::Battery { level: 33, charging: false }).await.unwrap();
+    let battery = shell("dumpsys battery").await;
+    assert!(battery.contains("level: 33") && battery.contains("AC powered: false"), "{battery}");
+    backend.control(&id, &Control::ResetBattery).await.unwrap();
+    assert!(!shell("dumpsys battery").await.contains("level: 33"));
+
+    // A notification, found in the notification service.
+    backend
+        .control(
+            &id,
+            &Control::Notification {
+                app: app.into(),
+                title: "EmuLabZip live title".into(),
+                body: "EmuLabZip live body".into(),
+                payload: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert!(shell("cmd notification list").await.contains("com.android.shell|"), "the notification was not posted");
+
+    // The status bar and a link: they are accepted, and a link nothing handles is an error.
+    let bar = StatusBar { time: Some("9:41".into()), battery: Some(100), wifi: Some(true), cellular: Some(true) };
+    backend.control(&id, &Control::StatusBar { status_bar: bar }).await.unwrap();
+    assert_eq!(shell("settings get global sysui_demo_allowed").await.trim(), "1");
+    backend.control(&id, &Control::ClearStatusBar).await.unwrap();
+    backend.control(&id, &Control::OpenUrl { url: "https://example.com".into() }).await.unwrap();
+    assert!(backend.control(&id, &Control::OpenUrl { url: "emulabzip-nothing://x".into() }).await.is_err());
+
+    // The location goes through the emulator console, and back to the default.
+    backend.control(&id, &Control::Location { lat: "48.8584".into(), lon: "2.2945".into() }).await.unwrap();
+    backend.control(&id, &Control::ClearLocation).await.unwrap();
+}
