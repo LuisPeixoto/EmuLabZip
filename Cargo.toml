@@ -24,7 +24,7 @@ emulabzip-trace = { path = "crates/emulabzip-trace" }
 emulabzip-mcp = { path = "crates/emulabzip-mcp" }
 
 anyhow = "1"
-base64 = "0.22"
+base64 = "0.23"
 brotli = "8"
 bytes = "1"
 dirs = "6"
