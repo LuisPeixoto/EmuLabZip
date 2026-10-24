@@ -17,6 +17,7 @@ emulabzip-android.workspace = true
 emulabzip-apple.workspace = true
 emulabzip-core.workspace = true
 emulabzip-mcp.workspace = true
+emulabzip-plugin.workspace = true
 emulabzip-net.workspace = true
 emulabzip-storage.workspace = true
 emulabzip-trace.workspace = true

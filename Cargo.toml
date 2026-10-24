@@ -22,6 +22,7 @@ emulabzip-storage = { path = "crates/emulabzip-storage" }
 emulabzip-net = { path = "crates/emulabzip-net" }
 emulabzip-trace = { path = "crates/emulabzip-trace" }
 emulabzip-mcp = { path = "crates/emulabzip-mcp" }
+emulabzip-plugin = { path = "crates/emulabzip-plugin" }
 
 anyhow = "1"
 base64 = "0.22"

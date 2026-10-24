@@ -16,6 +16,7 @@
   import Network from "./lib/components/views/Network.svelte";
   import Overview from "./lib/components/views/Overview.svelte";
   import Performance from "./lib/components/views/Performance.svelte";
+  import Plugins from "./lib/components/views/Plugins.svelte";
   import Storage from "./lib/components/views/Storage.svelte";
   import Traces from "./lib/components/views/Traces.svelte";
 
@@ -112,6 +113,8 @@
         <Crashes />
       {:else if app.view === "controls"}
         <Controls />
+      {:else if app.view === "plugins"}
+        <Plugins />
       {:else}
         <Traces />
       {/if}

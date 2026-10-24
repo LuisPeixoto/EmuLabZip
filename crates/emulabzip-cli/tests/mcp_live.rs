@@ -15,6 +15,19 @@ fn text(response: &Value) -> String {
 #[ignore = "needs a running emulator where the crash app has failed"]
 fn reads_and_controls_a_real_emulator() {
     let device = std::env::var("EMULABZIP_DEVICE").expect("EMULABZIP_DEVICE");
+    // Two example plugins, and only one of them enabled, in the server's own data folder.
+    let cli = |args: &[&str]| {
+        let out = std::process::Command::new(env!("CARGO_BIN_EXE_emulabzip"))
+            .args(args)
+            .env("EMULABZIP_HOME", Server::home())
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    };
+    let examples = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/plugins");
+    cli(&["plugin", "install", &format!("{examples}/top-processes")]);
+    cli(&["plugin", "install", &format!("{examples}/battery-temperature")]);
+    cli(&["plugin", "enable", "top-processes"]);
     let mut s = Server::start_session();
     let mut id = 10;
     let mut call = |s: &mut Server, name: &str, mut args: Value| {
@@ -54,6 +67,29 @@ fn reads_and_controls_a_real_emulator() {
     assert!(!logs.is_empty());
     let perf: Value = serde_json::from_str(&text(&call(&mut s, "perf_snapshot", json!({ "samples": 2 })))).unwrap();
     assert_eq!(perf.as_array().unwrap().len(), 2);
+
+    let listed: Value = serde_json::from_str(&text(&call(&mut s, "list_plugins", json!({})))).unwrap();
+    let enabled: Vec<(&str, bool)> = listed["plugins"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| (p["name"].as_str().unwrap(), p["enabled"].as_bool().unwrap()))
+        .collect();
+    assert_eq!(enabled, [("battery-temperature", false), ("top-processes", true)]);
+    let ran: Value = serde_json::from_str(&text(&call(
+        &mut s,
+        "run_plugin",
+        json!({ "name": "top-processes", "app": "com.android.systemui" }),
+    )))
+    .unwrap();
+    assert_eq!(ran["events"][0]["type"], "table");
+    assert!(ran["events"][0]["rows"].as_array().unwrap().len() >= 5);
+    let blocked = call(&mut s, "run_plugin", json!({ "name": "battery-temperature" }));
+    assert_eq!(blocked["result"]["isError"], true, "a plugin the user did not enable is refused");
+    assert!(blocked["result"]["content"][0]["text"].as_str().unwrap().contains("is not enabled"));
+    let metrics: Value =
+        serde_json::from_str(&text(&call(&mut s, "run_plugin", json!({ "name": "top-processes" })))).unwrap();
+    assert_eq!(metrics["outcome"], "Finished(Some(0))");
 
     let refused = call(&mut s, "open_url", json!({ "url": "file:///etc/passwd" }));
     assert_eq!(refused["result"]["isError"], true, "a link that reads local files is refused");

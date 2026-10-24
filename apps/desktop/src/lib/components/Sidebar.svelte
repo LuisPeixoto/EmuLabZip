@@ -24,7 +24,10 @@
     { view: "network", icon: "globe", label: "Network" },
     { view: "traces", icon: "route", label: "Traces" },
   ];
-  const control: Item[] = [{ view: "controls", icon: "sliders", label: "Controls" }];
+  const control: Item[] = [
+    { view: "controls", icon: "sliders", label: "Controls" },
+    { view: "plugins", icon: "zap", label: "Plugins" },
+  ];
 </script>
 
 {#snippet section(title: string, items: Item[])}

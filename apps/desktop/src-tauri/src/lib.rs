@@ -6,6 +6,7 @@ mod controls;
 mod crashes;
 mod files;
 mod network;
+mod plugins;
 mod profiling;
 mod state;
 mod traces;
@@ -72,6 +73,11 @@ pub fn run() {
             crashes::crash_list,
             crashes::crash_get,
             crashes::crash_save,
+            plugins::plugin_list,
+            plugins::plugin_enable,
+            plugins::plugin_run,
+            plugins::plugin_stop,
+            plugins::plugin_open_folder,
             traces::trace_start,
             traces::trace_stop,
             traces::trace_templates,

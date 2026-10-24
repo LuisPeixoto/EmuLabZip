@@ -25,6 +25,7 @@ emulabzip-android.workspace = true
 emulabzip-apple.workspace = true
 emulabzip-core.workspace = true
 emulabzip-net.workspace = true
+emulabzip-plugin.workspace = true
 emulabzip-storage.workspace = true
 emulabzip-trace.workspace = true
 parking_lot.workspace = true

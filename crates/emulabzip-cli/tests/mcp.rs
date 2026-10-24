@@ -70,6 +70,9 @@ fn mistakes_come_back_as_tool_errors_the_assistant_can_read() {
     assert!(missing["result"]["content"][0]["text"].as_str().unwrap().contains("recording"));
     let traversal = s.call(4, "tools/call", json!({ "name": "trace_summary", "arguments": { "id": "../../etc" } }));
     assert_eq!(traversal["result"]["isError"], true);
+    let plugin = s.call(6, "tools/call", json!({ "name": "run_plugin", "arguments": { "name": "does-not-exist" } }));
+    assert_eq!(plugin["result"]["isError"], true);
+    assert!(plugin["result"]["content"][0]["text"].as_str().unwrap().contains("no plugin called"));
     let unknown = s.call(5, "tools/call", json!({ "name": "no_such_tool", "arguments": {} }));
     assert!(unknown["error"].is_object() || unknown["result"]["isError"] == true, "{unknown}");
 }
