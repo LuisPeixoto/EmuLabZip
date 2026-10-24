@@ -407,3 +407,28 @@ async fn applies_every_control_and_resets_it() {
     backend.control(&id, &Control::Location { lat: "48.8584".into(), lon: "2.2945".into() }).await.unwrap();
     backend.control(&id, &Control::ClearLocation).await.unwrap();
 }
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn reads_the_layout_and_audits_it() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let snapshot = backend.layout(&id).await.unwrap();
+    println!(
+        "{} views on a {}×{} screen at {}x",
+        snapshot.root.count(),
+        snapshot.screen.width,
+        snapshot.screen.height,
+        snapshot.screen.density
+    );
+    assert!(snapshot.root.count() > 3);
+    assert!(snapshot.screenshot.starts_with(b"\x89PNG"));
+    assert!(snapshot.screen.width > 0 && snapshot.screen.density > 0.5);
+
+    let audit = emulabzip_core::a11y::audit(&snapshot);
+    for f in &audit.findings {
+        println!("{:?} {} {} {}", f.severity, f.rule, f.class, f.message);
+    }
+    assert!(!audit.contrast_skipped);
+    assert!(audit.checked as usize >= snapshot.root.count());
+}
