@@ -92,6 +92,7 @@ tools and the `.ezsession` format are stable, and change only with a major versi
 
 ## Ideas
 
-Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
-side · a library of rules shared between a team · more accessibility checks (focus order, text scaling) · HTTP/3 streaming
-for very large responses · plugins that read sessions.
+What is not in a phase yet: layouts for apps that draw their own UI (games, canvases) · more accessibility checks (focus
+order, text scaling, colour blindness simulation) · HTTP/3 streaming for very large responses · plugins that read
+sessions · a timeline that lines up logs, requests and frames · screen video recorded into a session · AI-written
+summaries of a session through the MCP server.
