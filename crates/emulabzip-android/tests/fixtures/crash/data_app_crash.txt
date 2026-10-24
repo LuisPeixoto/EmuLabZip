@@ -1,0 +1,51 @@
+Drop box contents: 43 entries
+Max entries: 1000
+Low priority rate limit period: 2000 ms
+Low priority tags: {data_app_wtf, keymaster, system_server_wtf, system_app_strictmode, system_app_wtf, system_server_strictmode, data_app_strictmode, netstats}
+Searching for: data_app_crash
+
+========================================
+2026-10-23 20:59:28 data_app_crash (text, 2291 bytes)
+Process: dev.emulabzip.crashy
+PID: 3642
+UID: 10192
+Frozen: false
+Flags: 0x30a8be46
+Package: dev.emulabzip.crashy v1 (1.0)
+Foreground: Yes
+Process-Runtime: 2330
+Build: google/sdk_gphone64_x86_64/emu64xa:14/UE1A.230829.050/12077443:userdebug/dev-keys
+Crash-Handler: com.android.internal.os.RuntimeInit$KillApplicationHandler
+Loading-Progress: 1.0
+Incremental: Yes
+Dropped-Count: 0
+
+java.lang.RuntimeException: Unable to start activity ComponentInfo{dev.emulabzip.crashy/dev.emulabzip.crashy.MainActivity}: java.lang.IllegalStateException: EmuLabZip test crash
+	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:3782)
+	at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:3922)
+	at android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:103)
+	at android.app.servertransaction.TransactionExecutor.executeCallbacks(TransactionExecutor.java:139)
+	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:96)
+	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2443)
+	at android.os.Handler.dispatchMessage(Handler.java:106)
+	at android.os.Looper.loopOnce(Looper.java:205)
+	at android.os.Looper.loop(Looper.java:294)
+	at android.app.ActivityThread.main(ActivityThread.java:8177)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+Caused by: java.lang.IllegalStateException: EmuLabZip test crash
+	at dev.emulabzip.crashy.MainActivity.crash(MainActivity.java:55)
+	at dev.emulabzip.crashy.MainActivity.run(MainActivity.java:28)
+	at dev.emulabzip.crashy.MainActivity.onCreate(MainActivity.java:14)
+	at android.app.Activity.performCreate(Activity.java:8595)
+	at android.app.Activity.performCreate(Activity.java:8573)
+	at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1456)
+	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:3764)
+	... 12 more
+Caused by: java.lang.NumberFormatException: For input string: "not a number"
+	at java.lang.Integer.parseInt(Integer.java:797)
+	at java.lang.Integer.parseInt(Integer.java:915)
+	at dev.emulabzip.crashy.MainActivity.crash(MainActivity.java:53)
+	... 18 more
+
