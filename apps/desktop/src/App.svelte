@@ -9,6 +9,7 @@
   import Sidebar from "./lib/components/Sidebar.svelte";
   import Toasts from "./lib/components/Toasts.svelte";
   import Toolbar from "./lib/components/Toolbar.svelte";
+  import Controls from "./lib/components/views/Controls.svelte";
   import Crashes from "./lib/components/views/Crashes.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
   import Memory from "./lib/components/views/Memory.svelte";
@@ -53,7 +54,7 @@
     });
   });
 
-  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network", "traces", "crashes"];
+  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network", "traces", "crashes", "controls"];
 
   function onkeydown(e: KeyboardEvent) {
     const mod = e.metaKey || e.ctrlKey;
@@ -63,7 +64,7 @@
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault(); // never reload the webview
       app.refreshDevices();
-    } else if (mod && /^[1-8]$/.test(e.key)) {
+    } else if (mod && /^[1-9]$/.test(e.key)) {
       e.preventDefault();
       app.setView(shortcuts[Number(e.key) - 1]);
     }
@@ -109,6 +110,8 @@
         <Network />
       {:else if app.view === "crashes"}
         <Crashes />
+      {:else if app.view === "controls"}
+        <Controls />
       {:else}
         <Traces />
       {/if}
