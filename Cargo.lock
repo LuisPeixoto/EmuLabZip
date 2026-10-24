@@ -1226,6 +1226,7 @@ dependencies = [
  "base64 0.22.1",
  "emulabzip-core",
  "emulabzip-plugin",
+ "emulabzip-session",
  "emulabzip-trace",
  "rmcp",
  "schemars 1.2.3",
