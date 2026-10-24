@@ -54,6 +54,13 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   open, bound to `127.0.0.1`.
 - "Open in Perfetto UI" starts a short-lived server on `127.0.0.1` that answers for one file, only with CORS for
   `https://ui.perfetto.dev`, and stops after the file was fetched or after two minutes. Nothing is uploaded.
+- The MCP server (`emulabzip mcp`) speaks only on standard input and output, with no network port. Its tools that act
+  on a device (`control_*`, `open_url`, `record_trace`) are always on, and are checked like the app's own: values are
+  validated, links to `file:`, `javascript:` and similar are refused, and nothing reaches a shell unquoted. It will not
+  run a plugin the user has not enabled, and it never downloads anything.
+- A plugin is a program that runs as the user. It never runs until it is enabled; enabling shows the exact command, and
+  the approval is tied to the contents of `plugin.json`, so editing the file withdraws it. Plugins are started without a
+  shell, with a timeout and an output limit, and killed when stopped. EmuLabZip does not download plugins.
 - Recordings leave nothing on the device: configurations, raw files and reports are removed when a recording ends.
 
 ## Responsible use
