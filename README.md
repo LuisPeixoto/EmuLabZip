@@ -83,8 +83,24 @@ request, record a whole run and compare two devices. It ships as a native deskto
 
 <p align="center">
   <img src="docs/images/network.png" alt="Network: requests decrypted from an Android emulator, with a JSON response open" /><br />
-  <sub><b>Network</b>: decrypted requests, bodies and timing, from a device in one click.</sub>
+  <sub><b>Network</b>: decrypted requests with bodies and timing, and the protocol each one used (<code>h2</code>, then <code>h3</code>).</sub>
 </p>
+
+<p align="center">
+  <img src="docs/images/network-rules.png" alt="Network: the Rules dialog with a mock that answers with status 418" /><br />
+  <sub><b>Rules</b>: answer, slow down, block or hold a request, and see the result in the list.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/layout.png" alt="Layout: a screenshot of Chrome on an Android emulator and the tree of its 166 views" /><br /><sub><b>Layout</b>: every view, with its name, size and flags.</sub></td>
+    <td width="50%"><img src="docs/images/layout-audit.png" alt="Layout: the accessibility audit lists small touch targets and low-contrast text" /><br /><sub><b>Accessibility</b>: touch targets, labels and contrast, with what to fix.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/sessions.png" alt="Sessions: the summary of a recorded run, with a crash, repeated errors and slow requests" /><br /><sub><b>Sessions</b>: a whole run in one file: errors, crashes, requests, CPU and memory.</sub></td>
+    <td width="50%"><img src="docs/images/compare.png" alt="Compare: an Android emulator and an iPhone simulator side by side" /><br /><sub><b>Compare</b>: two devices, their screens, charts and differences.</sub></td>
+  </tr>
+</table>
 
 <p align="center">
   <img src="docs/images/traces-flame.png" alt="Traces: a whole-system CPU profile of an Android emulator as a flame graph" /><br />
