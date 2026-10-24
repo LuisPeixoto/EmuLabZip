@@ -7,11 +7,11 @@ use emulabzip_core::{
     MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile,
     TraceRequest,
 };
-use emulabzip_core::{CaInstall, Control, ControlInfo, CrashReport, CrashSummary};
+use emulabzip_core::{CaInstall, Control, ControlInfo, CrashReport, CrashSummary, LayoutSnapshot};
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, cert, controls, crashes, heapdump, info, logcat, meminfo, network, perf, storage, trace};
+use crate::{apps, cert, controls, crashes, heapdump, info, layout, logcat, meminfo, network, perf, storage, trace};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -116,6 +116,10 @@ impl Backend for AndroidBackend {
         } else {
             Err(Error::Adb(format!("screencap failed: {}", String::from_utf8_lossy(&png).trim())))
         }
+    }
+
+    async fn layout(&self, id: &str) -> Result<LayoutSnapshot> {
+        layout::snapshot(&self.adb, id).await
     }
 
     async fn perf(&self, id: &str, options: PerfOptions) -> Result<Stream<PerfSample>> {
