@@ -176,7 +176,7 @@ export interface Preview {
 }
 
 export type FlowKind = "http" | "tunnel" | "webSocket";
-export type FlowState = "pending" | "completed" | "failed";
+export type FlowState = "pending" | "paused" | "completed" | "failed";
 
 export interface FlowSummary {
   id: number;
@@ -190,12 +190,20 @@ export interface FlowSummary {
   path: string;
   url: string;
   httpVersion: string;
+  /** What the proxy spoke to the server: h1, h2 or h3. Empty until it answered. */
+  serverProtocol: string;
   status: number | null;
   contentType: string | null;
   requestSize: number;
   responseSize: number;
   durationMs: number | null;
   error: string | null;
+  /** The rule that matched this request, if any. */
+  rule: string | null;
+  mocked: boolean;
+  messageCount: number;
+  /** "pcap" for flows imported from a capture. */
+  source: string | null;
 }
 
 export interface NetBatch {
@@ -209,6 +217,8 @@ export interface NetState {
   caPath: string | null;
   bypassed: string[];
   connected: string[];
+  http3: boolean;
+  hideHttp3: boolean;
 }
 
 export interface NetworkStatus {
@@ -239,7 +249,19 @@ export interface BodyView {
   error: string | null;
 }
 
-export interface Flow extends Omit<FlowSummary, "contentType" | "durationMs"> {
+export interface WsMessage {
+  tMs: number;
+  direction: "up" | "down";
+  kind: "text" | "binary" | "close" | "ping" | "pong";
+  text: string | null;
+  base64: string | null;
+  len: number;
+  truncated: boolean;
+}
+
+export interface Flow extends Omit<FlowSummary, "contentType" | "durationMs" | "messageCount"> {
+  messages: WsMessage[];
+  messagesDropped: number;
   requestHeaders: [string, string][];
   responseHeaders: [string, string][];
   requestTruncated: boolean;
@@ -251,6 +273,74 @@ export interface FlowDetail {
   flow: Flow;
   request: BodyView | null;
   response: BodyView | null;
+}
+
+export interface RuleMatcher {
+  methods: string[];
+  host: string | null;
+  path: string | null;
+  urlContains: string | null;
+}
+
+export type RuleAction =
+  | { type: "mock"; status: number; headers: [string, string][]; body: string; base64: boolean; delayMs: number }
+  | { type: "delay"; ms: number }
+  | { type: "block" }
+  | { type: "breakpoint"; request: boolean; response: boolean };
+
+export interface Rule {
+  id: number;
+  name: string;
+  enabled: boolean;
+  matcher: RuleMatcher;
+  action: RuleAction;
+}
+
+export interface Paused {
+  id: number;
+  flow: number;
+  phase: "request" | "response";
+  method: string;
+  url: string;
+  status: number | null;
+  headers: [string, string][];
+  bodyText: string | null;
+  bodyBase64: string;
+}
+
+export type BreakpointEvent = { type: "paused"; paused: Paused } | { type: "resumed"; id: number };
+
+export interface EditsInput {
+  headers?: [string, string][];
+  bodyText?: string;
+  status?: number;
+}
+
+export interface DnsLookup {
+  startedMs: number;
+  name: string;
+  kind: string;
+  answers: string[];
+  status: string | null;
+  durationMs: number | null;
+}
+
+export interface CaptureSummary {
+  packets: number;
+  skippedPackets: number;
+  httpRequests: number;
+  tlsConnections: number;
+  otherConnections: number;
+  dnsLookups: number;
+  durationMs: number;
+  gaps: boolean;
+  truncated: boolean;
+}
+
+export interface Imported {
+  file: string;
+  summary: CaptureSummary;
+  dns: DnsLookup[];
 }
 
 export function targetOf(d: Device): Target {
@@ -510,6 +600,19 @@ export const api = {
     channel.onmessage = onBatch;
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
+  netRulesGet: () => invoke<Rule[]>("net_rules_get"),
+  netRulesSet: (rules: Rule[]) => invoke<Rule[]>("net_rules_set", { rules }),
+  async netBreakpointsSubscribe(onEvent: (e: BreakpointEvent) => void): Promise<number> {
+    const channel = new Channel<BreakpointEvent>();
+    channel.onmessage = onEvent;
+    return invoke<number>("net_breakpoints_subscribe", { onEvent: channel });
+  },
+  netResume: (id: number, abort: boolean, editsInput: EditsInput = {}) =>
+    invoke<void>("net_resume", { id, abort, editsInput }),
+  netResumeAll: () => invoke<void>("net_resume_all"),
+  netSetHttp3: (enabled: boolean) => invoke<NetState>("net_set_http3", { enabled }),
+  netSetHideHttp3: (hide: boolean) => invoke<NetState>("net_set_hide_http3", { hide }),
+  netImportPcap: () => invoke<Imported | null>("net_import_pcap"),
   crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
   crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
   crashSave: (target: Target, id: string) => invoke<string | null>("crash_save", { target, id }),
