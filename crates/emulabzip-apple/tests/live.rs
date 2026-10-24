@@ -172,3 +172,24 @@ async fn lists_instruments_templates_and_records_when_allowed() {
     }
     std::fs::remove_dir_all(out).ok();
 }
+
+/// Needs the crash app (`tools/crash-app-ios/install.sh`) to have crashed on the simulator in
+/// `EMULABZIP_DEVICE` (see its README).
+#[tokio::test]
+#[ignore = "needs a simulator where the crash app has crashed"]
+async fn lists_and_reads_real_crashes() {
+    use emulabzip_core::Backend;
+
+    let udid = std::env::var("EMULABZIP_DEVICE").expect("EMULABZIP_DEVICE=<simulator udid>");
+    let backend = emulabzip_apple::AppleBackend::new();
+    let list = backend.crashes(&udid, Some("dev.emulabzip.crashy")).await.unwrap();
+    println!("{list:#?}");
+    assert!(!list.is_empty());
+    let report = backend.crash(&udid, &list[0].id).await.unwrap();
+    println!("{}: {} threads", report.summary.title, report.threads.len());
+    assert!(
+        report.threads[0].crashed
+            && report.threads[0].frames.iter().any(|f| f.origin == emulabzip_core::FrameOrigin::App)
+    );
+    assert!(backend.crashes(&udid, Some("com.not.installed")).await.unwrap().is_empty());
+}

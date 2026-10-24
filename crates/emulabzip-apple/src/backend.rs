@@ -2,14 +2,15 @@
 
 use async_trait::async_trait;
 use emulabzip_core::{
-    App, Backend, CaInstall, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions, MemoryReport,
-    NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile, TraceRequest,
+    App, Backend, CaInstall, CrashReport, CrashSummary, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry,
+    LogOptions, MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile,
+    TraceRequest,
 };
 use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, memory, network, oslog, perf, simctl, storage, trace};
+use crate::{apps, crashes, memory, network, oslog, perf, simctl, storage, trace};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -168,6 +169,20 @@ impl Backend for AppleBackend {
         stop: tokio::sync::watch::Receiver<bool>,
     ) -> Result<TraceFile> {
         trace::record(id, request, out_dir, stop).await
+    }
+
+    async fn crashes(&self, id: &str, app: Option<&str>) -> Result<Vec<CrashSummary>> {
+        let (udid, app) = (id.to_string(), app.map(str::to_string));
+        tokio::task::spawn_blocking(move || crashes::list(&udid, app.as_deref()))
+            .await
+            .map_err(|e| Error::failed(e.to_string()))
+    }
+
+    async fn crash(&self, id: &str, crash_id: &str) -> Result<CrashReport> {
+        let (udid, crash_id) = (id.to_string(), crash_id.to_string());
+        tokio::task::spawn_blocking(move || crashes::get(&udid, &crash_id))
+            .await
+            .map_err(|e| Error::failed(e.to_string()))?
     }
 
     async fn network_status(&self, _id: &str) -> Result<NetworkStatus> {
