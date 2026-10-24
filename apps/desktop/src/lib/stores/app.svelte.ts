@@ -2,7 +2,7 @@ import { api, errorText, targetOf, type App, type Device, type HostInfo, type Pl
 import { load, loadValue, save } from "../prefs";
 
 export type Theme = "dark" | "light";
-export type View = "overview" | "logs" | "performance" | "memory" | "storage" | "network" | "traces";
+export type View = "overview" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins";
 
 export interface Toast {
   id: number;
