@@ -2,6 +2,7 @@
 //! (logs, samples) is streamed over IPC channels in batches.
 
 mod commands;
+mod controls;
 mod crashes;
 mod files;
 mod network;
@@ -66,6 +67,8 @@ pub fn run() {
             network::net_clear,
             network::net_flow,
             network::net_export_har,
+            controls::controls_info,
+            controls::control_apply,
             crashes::crash_list,
             crashes::crash_get,
             crashes::crash_save,
