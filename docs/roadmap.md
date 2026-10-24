@@ -47,7 +47,17 @@ devices, logs, crashes and traces and act on them · plugins: your own collector
 enabled by the user. See [Crashes](crashes.md), [Controls](controls.md), [MCP server](mcp.md) and
 [Plugins](plugins.md).
 
-## Phase 6: Ideas
+## ✅ Phase 6: Network power tools, layout and sessions (v0.6)
 
-Packet capture (`emulator -tcpdump`) import · WebSocket frames · request breakpoints and mocks · HTTP/3 · physical iOS devices · layout inspection · accessibility audits · session recording and sharing · comparing two
-devices side by side · CI mode that records a session while UI tests run.
+**Mocks, delays, blocks and breakpoints** on requests and responses · **WebSocket messages**, including
+`permessage-deflate` · **packet capture import** (`emulator -tcpdump`, `.pcap` and `.pcapng`) with HTTP, TLS server names
+and DNS · **HTTP/3** from the proxy to servers · **layout inspection** and an **accessibility audit** (labels, touch
+targets, contrast) on Android and the iOS Simulator · **sessions** recorded to a single file, and **CI mode** that
+records around a test run · **comparing two devices**. See [Mocks](mocks.md), [WebSockets](websockets.md),
+[Capture import](pcap.md), [Layout](layout.md), [Sessions](sessions.md), [CI mode](ci.md) and [Compare](compare.md).
+
+## Ideas
+
+Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
+side · a library of rules shared between a team · more accessibility checks (focus order, text scaling) · HTTP/3 streaming
+for very large responses · plugins that read sessions.
