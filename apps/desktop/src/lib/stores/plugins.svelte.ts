@@ -67,14 +67,11 @@ class PluginsStore {
   #add(event: PluginEvent) {
     switch (event.type) {
       case "metric": {
-        const all = this.metrics.slice();
-        let m = all.find((x) => x.name === event.name);
-        if (!m) {
-          m = { name: event.name, unit: event.unit, values: [] };
-          all.push(m);
-        }
-        m.values = [...m.values.slice(-(WINDOW - 1)), event.value];
-        this.metrics = all;
+        // A new object for every point: the view keys its charts by name, and only redraws a chart
+        // whose object it has not seen before.
+        const at = this.metrics.findIndex((x) => x.name === event.name);
+        const next: MetricSeries = at < 0 ? { name: event.name, unit: event.unit, values: [event.value] } : { ...this.metrics[at], values: [...this.metrics[at].values.slice(-(WINDOW - 1)), event.value] };
+        this.metrics = at < 0 ? [...this.metrics, next] : this.metrics.map((x, i) => (i === at ? next : x));
         break;
       }
       case "table":
