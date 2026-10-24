@@ -94,6 +94,36 @@ shows the current state.
 It comes from `github.com/google/perfetto/releases`. Behind a proxy, set `HTTPS_PROXY`. A file that does not match the
 pinned SHA-256 is discarded and never run. You can still open any Perfetto trace in the Perfetto UI.
 
+## Crashes: nothing is listed
+
+On Android, the system keeps a crash in DropBox and rate-limits repeats, so a looping app is listed less often than it
+crashes. On the iOS Simulator, macOS writes the `.ips` report a few seconds after the crash, into
+`~/Library/Logs/DiagnosticReports`; reports of apps that are not in a simulator's folder are not listed. Press
+**Refresh**, or run `emulabzip crashes`.
+
+## Controls: the location does nothing on a device
+
+Only emulators accept a new location, through the emulator console. It needs the token in
+`~/.emulator_console_auth_token`, which the emulator creates the first time it runs from your account. Physical devices
+and simulators of other kinds are not supported for location on Android.
+
+## Controls: a notification does not appear on Android
+
+Notifications are posted from the shell with `cmd notification post` (tried on Android 14). Turn on
+notifications for "Android Shell" if the device hides them. The app argument is ignored on Android.
+
+## Plugins: a plugin cannot be run
+
+It has to be enabled first, and editing its `plugin.json` disables it again. A plugin that exits with an error shows the
+end of its error output. Check that the program in `command` exists (it is looked up in the plugin's folder, then on the
+PATH) and that it is executable (`chmod +x run.sh`).
+
+## MCP: the assistant sees no tools
+
+Run `emulabzip mcp` by hand and send it an `initialize` request, as in [MCP server](mcp.md#trying-it). If the client
+cannot find `emulabzip`, give it the full path. Standard output carries only the protocol; look at standard error
+(`EMULABZIP_LOG=debug`) for what went wrong.
+
 ## Getting diagnostics
 
 Start the app or the CLI with `EMULABZIP_LOG=debug` and include the output when you

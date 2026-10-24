@@ -38,11 +38,14 @@ backed by the official `trace_processor`, downloaded once, pinned and verified �
 (an app or the whole system) · Instruments recordings with `xctrace`, with a flame graph for Time Profiler · open
 traces in the Perfetto UI or in Instruments · a library of recordings · `emulabzip trace`. See [Traces](traces.md).
 
-## Phase 5: Crashes and automation
+## ✅ Phase 5: Crashes and automation (v0.5)
 
-ANR, tombstone and crash report collection with symbolication hints · emulator and simulator controls (location, push
-notifications, status bar, appearance, permissions) · **MCP server** so AI assistants can read devices, logs and
-traces · plugin API for custom collectors and views.
+Crash, native crash and ANR collection (DropBox on Android, `.ips` reports on the iOS Simulator) with stacks, the facts
+the device wrote down, hints for symbolication, and a notification when a new one happens · controls for location,
+appearance, the status bar, battery, permissions, notifications and links · an **MCP server** so AI assistants can read
+devices, logs, crashes and traces and act on them · plugins: your own collectors as programs that print JSON lines,
+enabled by the user. See [Crashes](crashes.md), [Controls](controls.md), [MCP server](mcp.md) and
+[Plugins](plugins.md).
 
 ## Phase 6: Ideas
 

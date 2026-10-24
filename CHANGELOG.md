@@ -6,6 +6,29 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-24
+
+Phase 5: crashes and automation.
+
+### Added
+
+- **Crashes**: crashes, native crashes and ANRs with their stacks, grouped by thread, with the facts the device wrote
+  down and hints for symbolication (`retrace`, `ndk-stack`, `llvm-symbolizer`, `atos`). Android reports come from
+  DropBox (no root needed); iOS Simulator reports are the `.ips` files macOS writes. A toast and a sidebar badge tell
+  you when a new one happens.
+- **Controls**: location (emulators and simulators), light and dark mode, a clean status bar, battery level,
+  runtime permissions, notifications (a simulated push on iOS) and links, each with a way back. Every value is checked
+  before a device sees it; links that read local files or run script are refused.
+- **MCP server** (`emulabzip mcp`): 25 tools that let an AI assistant list devices and apps, read logs, take
+  screenshots, measure performance and memory, browse app files, read crashes and traces, record traces, and control
+  the device. It speaks on standard input and output only.
+- **Plugins**: your own collectors as programs that print JSON lines (metrics, tables, text, logs). A plugin runs only
+  after the user enables it, tied to its `plugin.json`, with a timeout and an output limit. `emulabzip plugin new`,
+  `install`, `enable`, `run`; a Plugins view in the app; two examples in `examples/plugins`.
+- **Command line**: `emulabzip crashes`, `crash`, `control`, `plugin` and `mcp`.
+- `tools/crash-app` and `tools/crash-app-ios`: tiny apps that crash, hang and segfault on purpose, and
+  `tools/live-tests.sh` to run every test that needs a device.
+
 ## [0.4.0] - 2026-10-23
 
 Phase 4: tracing.
@@ -95,7 +118,8 @@ Phase 1: connect and observe.
 - Documentation: getting started, Android, iOS Simulator, logs, CLI, architecture, troubleshooting, distribution, the
   roadmap and a write-up of how Instruments and the Android Studio profilers collect their data.
 
-[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.1.0...v0.2.0

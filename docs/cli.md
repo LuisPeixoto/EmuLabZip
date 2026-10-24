@@ -110,6 +110,43 @@ device is put back when it stops, also after an error. See [Network](network.md)
 | `--har <file>` | Save the requests as a HAR file when stopping. |
 | `--json` | One JSON object per request. |
 
+### `emulabzip crashes` and `emulabzip crash <id>`
+
+`crashes` lists what the device recorded, newest first, with an id for each; `-a, --app` and `-k, --kind
+crash|native|anr` narrow it down. `crash` shows one with its stack and hints: `--all-threads` prints every thread,
+`--raw` prints the report as the device wrote it. Both accept `--json`. See [Crashes](crashes.md).
+
+### `emulabzip control`
+
+Changes the device. See [Controls](controls.md).
+
+| Command | What it does |
+|---------|--------------|
+| `control info [-a <app>]` | What the device supports, its appearance and the permissions of the app. |
+| `control location set <lat> <lon>` / `location clear` | Sets or resets the position. |
+| `control appearance light\|dark` | Light or dark mode. |
+| `control statusbar set [--time 9:41] [--battery 100] [--wifi true] [--cellular true]` / `statusbar clear` | A clean status bar, or the real one back. |
+| `control battery set <level> [--charging]` / `battery reset` | Pretends the battery is at a level (Android). |
+| `control permission <app> <permission> grant\|revoke\|reset` | An Android permission name, or an iOS service such as `photos`. |
+| `control notify [<app>] [--title …] [--body …] [--payload <file>]` | A notification (Android) or a simulated push (iOS). |
+| `control open <url>` | Opens a link on the device. |
+
+### `emulabzip plugin`
+
+Runs your own collectors. See [Plugins](plugins.md).
+
+| Command | What it does |
+|---------|--------------|
+| `plugin list [--json]` | The installed plugins and whether each is enabled. |
+| `plugin new <name>` | Starts a plugin from a template. |
+| `plugin install <folder> [--force]` | Copies a plugin folder in. It starts disabled. |
+| `plugin enable <name>` / `plugin disable <name>` | Allows or stops allowing a plugin to run. |
+| `plugin run <name> [-a <app>] [--seconds <n>] [--json]` | Runs a plugin on the device and prints what it reports. |
+
+### `emulabzip mcp`
+
+Serves the devices to an AI assistant over MCP on standard input and output. See [MCP server](mcp.md).
+
 ### `emulabzip trace`
 
 Records and analyzes traces. See [Traces](traces.md). <kbd>Ctrl+C</kbd> during a recording stops it early and keeps
