@@ -440,6 +440,45 @@ export interface ControlInfo {
   notes: string[];
 }
 
+export type PluginMode = "once" | "stream";
+
+export interface PluginManifest {
+  protocol: number;
+  name: string;
+  version: string;
+  description: string;
+  platforms: Platform[];
+  command: string[];
+  mode: PluginMode;
+  timeoutS: number | null;
+}
+
+export interface PluginRow {
+  manifest: PluginManifest;
+  dir: string;
+  enabled: boolean;
+  /** What enabling it lets it do, in one line. */
+  runs: string;
+}
+
+export interface PluginList {
+  dir: string;
+  plugins: PluginRow[];
+  problems: { dir: string; message: string }[];
+}
+
+export type PluginEvent =
+  | { type: "metric"; name: string; value: number; unit: string | null }
+  | { type: "table"; title: string | null; columns: string[]; rows: unknown[][] }
+  | { type: "text"; title: string | null; body: string }
+  | { type: "log"; level: string | null; message: string }
+  | { type: "error"; message: string };
+
+export type PluginMessage =
+  | { type: "event"; event: PluginEvent }
+  | { type: "done"; outcome: string }
+  | { type: "failed"; message: string };
+
 export function errorText(e: unknown): string {
   return typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
 }
@@ -474,6 +513,15 @@ export const api = {
   crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
   crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
   crashSave: (target: Target, id: string) => invoke<string | null>("crash_save", { target, id }),
+  pluginList: () => invoke<PluginList>("plugin_list"),
+  pluginEnable: (name: string, enabled: boolean) => invoke<void>("plugin_enable", { name, enabled }),
+  async pluginRun(name: string, target: Target, pkg: string | null, onMessage: (m: PluginMessage) => void): Promise<number> {
+    const channel = new Channel<PluginMessage>();
+    channel.onmessage = onMessage;
+    return invoke<number>("plugin_run", { name, target, package: pkg, onEvent: channel });
+  },
+  pluginStop: (session: number) => invoke<void>("plugin_stop", { session }),
+  pluginOpenFolder: () => invoke<void>("plugin_open_folder"),
   controlsInfo: (target: Target, app: string | null) => invoke<ControlInfo>("controls_info", { target, app }),
   controlApply: (target: Target, control: Control) => invoke<void>("control_apply", { target, control }),
   traceTemplates: (target: Target) => invoke<string[]>("trace_templates", { target }),
