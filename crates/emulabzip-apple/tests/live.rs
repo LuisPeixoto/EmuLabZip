@@ -193,3 +193,53 @@ async fn lists_and_reads_real_crashes() {
     );
     assert!(backend.crashes(&udid, Some("com.not.installed")).await.unwrap().is_empty());
 }
+
+/// Applies the controls on a real simulator, reads back what simctl lets us read, and puts it the
+/// way it was. Needs the crash app installed: `EMULABZIP_DEVICE=<udid>`.
+#[tokio::test]
+#[ignore = "changes the simulator's settings and puts them back"]
+async fn applies_every_control_and_resets_it() {
+    use emulabzip_core::{Appearance, Backend, Control, Grant, StatusBar};
+
+    let udid = std::env::var("EMULABZIP_DEVICE").expect("EMULABZIP_DEVICE=<simulator udid>");
+    let backend = emulabzip_apple::AppleBackend::new();
+    let app = "dev.emulabzip.crashy";
+    let simctl = |args: &[&str]| {
+        let out = std::process::Command::new("xcrun").arg("simctl").args(args).output().unwrap();
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+
+    let info = backend.controls(&udid, None).await.unwrap();
+    let original = info.appearance.expect("the simulator reports its appearance");
+    let other = if original == Appearance::Dark { Appearance::Light } else { Appearance::Dark };
+    backend.control(&udid, &Control::Appearance { appearance: other }).await.unwrap();
+    assert_eq!(backend.controls(&udid, None).await.unwrap().appearance, Some(other));
+    backend.control(&udid, &Control::Appearance { appearance: original }).await.unwrap();
+    assert_eq!(backend.controls(&udid, None).await.unwrap().appearance, Some(original));
+
+    let bar = StatusBar { time: Some("9:41".into()), battery: Some(100), wifi: Some(true), cellular: Some(true) };
+    backend.control(&udid, &Control::StatusBar { status_bar: bar }).await.unwrap();
+    let listed = simctl(&["status_bar", &udid, "list"]);
+    assert!(listed.contains("9:41"), "{listed}");
+    backend.control(&udid, &Control::ClearStatusBar).await.unwrap();
+    assert!(!simctl(&["status_bar", &udid, "list"]).contains("9:41"));
+
+    for grant in [Grant::Grant, Grant::Revoke, Grant::Reset] {
+        let c = Control::Permission { app: app.into(), permission: "photos".into(), grant };
+        backend.control(&udid, &c).await.unwrap();
+    }
+    let unknown = Control::Permission { app: app.into(), permission: "teleport".into(), grant: Grant::Grant };
+    assert!(backend.control(&udid, &unknown).await.is_err());
+
+    let push = Control::Notification {
+        app: app.into(),
+        title: "EmuLabZip".into(),
+        body: "A simulated push".into(),
+        payload: None,
+    };
+    backend.control(&udid, &push).await.unwrap();
+    backend.control(&udid, &Control::OpenUrl { url: "https://example.com".into() }).await.unwrap();
+    backend.control(&udid, &Control::Location { lat: "48.8584".into(), lon: "2.2945".into() }).await.unwrap();
+    backend.control(&udid, &Control::ClearLocation).await.unwrap();
+    assert!(backend.control(&udid, &Control::Battery { level: 10, charging: false }).await.is_err());
+}

@@ -96,3 +96,40 @@ pub async fn plist_to_json(plist: &[u8]) -> Result<serde_json::Value> {
     }
     serde_json::from_slice(&output.stdout).map_err(|e| Error::parse("property list", e.to_string()))
 }
+
+/// Runs `simctl` with `input` on its standard input (`simctl push <device> <bundle> -`).
+pub async fn run_with_stdin<I, S>(args: I, input: &[u8]) -> Result<Vec<u8>>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    use tokio::io::AsyncWriteExt;
+
+    let mut child = Command::new("xcrun")
+        .arg("simctl")
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => {
+                Error::ToolMissing("xcrun", "Install Xcode and run `xcode-select --install` to use the iOS Simulator.")
+            }
+            _ => e.into(),
+        })?;
+    let mut stdin = child.stdin.take().expect("piped stdin");
+    let data = input.to_vec();
+    let writer = tokio::spawn(async move {
+        let _ = stdin.write_all(&data).await;
+    });
+    let output = child.wait_with_output().await?;
+    let _ = writer.await;
+    if output.status.success() {
+        Ok(output.stdout)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(Error::Simctl(stderr.lines().find(|l| !l.trim().is_empty()).unwrap_or("command failed").trim().to_string()))
+    }
+}

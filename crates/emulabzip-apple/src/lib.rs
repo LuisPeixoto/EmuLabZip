@@ -7,6 +7,7 @@
 
 pub mod apps;
 pub mod backend;
+pub mod controls;
 pub mod crashes;
 pub mod devices;
 pub mod info;
