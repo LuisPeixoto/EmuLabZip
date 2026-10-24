@@ -97,8 +97,17 @@ JSON is formatted, images are shown, and binary data is shown as a hex dump. The
 they were; only the copy you read is decoded.
 
 **Connections** are what the proxy could not decode: non-HTTP traffic, and apps that refuse the certificate. They are
-listed so you know they exist, with the reason. WebSockets are upgraded and listed with their sizes; their messages
-are not decoded yet.
+listed so you know they exist, with the reason. WebSockets are listed with a **Messages** tab that shows each message
+(see [WebSocket messages](websockets.md)).
+
+The **Proto** column shows what the proxy spoke to the server: `h1`, `h2` or `h3`.
+
+## More than watching
+
+- **Rules**: answer a request yourself, slow it down, block it or stop it and edit it. See
+  [Mocks and breakpoints](mocks.md).
+- **Import**: open a `.pcap` or `.pcapng` capture as requests. See [Importing a capture](pcap.md).
+- **HTTP/3**: see below.
 
 ### Apps that pin their certificate
 
@@ -113,11 +122,25 @@ The download button saves the requests as a [HAR](http://www.softwareishard.com/
 Chrome DevTools, Firefox and most API tools. Bodies are stored decoded. Connections are left out. On the command
 line: `emulabzip net --har capture.har`.
 
+## HTTP/3
+
+A device behind an HTTP proxy never speaks QUIC to it, so HTTP/3 only concerns the proxy's second leg, to the server.
+Servers announce HTTP/3 in an `Alt-Svc: h3=":443"` header. The proxy remembers it per host, and with **HTTP/3 → Use HTTP/3
+to servers** switched on (it is off by default), later requests to that host go over QUIC. If QUIC fails (a network that
+blocks UDP, a server that does not answer), the request falls back to HTTP/2 or 1.1 and the host stays on TCP for 10
+minutes. Flows show `h3` in the Proto column when it worked. An HTTP/3 response is read in full before it is passed on,
+so a very large download is not streamed.
+
+**Hide HTTP/3 from apps** (on by default) removes the `h3` entries from the `Alt-Svc` header the app receives. Without it
+an app can learn that the server speaks HTTP/3 and try QUIC directly, around the proxy, and its traffic would vanish
+from the list. The flow still records the original header. On the command line: `emulabzip net --http3`, and
+`--show-h3` to show apps the offers.
+
 ## Limits
 
 - Only the first **10 MB** of each body is stored. The rest still reaches its destination.
 - The list keeps the newest **10,000** requests.
-- WebSocket and HTTP/3 (QUIC) traffic is not decoded. Apps that use HTTP/3 fall back to HTTP/2 through the proxy.
+- An app that speaks QUIC directly, around the proxy, cannot be decoded. With the default setting apps are not told about HTTP/3, so they stay on HTTP/2 through the proxy.
 - The proxy is for **your own** apps and devices. Do not point it at traffic you are not allowed to inspect.
 
 ## Command line
@@ -126,6 +149,9 @@ line: `emulabzip net --har capture.har`.
 emulabzip net                       # the only running device; prints one line per request
 emulabzip net --json | jq 'select(.status >= 400)'
 emulabzip net --no-connect --port 9191   # only run the proxy
+emulabzip net --rules rules.json    # mock, delay or block requests
+emulabzip net --http3               # talk HTTP/3 to servers that offer it
+emulabzip net import capture.pcap   # read a packet capture
 emulabzip ca install                # make the device trust the certificate
 emulabzip ca path                   # where the certificate file is
 ```

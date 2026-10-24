@@ -72,6 +72,34 @@ once: it restores the proxy settings it saved if an earlier run was killed. Othe
 Changing the Mac's proxy is a system setting. EmuLabZip tries as you first and asks for administrator rights only if
 macOS refuses.
 
+## Network: a rule does nothing
+
+Rules see decrypted requests, so HTTPS needs the certificate installed, and a host that rejected it is passed through
+and cannot be changed. The first enabled rule that matches wins; move the one you expect above the others. A host
+pattern matches the host only (`api.example.com`, not `https://api.example.com/`).
+
+## Network: HTTP/3 shows no `h3`
+
+The feature is off by default (**HTTP/3 → Use HTTP/3 to servers**). A host is only tried after one of its responses said
+it supports HTTP/3, so the first request is always TCP. A network that blocks UDP makes QUIC fail; the host then stays on
+TCP for 10 minutes.
+
+## Layout: nothing to read on iOS
+
+Simulator.app has to be open on that device, and the program running EmuLabZip has to be allowed in System Settings,
+Privacy & Security, Accessibility (the app, or your terminal for `emulabzip layout`). Wake the device if it shows a
+black screen.
+
+## Layout: Android says uiautomator produced nothing
+
+Some windows forbid it: secure screens, and a few players. Go to another screen and try again. If the device is busy
+(a boot animation, an ANR dialog) wait a moment.
+
+## Sessions: a recording is left as a `.partial` folder
+
+The recording was killed before it could pack itself. Nothing is lost: `emulabzip session show run.ezsession.partial`
+opens it. Delete the folder, or move it, before you record to the same name again.
+
 ## Traces: "Perfetto did not record a trace"
 
 Perfetto needs Android 9 or newer. If the message names a permission, restart the emulator, or run
