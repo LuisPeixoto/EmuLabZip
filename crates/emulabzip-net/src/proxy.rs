@@ -34,6 +34,7 @@ use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::io::{BoxIo, Prefixed};
 use crate::rules::{Action, Rule, RuleSet, mock_bytes};
 use crate::store::FlowStore;
+use crate::ws::{Deflate, Direction, FrameParser, MAX_MESSAGES, parse_extensions};
 
 type BoxErr = Box<dyn std::error::Error + Send + Sync>;
 type RespBody = UnsyncBoxBody<Bytes, BoxErr>;
@@ -881,14 +882,15 @@ async fn forward_upgrade(
         f.timing.ttfb_ms = Some(ttfb);
     });
 
+    let deflate = headers.get("sec-websocket-extensions").and_then(|v| v.to_str().ok()).and_then(parse_extensions);
     let task_ctx = ctx.clone();
     tokio::spawn(async move {
         let mut shutdown = task_ctx.shutdown.clone();
         let outcome = match (client_upgrade.await, upstream_upgrade.await) {
             (Ok(client), Ok(server)) => {
-                let (mut client, mut server) = (TokioIo::new(client), TokioIo::new(server));
+                let copy = tapped_copy(TokioIo::new(client), TokioIo::new(server), &task_ctx, id, started, deflate);
                 tokio::select! {
-                    r = copy_bidirectional(&mut client, &mut server) => r.map_err(|e| format!("The connection was interrupted: {e}")),
+                    r = copy => r.map_err(|e| format!("The connection was interrupted: {e}")),
                     _ = cancelled(&mut shutdown) => Ok((0, 0)),
                 }
             }
@@ -915,6 +917,82 @@ async fn forward_upgrade(
     *out.status_mut() = status;
     *out.headers_mut() = headers;
     out
+}
+
+/// Copies both ways like `copy_bidirectional`, and reads the WebSocket messages on the way.
+async fn tapped_copy<C, S>(
+    client: C,
+    server: S,
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    deflate: Option<Deflate>,
+) -> std::io::Result<(u64, u64)>
+where
+    C: AsyncRead + AsyncWrite + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    let (client_read, client_write) = tokio::io::split(client);
+    let (server_read, server_write) = tokio::io::split(server);
+    let up = tap(
+        client_read,
+        server_write,
+        FrameParser::new(deflate.map(|d| d.client_no_context_takeover)),
+        Direction::Up,
+        ctx,
+        id,
+        started,
+    );
+    let down = tap(
+        server_read,
+        client_write,
+        FrameParser::new(deflate.map(|d| d.server_no_context_takeover)),
+        Direction::Down,
+        ctx,
+        id,
+        started,
+    );
+    tokio::try_join!(up, down)
+}
+
+/// Moves the bytes of one direction and shows them to the parser. The parser never holds them
+/// back: what is forwarded is exactly what was read.
+async fn tap<R, W>(
+    mut from: R,
+    mut to: W,
+    mut parser: FrameParser,
+    direction: Direction,
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+) -> std::io::Result<u64>
+where
+    R: AsyncRead + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    use tokio::io::AsyncWriteExt;
+    let (mut buf, mut total) = (vec![0u8; 16 * 1024], 0u64);
+    loop {
+        let n = from.read(&mut buf).await?;
+        if n == 0 {
+            let _ = to.shutdown().await;
+            return Ok(total);
+        }
+        total += n as u64;
+        if !parser.is_broken() {
+            for message in parser.feed(&buf[..n]) {
+                let stored = message.into_stored(started.elapsed().as_millis() as u64, direction);
+                ctx.store.update(id, |f| {
+                    if f.messages.len() < MAX_MESSAGES {
+                        f.messages.push(stored);
+                    } else {
+                        f.messages_dropped += 1;
+                    }
+                });
+            }
+        }
+        to.write_all(&buf[..n]).await?;
+    }
 }
 
 #[cfg(test)]
