@@ -141,9 +141,10 @@ pub fn summarize(session: &Session) -> Summary {
 
     let perf = (!session.perf.is_empty()).then(|| PerfStats {
         samples: session.perf.len() as u64,
-        cpu_avg: mean(session.perf.iter().filter_map(|s| s.app_cpu)),
-        cpu_peak: max_f(session.perf.iter().filter_map(|s| s.app_cpu)),
-        memory_peak_kb: session.perf.iter().filter_map(|s| s.app_memory_kb).max(),
+        // The app's numbers when an app was sampled, the device's otherwise.
+        cpu_avg: mean(session.perf.iter().filter_map(|s| s.app_cpu.or(s.device_cpu))),
+        cpu_peak: max_f(session.perf.iter().filter_map(|s| s.app_cpu.or(s.device_cpu))),
+        memory_peak_kb: session.perf.iter().filter_map(|s| s.app_memory_kb.or(s.device_memory_used_kb)).max(),
         fps_avg: mean(session.perf.iter().filter_map(|s| s.fps)),
         jank_peak: max_f(session.perf.iter().filter_map(|s| s.jank_percent)),
     });
