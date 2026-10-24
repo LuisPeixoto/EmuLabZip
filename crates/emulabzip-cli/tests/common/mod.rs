@@ -14,10 +14,15 @@ pub struct Server {
 }
 
 impl Server {
+    /// The data folder the server runs with.
+    pub fn home() -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("emulabzip-mcp-{}", std::process::id()))
+    }
+
     pub fn start() -> Server {
         let mut child = Command::new(env!("CARGO_BIN_EXE_emulabzip"))
             .arg("mcp")
-            .env("EMULABZIP_HOME", std::env::temp_dir().join(format!("emulabzip-mcp-{}", std::process::id())))
+            .env("EMULABZIP_HOME", Server::home())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
