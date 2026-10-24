@@ -7,11 +7,11 @@ use emulabzip_core::{
     MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile,
     TraceRequest,
 };
-use emulabzip_core::{CaInstall, CrashReport, CrashSummary};
+use emulabzip_core::{CaInstall, Control, ControlInfo, CrashReport, CrashSummary};
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, cert, crashes, heapdump, info, logcat, meminfo, network, perf, storage, trace};
+use crate::{apps, cert, controls, crashes, heapdump, info, logcat, meminfo, network, perf, storage, trace};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -168,6 +168,14 @@ impl Backend for AndroidBackend {
 
     async fn crash(&self, id: &str, crash_id: &str) -> Result<CrashReport> {
         crashes::get(&self.adb, id, crash_id).await
+    }
+
+    async fn controls(&self, id: &str, app: Option<&str>) -> Result<ControlInfo> {
+        controls::info(&self.adb, id, app).await
+    }
+
+    async fn control(&self, id: &str, control: &Control) -> Result<()> {
+        controls::apply(&self.adb, id, control).await
     }
 
     async fn network_status(&self, id: &str) -> Result<NetworkStatus> {
