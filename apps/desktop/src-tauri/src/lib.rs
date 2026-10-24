@@ -5,6 +5,7 @@ mod commands;
 mod controls;
 mod crashes;
 mod files;
+mod layout;
 mod network;
 mod plugins;
 mod profiling;
@@ -56,6 +57,7 @@ pub fn run() {
             files::sqlite_rows,
             files::sqlite_query,
             files::save_file,
+            layout::layout_read,
             network::net_state,
             network::net_start,
             network::net_stop,

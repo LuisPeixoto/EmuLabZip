@@ -14,6 +14,7 @@
 
   const inspect: Item[] = [
     { view: "overview", icon: "info", label: "Overview" },
+    { view: "layout", icon: "layers", label: "Layout" },
     { view: "logs", icon: "terminal", label: "Logs" },
     { view: "crashes", icon: "alert", label: "Crashes" },
   ];

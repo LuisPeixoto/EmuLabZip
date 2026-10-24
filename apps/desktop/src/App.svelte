@@ -9,6 +9,7 @@
   import Sidebar from "./lib/components/Sidebar.svelte";
   import Toasts from "./lib/components/Toasts.svelte";
   import Toolbar from "./lib/components/Toolbar.svelte";
+  import Layout from "./lib/components/views/Layout.svelte";
   import Controls from "./lib/components/views/Controls.svelte";
   import Crashes from "./lib/components/views/Crashes.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
@@ -99,6 +100,8 @@
         {/if}
       {:else if app.view === "overview"}
         <Overview />
+      {:else if app.view === "layout"}
+        <Layout />
       {:else if app.view === "logs"}
         <Logs />
       {:else if app.view === "performance"}
