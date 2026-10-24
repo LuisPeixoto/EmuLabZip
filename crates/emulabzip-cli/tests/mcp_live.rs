@@ -94,3 +94,17 @@ fn reads_and_controls_a_real_emulator() {
     let refused = call(&mut s, "open_url", json!({ "url": "file:///etc/passwd" }));
     assert_eq!(refused["result"]["isError"], true, "a link that reads local files is refused");
 }
+
+#[test]
+#[ignore = "needs a running device"]
+fn reads_the_layout_and_audits_the_screen() {
+    let device = std::env::var("EMULABZIP_DEVICE").expect("EMULABZIP_DEVICE");
+    let mut s = Server::start_session();
+    let layout =
+        s.call(2, "tools/call", json!({ "name": "get_layout", "arguments": { "device": device, "depth": 4 } }));
+    let tree = text(&layout);
+    assert!(tree.contains("views on a") && tree.contains("#0 "), "{tree}");
+    let audit = s.call(3, "tools/call", json!({ "name": "audit_accessibility", "arguments": { "device": device } }));
+    let v: Value = serde_json::from_str(&text(&audit)).unwrap();
+    assert!(v["findings"].is_array() && v["checked"].as_u64().unwrap() > 3, "{v}");
+}
