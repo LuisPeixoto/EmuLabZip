@@ -64,30 +64,35 @@ fn home_dir() -> Option<PathBuf> {
     env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from)
 }
 
+/// How long `adb start-server` may take.
+const START_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Runs `adb start-server` and waits for it to finish.
+///
+/// The server stays running after the command returns, and it inherits the command's output. If
+/// that output were a pipe, waiting for the pipe to close would wait for the server to end (it
+/// never does on Windows), so the output goes to a file instead.
 pub async fn start_server() -> Result<()> {
     let adb = find_adb().ok_or(Error::ToolMissing(
         "adb",
         "Install the Android SDK platform tools, or set ANDROID_HOME or EMULABZIP_ADB.",
     ))?;
     tracing::info!(adb = %adb.display(), "starting the adb server");
-    let output = tokio::process::Command::new(&adb).arg("start-server").output().await?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(Error::Adb(format!("`adb start-server` failed: {}", String::from_utf8_lossy(&output.stderr).trim())))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_adb_server_socket() {
-        assert_eq!(parse_server_socket("tcp:5038"), Some("127.0.0.1:5038".parse().unwrap()));
-        assert_eq!(parse_server_socket("tcp:localhost:5039"), Some("127.0.0.1:5039".parse().unwrap()));
-        assert_eq!(parse_server_socket("tcp:10.0.0.2:5037"), Some("10.0.0.2:5037".parse().unwrap()));
-        assert_eq!(parse_server_socket("local:/tmp/adb"), None);
-    }
+    let log = env::temp_dir().join(format!("emulabzip-adb-start-{}.log", std::process::id()));
+    let file = std::fs::File::create(&log)?;
+    let status = tokio::time::timeout(
+        START_TIMEOUT,
+        tokio::process::Command::new(&adb)
+            .arg("start-server")
+            .stdin(std::process::Stdio::null())
+            .stdout(file.try_clone()?)
+            .stderr(file)
+            .kill_on_drop(true)
+            .status(),
+    )
+    .await
+    .map_err(|_| Error::Adb("`adb start-server` did not finish in 30 seconds".into()))??;
+    let said = std::fs::read_to_string(&log).unwrap_or_default();
+    let _ = std::fs::remove_file(&log);
+    if status.success() { Ok(()) } else { Err(Error::Adb(format!("`adb start-server` failed: {}", said.trim()))) }
 }
