@@ -1,6 +1,7 @@
 <script lang="ts">
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { app, type View } from "../stores/app.svelte";
+  import { crashes } from "../stores/crashes.svelte";
   import { logs } from "../stores/logs.svelte";
   import { compact } from "../format";
   import Icon from "./Icon.svelte";
@@ -14,6 +15,7 @@
   const inspect: Item[] = [
     { view: "overview", icon: "info", label: "Overview" },
     { view: "logs", icon: "terminal", label: "Logs" },
+    { view: "crashes", icon: "alert", label: "Crashes" },
   ];
   const profile: Item[] = [
     { view: "performance", icon: "activity", label: "Performance" },
@@ -34,7 +36,9 @@
     >
       <Icon name={item.icon} size={15} />
       <span class="flex-1 text-left">{item.label}</span>
-      {#if item.view === "logs" && logs.entries.length}
+      {#if item.view === "crashes" && crashes.unseen}
+        <span class="mono rounded-full bg-err px-1.5 text-[10px] font-semibold text-white">{crashes.unseen}</span>
+      {:else if item.view === "logs" && logs.entries.length}
         <span class="mono text-[10.5px] {active ? 'text-accent' : 'text-faint'}">{compact(logs.entries.length)}</span>
       {/if}
     </button>
