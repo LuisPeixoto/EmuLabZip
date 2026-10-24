@@ -19,6 +19,7 @@ fn rejects_values_clap_can_check() {
         ["control", "appearance", "purple"].as_slice(),
         &["control", "permission", "a.b", "android.permission.CAMERA", "allow"],
         &["control", "battery", "set", "150"],
+        &["control", "statusbar", "set", "--battery", "101"],
         &["control", "location", "set", "1"],
     ] {
         let (ok, err) = run(args);
