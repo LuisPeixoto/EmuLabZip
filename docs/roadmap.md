@@ -81,6 +81,15 @@ and files where iOS allows it, and a plain note where it does not · **Android o
 pairing from the app · **Wear OS and Android TV** emulators, and **watchOS, tvOS and visionOS** simulators, with the
 views that apply to each · **several devices at once**: logs and requests from two devices in one list, tagged by device.
 
+## Phase 10: Team and ecosystem, 1.0 (v1.0)
+
+**Comparing sessions** side by side, and a **shareable HTML report** of a session (one file, no server) · **shared rule
+libraries**: a rules file kept in the app's repository, loaded by the app and the command line · a **VS Code extension**
+with devices, logs and the MCP server in the editor · a **plugin catalog**: community plugins listed with checksums, still
+enabled one by one by the user · an **interface in Portuguese** and other languages · **updates**: signed auto-update in
+the app, and Homebrew, winget and Scoop packages · the **1.0 promise**: the command line's options and JSON, the MCP
+tools and the `.ezsession` format are stable, and change only with a major version.
+
 ## Ideas
 
 Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
