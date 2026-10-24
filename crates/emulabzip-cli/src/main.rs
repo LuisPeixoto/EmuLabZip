@@ -155,6 +155,67 @@ enum Command {
         #[arg(long, requires = "http3")]
         show_h3: bool,
     },
+    /// Show the views on the screen, with their names and sizes
+    Layout {
+        /// Print the whole tree as JSON
+        #[arg(long)]
+        json: bool,
+        /// Also save the screenshot taken with the layout
+        #[arg(long, value_name = "FILE")]
+        png: Option<PathBuf>,
+        /// How many levels of the tree to print
+        #[arg(long, default_value_t = 12)]
+        depth: usize,
+    },
+    /// Check the screen for missing labels, small touch targets and low contrast
+    A11y {
+        #[arg(long)]
+        json: bool,
+        /// Exit with an error when something at least this serious is found: note, warning or error
+        #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
+        fail_on: Option<emulabzip_core::Severity>,
+    },
+    /// Record logs, samples, requests and crashes into a session file, and read it back
+    Session {
+        #[command(subcommand)]
+        action: SessionAction,
+    },
+    /// Record a session around a command, such as a test run, and exit with the command's code
+    Ci {
+        /// Where to write the session
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
+        /// The app the run is about: samples are taken for it, and crashes are limited to it
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Record the HTTP(S) traffic too: the device is pointed at the proxy for the run
+        #[arg(long)]
+        network: bool,
+        #[arg(short, long, default_value_t = 9090, env = "EMULABZIP_PORT")]
+        port: u16,
+        /// Take a screenshot every this many seconds
+        #[arg(long, value_name = "SECONDS")]
+        screens: Option<u64>,
+        /// Fail the run when the app crashed while it ran
+        #[arg(long)]
+        fail_on_crash: bool,
+        /// Also write the report, in Markdown, to this file
+        #[arg(long, value_name = "FILE")]
+        summary: Option<PathBuf>,
+        /// The command to run
+        #[arg(last = true, required = true, value_name = "COMMAND")]
+        command: Vec<String>,
+    },
+    /// Show what differs between two devices
+    Compare {
+        a: String,
+        b: String,
+        /// List the facts that match too
+        #[arg(long)]
+        all: bool,
+        #[arg(long)]
+        json: bool,
+    },
     /// List the crashes, native crashes and ANRs a device has recorded
     Crashes {
         /// Only this app (package name or bundle id)
@@ -244,6 +305,42 @@ impl From<Preset> for PerfettoPreset {
             Preset::Custom => PerfettoPreset::Custom,
         }
     }
+}
+
+#[derive(Subcommand)]
+enum SessionAction {
+    /// Follow a device until Ctrl+C, and write what happened to a .ezsession file
+    Record {
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Record the HTTP(S) traffic too: the device is pointed at the proxy while recording
+        #[arg(long)]
+        network: bool,
+        #[arg(short, long, default_value_t = 9090, env = "EMULABZIP_PORT")]
+        port: u16,
+        /// Take a screenshot every this many seconds
+        #[arg(long, value_name = "SECONDS")]
+        screens: Option<u64>,
+        /// Stop by itself after this many seconds
+        #[arg(long, value_name = "SECONDS")]
+        duration: Option<u64>,
+    },
+    /// Summarize a session: errors, crashes, slow requests, CPU and memory
+    Show {
+        /// A .ezsession file, or the .partial folder of a recording that did not finish
+        file: PathBuf,
+        #[arg(long)]
+        json: bool,
+        /// Print the report as Markdown
+        #[arg(long, conflicts_with = "json")]
+        markdown: bool,
+    },
+}
+
+fn parse_severity(text: &str) -> Result<emulabzip_core::Severity, String> {
+    emulabzip_core::Severity::parse(text).ok_or_else(|| "use note, warning or error".to_string())
 }
 
 #[derive(Subcommand)]
@@ -572,6 +669,20 @@ async fn main() -> ExitCode {
                 cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json, rules, http3, show_h3 };
             cmd::net::run(&lab, args).await
         }
+        Command::Layout { json, png, depth } => cmd::layout::layout(&lab, device, json, png, depth).await,
+        Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
+        Command::Session { action: SessionAction::Record { output, app, network, port, screens, duration } } => {
+            let args = cmd::session::RecordArgs { out: output, app, network, port, screens, duration };
+            cmd::session::record(&lab, device, args).await
+        }
+        Command::Session { action: SessionAction::Show { file, json, markdown } } => {
+            cmd::session::show(&file, json, markdown)
+        }
+        Command::Ci { output, app, network, port, screens, fail_on_crash, summary, command } => {
+            let args = cmd::ci::Args { out: output, app, network, port, screens, fail_on_crash, summary, command };
+            cmd::ci::run(&lab, device, args).await
+        }
+        Command::Compare { a, b, all, json } => cmd::compare::run(&lab, &a, &b, all, json).await,
         Command::Crashes { app, kind, json } => cmd::crashes::list(&lab, device, app.as_deref(), kind, json).await,
         Command::Crash { id, raw, all_threads, json } => {
             cmd::crashes::show(&lab, device, &id, raw, json, all_threads).await
@@ -626,6 +737,10 @@ async fn main() -> ExitCode {
 
     match result {
         Ok(()) => ExitCode::SUCCESS,
+        // An exit code the command chose, after it said what it had to.
+        Err(e) if e.downcast_ref::<cmd::ci::Exit>().is_some() => {
+            ExitCode::from(e.downcast_ref::<cmd::ci::Exit>().map_or(1, |x| x.0))
+        }
         Err(e) => {
             eprintln!("error: {e:#}");
             ExitCode::FAILURE
