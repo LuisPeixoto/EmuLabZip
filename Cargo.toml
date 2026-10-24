@@ -52,6 +52,7 @@ parking_lot = "0.12"
 plist = "1"
 prost = "0.14"
 roxmltree = "0.21"
+httparse = "1"
 rmcp = { version = "3.7", default-features = false, features = ["server", "macros", "schemars", "transport-io"] }
 schemars = "1"
 sha2 = "0.10"

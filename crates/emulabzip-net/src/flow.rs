@@ -79,6 +79,8 @@ pub struct Flow {
     pub messages: Vec<WsMessage>,
     /// How many messages came after the limit and were not kept.
     pub messages_dropped: u64,
+    /// Where the flow came from when it was not captured live: `pcap` for an imported file.
+    pub source: Option<String>,
 }
 
 impl Flow {
@@ -112,6 +114,7 @@ impl Flow {
             mocked: false,
             messages: Vec::new(),
             messages_dropped: 0,
+            source: None,
         }
     }
 
@@ -147,6 +150,7 @@ impl Flow {
             rule: self.rule.clone(),
             mocked: self.mocked,
             message_count: self.messages.len() as u64 + self.messages_dropped,
+            source: self.source.clone(),
         }
     }
 }
@@ -176,6 +180,7 @@ pub struct FlowSummary {
     pub mocked: bool,
     /// Messages seen on a WebSocket, including any past the limit.
     pub message_count: u64,
+    pub source: Option<String>,
 }
 
 pub fn now_ms() -> u64 {

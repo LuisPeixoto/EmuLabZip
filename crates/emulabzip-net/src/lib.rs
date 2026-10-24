@@ -12,6 +12,7 @@ pub mod decode;
 pub mod flow;
 pub mod har;
 pub mod io;
+pub mod pcap;
 pub mod proxy;
 pub mod rules;
 pub mod store;
