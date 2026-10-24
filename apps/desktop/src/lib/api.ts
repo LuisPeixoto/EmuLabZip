@@ -372,6 +372,45 @@ export type Opened =
   | ({ view: "cpu" } & CpuView)
   | { view: "external"; reason: string };
 
+export type CrashKind = "crash" | "nativeCrash" | "anr";
+
+export interface CrashSummary {
+  id: string;
+  kind: CrashKind;
+  app: string | null;
+  process: string;
+  pid: number | null;
+  timeMs: number | null;
+  title: string;
+}
+
+export interface CrashFrame {
+  index: number;
+  symbol: string;
+  image: string | null;
+  location: string | null;
+  origin: Origin;
+}
+
+export interface CrashThread {
+  name: string;
+  crashed: boolean;
+  frames: CrashFrame[];
+}
+
+export interface CrashHint {
+  text: string;
+  command: string | null;
+}
+
+export interface CrashReport {
+  summary: CrashSummary;
+  details: [string, string][];
+  threads: CrashThread[];
+  hints: CrashHint[];
+  raw: string;
+}
+
 export function errorText(e: unknown): string {
   return typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
 }
@@ -403,6 +442,9 @@ export const api = {
     channel.onmessage = onBatch;
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
+  crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
+  crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
+  crashSave: (target: Target, id: string) => invoke<string | null>("crash_save", { target, id }),
   traceTemplates: (target: Target) => invoke<string[]>("trace_templates", { target }),
   async traceStart(target: Target, device: string, request: TraceRequest, onEvent: (e: TraceEvent) => void): Promise<number> {
     const channel = new Channel<TraceEvent>();

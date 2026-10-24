@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { app, type View } from "./lib/stores/app.svelte";
+  import { crashes } from "./lib/stores/crashes.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
   import ScreenshotModal from "./lib/components/ScreenshotModal.svelte";
@@ -8,6 +9,7 @@
   import Sidebar from "./lib/components/Sidebar.svelte";
   import Toasts from "./lib/components/Toasts.svelte";
   import Toolbar from "./lib/components/Toolbar.svelte";
+  import Crashes from "./lib/components/views/Crashes.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
   import Memory from "./lib/components/views/Memory.svelte";
   import Network from "./lib/components/views/Network.svelte";
@@ -22,7 +24,12 @@
     app.init();
     // Process ids change when apps start and stop; keep the app list fresh.
     const timer = setInterval(() => app.online && app.refreshApps(), 5000);
-    return () => clearInterval(timer);
+    // New crashes get a toast and a badge, whatever view is open.
+    const crashTimer = setInterval(() => app.online && crashes.refresh(app.target, true), 10_000);
+    return () => {
+      clearInterval(timer);
+      clearInterval(crashTimer);
+    };
   });
 
   $effect(() => {
@@ -37,14 +44,16 @@
       const target = app.target;
       if (target && app.online) {
         logs.attach(key, target);
+        crashes.attach(key, target);
         app.refreshApps();
       } else {
         logs.detach();
+        crashes.detach();
       }
     });
   });
 
-  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network", "traces"];
+  const shortcuts: View[] = ["overview", "logs", "performance", "memory", "storage", "network", "traces", "crashes"];
 
   function onkeydown(e: KeyboardEvent) {
     const mod = e.metaKey || e.ctrlKey;
@@ -54,7 +63,7 @@
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault(); // never reload the webview
       app.refreshDevices();
-    } else if (mod && /^[1-7]$/.test(e.key)) {
+    } else if (mod && /^[1-8]$/.test(e.key)) {
       e.preventDefault();
       app.setView(shortcuts[Number(e.key) - 1]);
     }
@@ -98,6 +107,8 @@
         <Storage />
       {:else if app.view === "network"}
         <Network />
+      {:else if app.view === "crashes"}
+        <Crashes />
       {:else}
         <Traces />
       {/if}
