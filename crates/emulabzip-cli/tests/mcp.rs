@@ -35,6 +35,10 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "control_notification",
         "open_url",
         "control_battery",
+        "get_layout",
+        "audit_accessibility",
+        "list_sessions",
+        "session_summary",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }
@@ -75,4 +79,43 @@ fn mistakes_come_back_as_tool_errors_the_assistant_can_read() {
     assert!(plugin["result"]["content"][0]["text"].as_str().unwrap().contains("no plugin called"));
     let unknown = s.call(5, "tools/call", json!({ "name": "no_such_tool", "arguments": {} }));
     assert!(unknown["error"].is_object() || unknown["result"]["isError"] == true, "{unknown}");
+}
+
+/// A finished session in the server's own sessions folder.
+fn plant_session(name: &str) {
+    let dir = Server::home().join("sessions").join(format!("{name}.ezsession.partial"));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("session.json"),
+        r#"{"version":1,"tool":"EmuLabZip test","device":{"id":"emulator-5554","name":"Test Pixel","platform":"android","osVersion":"14","model":null},"app":"com.example.app","startedMs":1000,"endedMs":9000,"network":false,"screensEverySecs":null}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("logs.jsonl"),
+        r#"{"seq":1,"time":"t","pid":1,"tid":1,"level":"error","tag":"Net","message":"timeout after 30 s","subsystem":null}"#,
+    )
+    .unwrap();
+    let file = Server::home().join("sessions").join(format!("{name}.ezsession"));
+    emulabzip_session::format::pack(&dir, &file).unwrap();
+}
+
+#[test]
+fn sessions_are_listed_and_summarized_from_the_sessions_folder_only() {
+    plant_session("run-one");
+    let mut s = Server::start_session();
+    let list = s.call(2, "tools/call", json!({ "name": "list_sessions", "arguments": {} }));
+    assert_eq!(list["result"]["isError"], false, "{list}");
+    let entries: Value = serde_json::from_str(list["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert!(entries.as_array().unwrap().iter().any(|e| e["id"] == "run-one" && e["partial"] == false), "{entries}");
+
+    let summary = s.call(3, "tools/call", json!({ "name": "session_summary", "arguments": { "id": "run-one" } }));
+    assert_eq!(summary["result"]["isError"], false, "{summary}");
+    let v: Value = serde_json::from_str(summary["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!((v["device"]["name"].as_str(), v["logs"]["errors"].as_u64()), (Some("Test Pixel"), Some(1)));
+    assert_eq!(v["topErrors"][0]["message"], "Net: timeout after # s");
+
+    for bad in ["../../etc/passwd", "a/b", "", "nothing-by-this-name"] {
+        let r = s.call(4, "tools/call", json!({ "name": "session_summary", "arguments": { "id": bad } }));
+        assert_eq!(r["result"]["isError"], true, "{bad}: {r}");
+    }
 }
