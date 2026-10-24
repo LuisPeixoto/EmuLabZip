@@ -15,6 +15,7 @@ pub mod io;
 pub mod proxy;
 pub mod rules;
 pub mod store;
+pub mod ws;
 
 pub use breakpoints::{BreakpointEvent, Breakpoints, Edits, Paused, Phase, Resume};
 pub use ca::{CertificateAuthority, default_dir};
