@@ -9,6 +9,8 @@
   import Sidebar from "./lib/components/Sidebar.svelte";
   import Toasts from "./lib/components/Toasts.svelte";
   import Toolbar from "./lib/components/Toolbar.svelte";
+  import Sessions from "./lib/components/views/Sessions.svelte";
+  import Compare from "./lib/components/views/Compare.svelte";
   import Layout from "./lib/components/views/Layout.svelte";
   import Controls from "./lib/components/views/Controls.svelte";
   import Crashes from "./lib/components/views/Crashes.svelte";
@@ -100,6 +102,10 @@
         {/if}
       {:else if app.view === "overview"}
         <Overview />
+      {:else if app.view === "sessions"}
+        <Sessions />
+      {:else if app.view === "compare"}
+        <Compare />
       {:else if app.view === "layout"}
         <Layout />
       {:else if app.view === "logs"}

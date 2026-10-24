@@ -9,6 +9,7 @@ mod layout;
 mod network;
 mod plugins;
 mod profiling;
+mod sessions;
 mod state;
 mod traces;
 
@@ -58,6 +59,16 @@ pub fn run() {
             files::sqlite_query,
             files::save_file,
             layout::layout_read,
+            sessions::session_status,
+            sessions::session_start,
+            sessions::session_stop,
+            sessions::session_list,
+            sessions::session_open,
+            sessions::session_request,
+            sessions::session_screen,
+            sessions::session_delete,
+            sessions::session_reveal,
+            sessions::compare_info,
             network::net_state,
             network::net_start,
             network::net_stop,

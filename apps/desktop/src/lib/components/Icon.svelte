@@ -39,6 +39,7 @@
     zap: "M13 2 3 14h9l-1 8 10-12h-9z",
     plus: "M12 5v14M5 12h14",
     minus: "M5 12h14",
+    columns: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 3v18",
     history: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2",
     arrowUp: "M12 19V5M5 12l7-7 7 7",
     arrowDown: "M12 5v14M19 12l-7 7-7-7",

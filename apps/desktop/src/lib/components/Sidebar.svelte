@@ -25,6 +25,10 @@
     { view: "network", icon: "globe", label: "Network" },
     { view: "traces", icon: "route", label: "Traces" },
   ];
+  const sessions: Item[] = [
+    { view: "sessions", icon: "history", label: "Sessions" },
+    { view: "compare", icon: "columns", label: "Compare" },
+  ];
   const control: Item[] = [
     { view: "controls", icon: "sliders", label: "Controls" },
     { view: "plugins", icon: "zap", label: "Plugins" },
@@ -54,6 +58,7 @@
   <nav class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
     {@render section("Inspect", inspect)}
     {@render section("Profile", profile)}
+    {@render section("Sessions", sessions)}
     {@render section("Control", control)}
   </nav>
   <div class="flex items-center gap-2.5 border-t border-line px-3 py-3">
