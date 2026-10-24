@@ -7,6 +7,7 @@ use time::format_description::well_known::Rfc3339;
 
 use crate::decode::decode;
 use crate::flow::{Flow, FlowKind, Headers};
+use crate::ws::{Direction, Kind, WsMessage};
 
 fn iso(ms: u64) -> String {
     OffsetDateTime::from_unix_timestamp_nanos(i128::from(ms) * 1_000_000)
@@ -68,7 +69,7 @@ fn entry(f: &Flow) -> Value {
         let c = content(&f.request_body, req_encoding, mime, f.request_size);
         request["postData"] = json!({ "mimeType": mime, "text": c["text"] });
     }
-    json!({
+    let mut entry = json!({
         "startedDateTime": iso(f.started_ms),
         "time": total,
         "request": request,
@@ -86,17 +87,45 @@ fn entry(f: &Flow) -> Value {
         "cache": {},
         "timings": { "send": 0, "wait": ttfb, "receive": (total - ttfb).max(0) },
         "comment": f.error.clone().unwrap_or_default(),
+    });
+    if f.kind == FlowKind::WebSocket {
+        // The same fields Chrome's HAR export uses for WebSockets.
+        entry["_resourceType"] = json!("websocket");
+        entry["_webSocketMessages"] = f.messages.iter().map(|m| message(f, m)).collect();
+    }
+    entry
+}
+
+fn message(f: &Flow, m: &WsMessage) -> Value {
+    let (opcode, data) = match (m.kind, &m.text, &m.base64) {
+        (Kind::Text, Some(text), _) => (1, text.clone()),
+        (kind, _, base64) => (
+            match kind {
+                Kind::Text => 1,
+                Kind::Binary => 2,
+                Kind::Close => 8,
+                Kind::Ping => 9,
+                Kind::Pong => 10,
+            },
+            base64.clone().unwrap_or_default(),
+        ),
+    };
+    json!({
+        "type": if m.direction == Direction::Up { "send" } else { "receive" },
+        "time": (f.started_ms + m.t_ms) as f64 / 1000.0,
+        "opcode": opcode,
+        "data": data,
     })
 }
 
-/// Builds a HAR document from the HTTP flows. Tunnels and upgraded connections have no
-/// requests to describe and are left out.
+/// Builds a HAR document from the HTTP and WebSocket flows. Tunnels have no requests to
+/// describe and are left out.
 pub fn to_har(flows: &[Flow]) -> Value {
     json!({
         "log": {
             "version": "1.2",
             "creator": { "name": "EmuLabZip", "version": env!("CARGO_PKG_VERSION") },
-            "entries": flows.iter().filter(|f| f.kind == FlowKind::Http).map(entry).collect::<Vec<_>>(),
+            "entries": flows.iter().filter(|f| matches!(f.kind, FlowKind::Http | FlowKind::WebSocket)).map(entry).collect::<Vec<_>>(),
         }
     })
 }
