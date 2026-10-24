@@ -27,6 +27,8 @@
   <a href="docs/storage.md">Storage</a> ·
   <a href="docs/network.md">Network</a> ·
   <a href="docs/traces.md">Traces</a> ·
+  <a href="docs/crashes.md">Crashes</a> ·
+  <a href="docs/mcp.md">MCP</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
@@ -114,7 +116,9 @@ It ships as a native desktop app and as a command-line tool.
 | Network inspector: decrypted HTTP(S), HAR export | ✅ | ✅ |
 | Perfetto system traces with summary and SQL | ✅ | — |
 | CPU flame graphs (simpleperf, Time Profiler) and Instruments recordings | ✅ | ✅ |
-| Crashes, device controls and an MCP server | Phase 5 | Phase 5 |
+| Crashes, native crashes and ANRs, with stacks and hints | ✅ | ✅ (crashes) |
+| Device controls: location, dark mode, status bar, permissions, push | ✅ | ✅ |
+| MCP server for AI assistants, and plugins | ✅ | ✅ |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
 
@@ -180,6 +184,10 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Storage](docs/storage.md) | Storage roots, viewers and read-only SQL |
 | [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
 | [Traces](docs/traces.md) | Perfetto, simpleperf and Instruments recordings, flame graphs, SQL |
+| [Crashes](docs/crashes.md) | Crashes, native crashes and ANRs with their stacks, and where the reports come from |
+| [Controls](docs/controls.md) | Location, appearance, status bar, battery, permissions, notifications and links |
+| [MCP server](docs/mcp.md) | Letting an AI assistant read and control your devices |
+| [Plugins](docs/plugins.md) | Writing your own collectors, and the approval step |
 | [Command line](docs/cli.md) | Every `emulabzip` command and option |
 | [Architecture](docs/architecture.md) | Crates, the backend trait, streams and design rules |
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |

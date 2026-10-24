@@ -43,6 +43,13 @@ first one that is ready is selected automatically.
 - **Memory** takes snapshots, compares them and saves heap dumps. See [Memory](memory.md).
 - **Storage** browses the app's files and opens databases, preferences and property lists. See [Storage](storage.md).
 - **Network** captures the device's HTTP and HTTPS traffic. See [Network](network.md).
+- **Traces** records what the system and an app did and shows where the time went. See [Traces](traces.md).
+- **Crashes** lists crashes, native crashes and ANRs with their stacks, and tells you when a new one happens. See
+  [Crashes](crashes.md).
+- **Controls** changes the device's location, appearance, status bar, battery and permissions. See
+  [Controls](controls.md).
+- **Plugins** runs your own collectors. See [Plugins](plugins.md). To let an AI assistant use your devices, see the
+  [MCP server](mcp.md).
 - **Screenshot** in the toolbar captures the screen and lets you save it as a PNG.
 
 ## 5. Focus on your app
