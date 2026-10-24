@@ -1,0 +1,9 @@
+{
+  "protocol": 1,
+  "name": "battery-temperature",
+  "version": "1.0.0",
+  "description": "Plots the battery temperature of an Android device, every two seconds.",
+  "platforms": ["android"],
+  "command": ["./run.sh"],
+  "mode": "stream"
+}

@@ -1,0 +1,10 @@
+{
+  "protocol": 1,
+  "name": "top-processes",
+  "version": "1.0.0",
+  "description": "The processes using the most memory on an Android device, as a table.",
+  "platforms": ["android"],
+  "command": ["python3", "run.py"],
+  "mode": "once",
+  "timeoutS": 30
+}
