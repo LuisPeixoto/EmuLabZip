@@ -8,7 +8,8 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use emulabzip_net::{
-    CertificateAuthority, Flow, FlowKind, FlowState, FlowStore, Proxy, ProxyConfig, ProxyHandle, decode::decode, to_har,
+    Action, Breakpoints, CertificateAuthority, Edits, Flow, FlowKind, FlowState, FlowStore, Matcher, Proxy,
+    ProxyConfig, ProxyHandle, Resume, Rule, decode::decode, to_har,
 };
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::service::service_fn;
@@ -417,4 +418,192 @@ async fn stopping_the_proxy_frees_the_port() {
     rig.proxy.stop();
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert!(TcpStream::connect(addr).await.is_err());
+}
+
+// ---------------------------------------------------------------------------------------------
+// Rules and breakpoints
+// ---------------------------------------------------------------------------------------------
+
+fn rule(name: &str, path: &str, action: Action) -> Rule {
+    Rule {
+        id: 0,
+        name: name.into(),
+        enabled: true,
+        matcher: Matcher { path: Some(path.into()), ..Default::default() },
+        action,
+    }
+}
+
+async fn start_proxy_with_rules(rules: Vec<Rule>) -> Rig {
+    let rig = start_proxy(vec![]).await;
+    rig.proxy.rules().set(rules).unwrap();
+    rig
+}
+
+async fn held(breakpoints: &Breakpoints) -> emulabzip_net::Paused {
+    for _ in 0..200 {
+        if let Some(p) = breakpoints.pending().into_iter().next() {
+            return p;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    panic!("nothing was held at a breakpoint");
+}
+
+#[tokio::test]
+async fn a_mock_rule_answers_without_asking_the_server() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy_with_rules(vec![rule(
+        "teapot",
+        "/hello",
+        Action::Mock {
+            status: 418,
+            headers: vec![("content-type".into(), "text/plain".into()), ("x-mock".into(), "yes".into())],
+            body: "short and stout".into(),
+            base64: false,
+            delay_ms: 0,
+        },
+    )])
+    .await;
+
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, headers, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!((status.as_u16(), &body[..]), (418, &b"short and stout"[..]));
+    assert_eq!(headers["x-mock"], "yes");
+
+    let flow = flow_where(&rig.store, "the mocked flow", |f| f.state == FlowState::Completed).await;
+    assert!(flow.mocked);
+    assert_eq!((flow.rule.as_deref(), flow.status), (Some("teapot"), Some(418)));
+    assert_eq!(flow.response_body, b"short and stout");
+    // A request no rule matches still goes to the server.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, _) = send_h1(client, get(&format!("http://{}/nothing", upstream.addr))).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn a_mock_can_have_a_binary_body_and_a_delay() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy_with_rules(vec![rule(
+        "bytes",
+        "/hello",
+        Action::Mock { status: 200, headers: vec![], body: "//4A".into(), base64: true, delay_ms: 300 },
+    )])
+    .await;
+    let started = std::time::Instant::now();
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (_, _, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!(&body[..], &[0xff, 0xfe, 0x00]);
+    assert!(started.elapsed() >= Duration::from_millis(300));
+}
+
+#[tokio::test]
+async fn a_delay_rule_slows_the_request_down_and_a_block_rule_fails_it() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy_with_rules(vec![
+        rule("slow", "/hello", Action::Delay { ms: 400 }),
+        rule("down", "/blocked", Action::Block),
+    ])
+    .await;
+
+    let started = std::time::Instant::now();
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+    assert!(started.elapsed() >= Duration::from_millis(400), "{:?}", started.elapsed());
+
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get(&format!("http://{}/blocked", upstream.addr))).await;
+    assert_eq!(status, StatusCode::BAD_GATEWAY);
+    assert!(String::from_utf8_lossy(&body).contains("Blocked by the rule “down”"));
+    let flow = flow_where(&rig.store, "the blocked flow", |f| f.state == FlowState::Failed).await;
+    assert_eq!(flow.rule.as_deref(), Some("down"));
+}
+
+#[tokio::test]
+async fn a_request_breakpoint_holds_the_request_and_sends_the_edit() {
+    let upstream = start_upstream(false).await;
+    let rig =
+        start_proxy_with_rules(vec![rule("hold", "/echo", Action::Breakpoint { request: true, response: false })])
+            .await;
+    let breakpoints = rig.proxy.breakpoints();
+
+    let addr = rig.proxy.addr();
+    let target = format!("http://{}/echo", upstream.addr);
+    let client = tokio::spawn(async move {
+        let io = TcpStream::connect(addr).await.unwrap();
+        send_h1(io, Request::post(target).body(Full::new(Bytes::from("ping"))).unwrap()).await
+    });
+
+    let paused = held(&breakpoints).await;
+    assert_eq!((paused.method.as_str(), paused.body_text.as_deref()), ("POST", Some("ping")));
+    let flow = flow_where(&rig.store, "the held flow", |f| f.state == FlowState::Paused).await;
+    assert_eq!(flow.id, paused.flow);
+    assert!(!client.is_finished(), "the client is still waiting");
+
+    breakpoints.resume(paused.id, Resume::Continue(Edits { body: Some(b"pong".to_vec()), ..Default::default() }));
+    let (status, _, body) = client.await.unwrap();
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"pong"[..]), "the server saw the edited body");
+    let flow = flow_where(&rig.store, "the finished flow", |f| f.state == FlowState::Completed).await;
+    assert_eq!(flow.request_body, b"pong");
+}
+
+#[tokio::test]
+async fn aborting_at_a_breakpoint_fails_the_request() {
+    let upstream = start_upstream(false).await;
+    let rig =
+        start_proxy_with_rules(vec![rule("hold", "/hello", Action::Breakpoint { request: true, response: false })])
+            .await;
+    let breakpoints = rig.proxy.breakpoints();
+    let addr = rig.proxy.addr();
+    let target = format!("http://{}/hello", upstream.addr);
+    let client = tokio::spawn(async move { send_h1(TcpStream::connect(addr).await.unwrap(), get(&target)).await });
+    let paused = held(&breakpoints).await;
+    breakpoints.resume(paused.id, Resume::Abort);
+    let (status, _, _) = client.await.unwrap();
+    assert_eq!(status, StatusCode::BAD_GATEWAY);
+    flow_where(&rig.store, "the failed flow", |f| f.state == FlowState::Failed).await;
+}
+
+#[tokio::test]
+async fn a_response_breakpoint_shows_the_decoded_body_and_sends_the_edit() {
+    let upstream = start_upstream(false).await;
+    let rig =
+        start_proxy_with_rules(vec![rule("hold", "/gzip", Action::Breakpoint { request: false, response: true })])
+            .await;
+    let breakpoints = rig.proxy.breakpoints();
+    let addr = rig.proxy.addr();
+    let target = format!("http://{}/gzip", upstream.addr);
+    let client = tokio::spawn(async move { send_h1(TcpStream::connect(addr).await.unwrap(), get(&target)).await });
+
+    let paused = held(&breakpoints).await;
+    assert_eq!(paused.status, Some(200));
+    assert_eq!(paused.body_text.as_deref(), Some(JSON), "a compressed response is shown decoded");
+    assert!(!paused.headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("content-encoding")));
+
+    let edits = Edits { body: Some(b"{\"hello\":\"edited\"}".to_vec()), status: Some(201), ..Default::default() };
+    breakpoints.resume(paused.id, Resume::Continue(edits));
+    let (status, headers, body) = client.await.unwrap();
+    assert_eq!(status.as_u16(), 201);
+    assert_eq!(&body[..], b"{\"hello\":\"edited\"}");
+    assert!(headers.get("content-encoding").is_none(), "what continues is not compressed");
+    let flow = flow_where(&rig.store, "the finished flow", |f| f.state == FlowState::Completed).await;
+    assert_eq!((flow.status, flow.response_body.as_slice()), (Some(201), &b"{\"hello\":\"edited\"}"[..]));
+}
+
+#[tokio::test]
+async fn a_breakpoint_nobody_answers_lets_the_request_through() {
+    let upstream = start_upstream(false).await;
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let store = FlowStore::new(100);
+    let breakpoints = Arc::new(Breakpoints::with_timeout(Duration::from_millis(300)));
+    let config = ProxyConfig { addr: "127.0.0.1:0".parse().unwrap(), breakpoints, ..Default::default() };
+    let proxy = Proxy::start(config, ca, store).await.unwrap();
+    proxy
+        .rules()
+        .set(vec![rule("forgotten", "/hello", Action::Breakpoint { request: true, response: false })])
+        .unwrap();
+    let client = TcpStream::connect(proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
 }
