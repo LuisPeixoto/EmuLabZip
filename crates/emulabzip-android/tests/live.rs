@@ -308,3 +308,27 @@ async fn records_traces_and_cleans_up_after_itself() {
     assert_eq!(leftovers().await.trim(), "", "the recordings must not leave files on the device");
     std::fs::remove_dir_all(out).ok();
 }
+
+/// Needs the crash app (`tools/crash-app/install.sh`) to have crashed, hung and segfaulted on the
+/// device (see its README).
+#[tokio::test]
+#[ignore = "needs an emulator where the crash app has failed"]
+async fn lists_and_reads_real_crashes() {
+    use emulabzip_core::CrashKind;
+
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let app = "dev.emulabzip.crashy";
+
+    let list = backend.crashes(&id, Some(app)).await.unwrap();
+    println!("{list:#?}");
+    for kind in [CrashKind::Crash, CrashKind::NativeCrash, CrashKind::Anr] {
+        let found = list.iter().find(|c| c.kind == kind).unwrap_or_else(|| panic!("no {kind:?} listed"));
+        let report = backend.crash(&id, &found.id).await.unwrap();
+        println!("{:?}: {} ({} threads)", kind, report.summary.title, report.threads.len());
+        assert!(report.threads.iter().any(|t| t.crashed && !t.frames.is_empty()));
+        assert!(report.summary.time_ms.is_some_and(|t| t > 1_700_000_000_000));
+    }
+    assert!(backend.crashes(&id, Some("com.not.installed")).await.unwrap().is_empty());
+    assert!(backend.crash(&id, "dropbox:data_app_crash:19700101000000").await.is_err());
+}
