@@ -33,8 +33,9 @@ app and the CLI) use them the same way.
 | `emulabzip-android` | Implements `Backend` for Android on top of `emulabzip-adb`. Parsers for `getprop`, logcat, `dumpsys battery`, `wm`, `ps` and `pm`. |
 | `emulabzip-apple` | Implements `Backend` for the iOS Simulator with `xcrun simctl`. Parsers for the device list, ndjson logs and app lists. |
 | `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
-| `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
+| `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding (and HTTP/3 to servers through `quinn` and `h3`), rules that mock, delay, block or hold requests, a WebSocket frame parser, a reader for packet captures, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
 | `emulabzip-trace` | Making sense of recordings: the flame graph model, parsers for simpleperf reports and `xctrace` exports, Perfetto configurations, the trace processor (download, SQL, summaries), the one-shot server for the Perfetto UI, and the library of recordings. No platform code. |
+| `emulabzip-session` | Sessions: the `.ezsession` format, a recorder that follows a device through `Lab`, a reader that also opens the folder of a killed recording, and the summary. |
 | `emulabzip-mcp` | The MCP server: tools over `Lab`, served on standard input and output with `rmcp`. |
 | `emulabzip-plugin` | Plugins: manifests, the approval step, the JSON-lines protocol and the runner. No platform code. |
 | `emulabzip-cli` | The `emulabzip` command. |
@@ -101,7 +102,12 @@ trust the certificate; the CLI and the desktop app start the proxy and hand it a
 ```
 
 Response bodies stream to the client while a copy is recorded (up to 10 MB), so downloads and event streams keep
-working. Request bodies are read in full before forwarding. WebSocket upgrades are tunnelled after the handshake.
+working. Request bodies are read in full before forwarding. WebSocket upgrades are tunnelled after the handshake, and
+the bytes are also fed to a frame parser that records the messages.
+
+Before a request is forwarded the proxy asks the **rules** (first match wins): a mock answers at once, a delay waits, a
+block fails, and a breakpoint parks the request, or the response, in a registry until the UI continues it. With HTTP/3
+on, a host that announced `Alt-Svc: h3` is reached over QUIC, with a fallback to TCP.
 
 ## Storage paths
 

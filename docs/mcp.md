@@ -43,6 +43,9 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `list_files`, `read_file` | An app's storage roots, folders and files (text, or base64 for binary; cut at 256 KB) |
 | `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints |
 | `list_traces`, `trace_summary`, `trace_query` | Recorded traces, their summary or hot functions, and PerfettoSQL |
+| `get_layout` | The views on screen as a tree, with names, sizes and positions |
+| `audit_accessibility` | Missing labels, small touch targets, low contrast and duplicate names on the screen |
+| `list_sessions`, `session_summary` | Recorded [sessions](sessions.md), and the summary of one |
 | `control_info` | What the device supports changing, and an app's permissions |
 | `list_plugins` | The installed plugins and whether each is enabled |
 

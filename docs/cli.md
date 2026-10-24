@@ -109,6 +109,28 @@ device is put back when it stops, also after an error. See [Network](network.md)
 | `--no-connect` | Only run the proxy; do not change any device. |
 | `--har <file>` | Save the requests as a HAR file when stopping. |
 | `--json` | One JSON object per request. |
+| `--rules <file>` | Mock, delay or block requests with the rules in a JSON file. See [Mocks and breakpoints](mocks.md). |
+| `--http3` | Talk HTTP/3 to servers that offer it. `--show-h3` also shows apps the offers. |
+
+`emulabzip net import <file> [--har <file>] [--json] [--dns]` reads a `.pcap` or `.pcapng` capture and prints the
+requests it holds, with the DNS lookups when asked. See [Importing a capture](pcap.md).
+
+### `emulabzip layout` and `emulabzip a11y`
+
+`layout` prints the views on the screen as a tree (`--json` for all of it, `--png <file>` to save the screenshot taken
+with it, `--depth <n>`). `a11y` audits the screen and prints the findings; `--fail-on note|warning|error` exits with 1 when
+something at least that serious is found. See [Layout and accessibility](layout.md).
+
+### `emulabzip session` and `emulabzip ci`
+
+`session record -o run.ezsession [--app <id>] [--network] [--screens <s>] [--duration <s>]` records until
+<kbd>Ctrl+C</kbd>; `session show <file> [--json | --markdown]` summarizes a session or the `.partial` folder of one that
+was cut short. `ci -o run.ezsession [--app <id>] [--network] [--screens <s>] [--fail-on-crash] [--summary <file>] --
+<command…>` records around a command and exits with its code. See [Sessions](sessions.md) and [CI mode](ci.md).
+
+### `emulabzip compare <a> <b>`
+
+Lists what differs between two devices (`--all` for what matches too, `--json`). See [Comparing devices](compare.md).
 
 ### `emulabzip crashes` and `emulabzip crash <id>`
 

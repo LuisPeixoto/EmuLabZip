@@ -28,6 +28,8 @@
   <a href="docs/network.md">Network</a> ·
   <a href="docs/traces.md">Traces</a> ·
   <a href="docs/crashes.md">Crashes</a> ·
+  <a href="docs/layout.md">Layout</a> ·
+  <a href="docs/sessions.md">Sessions</a> ·
   <a href="docs/mcp.md">MCP</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
@@ -41,8 +43,8 @@
 
 EmuLabZip connects to your running emulators and simulators on its own and brings everything you reach for while
 debugging into one window: what the device is, what it is logging, how fast your app runs, where its memory goes and
-what it keeps on disk and what it says to the internet. Tracing arrives next, built on the same small Rust core.
-It ships as a native desktop app and as a command-line tool.
+what it keeps on disk and what it says to the internet; and then it lets you change that: mock a response, stop a
+request, record a whole run and compare two devices. It ships as a native desktop app and as a command-line tool, and as an MCP server for AI assistants.
 
 ## Highlights
 
@@ -58,6 +60,13 @@ It ships as a native desktop app and as a command-line tool.
   JSON and images in place, with read-only SQL queries.
 - **See the traffic.** A built-in proxy decrypts your app's HTTPS and lists every request with its headers, decoded
   bodies and timing, and exports HAR. One click points a device at it and another puts it back.
+- **Change the traffic.** Mock a response, slow a request down, block it, or stop it and edit it, with
+  [rules and breakpoints](docs/mocks.md). Read [WebSocket messages](docs/websockets.md), talk HTTP/3 to servers, and open
+  [packet captures](docs/pcap.md).
+- **See the screen as a screen reader does.** The [layout](docs/layout.md) of any screen, with an accessibility audit
+  for missing labels, small touch targets and low contrast.
+- **Record a run.** A [session](docs/sessions.md) keeps the logs, CPU and memory, requests, crashes and screenshots of a
+  run in one file. [CI mode](docs/ci.md) records around your test command and keeps its exit code.
 - **Everything about the device.** OS and build, hardware, display, battery, storage and locale, with a live screen
   preview. Click any value to copy it.
 - **Native and light.** A Rust core with a Tauri interface: a small download, a fast start and low memory use.
@@ -131,6 +140,9 @@ It ships as a native desktop app and as a command-line tool.
 | Crashes, native crashes and ANRs, with stacks and hints | ✅ | ✅ (crashes) |
 | Device controls: location, dark mode, status bar, permissions, push | ✅ | ✅ |
 | MCP server for AI assistants, and plugins | ✅ | ✅ |
+| Mocks, delays, blocks and breakpoints; WebSocket messages; HTTP/3; packet capture import | ✅ | ✅ |
+| Layout inspection and accessibility audit | ✅ | ✅ (Simulator.app open) |
+| Sessions, CI mode and comparing two devices | ✅ | ✅ |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
 
@@ -178,6 +190,8 @@ emulabzip screenshot             # what it shows
 emulabzip perf --app com.example.app            # how fast it runs
 emulabzip db com.example.app databases/app.db   # what it stores
 emulabzip net --har capture.har                 # what it says to the internet
+emulabzip a11y                                  # what a screen reader would trip over
+emulabzip ci -o run.ezsession -- ./gradlew connectedCheck   # a recording around your tests
 ```
 
 In the desktop app, pick the device in the top-left corner, then your app next to it. Read the
@@ -197,6 +211,13 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
 | [Traces](docs/traces.md) | Perfetto, simpleperf and Instruments recordings, flame graphs, SQL |
 | [Crashes](docs/crashes.md) | Crashes, native crashes and ANRs with their stacks, and where the reports come from |
+| [Mocks and breakpoints](docs/mocks.md) | Rules that answer, delay, block or hold requests |
+| [WebSocket messages](docs/websockets.md) | Reading frames, compression, limits |
+| [Packet captures](docs/pcap.md) | Importing `.pcap` and `.pcapng`, capturing with `emulator -tcpdump` |
+| [Layout and accessibility](docs/layout.md) | The view tree, the audit and what it checks |
+| [Sessions](docs/sessions.md) | Recording a run into one file and reading it |
+| [CI mode](docs/ci.md) | `emulabzip ci` around your tests, with a GitHub Actions example |
+| [Comparing devices](docs/compare.md) | Two screens, two charts and the differences |
 | [Controls](docs/controls.md) | Location, appearance, status bar, battery, permissions, notifications and links |
 | [MCP server](docs/mcp.md) | Letting an AI assistant read and control your devices |
 | [Plugins](docs/plugins.md) | Writing your own collectors, and the approval step |
@@ -216,7 +237,8 @@ crates/
   emulabzip-android    Android backend: logcat, getprop, dumpsys, /proc, run-as, screencap
   emulabzip-apple      iOS Simulator backend: simctl, log stream, listapps, footprint, leaks
   emulabzip-storage    SQLite inspector, SharedPreferences and property list viewers
-  emulabzip-net        Debugging proxy: certificate authority, TLS interception, flows, HAR
+  emulabzip-net        Debugging proxy: certificate authority, TLS interception, flows, HAR, rules, WebSockets, HTTP/3, pcap import
+  emulabzip-session    Recording a run into a .ezsession file, reading it back and summarizing it
   emulabzip-cli        The `emulabzip` command
 apps/desktop
   src-tauri            Tauri 2 shell (Rust)
