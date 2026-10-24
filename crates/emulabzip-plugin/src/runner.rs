@@ -40,6 +40,8 @@ pub const MAX_OUTPUT: u64 = 8 * 1024 * 1024;
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_TIMEOUT_S: u64 = 600;
 const STDERR_KEPT: usize = 2048;
+/// After the program exits, how long its remaining output may take to arrive.
+const DRAIN: Duration = Duration::from_millis(300);
 
 /// The program to start: a file in the plugin's own folder wins over one on the PATH.
 pub fn program(plugin: &Plugin) -> PathBuf {
@@ -90,6 +92,23 @@ fn command(plugin: &Plugin, ctx: &Context) -> Command {
     cmd
 }
 
+/// Starts the program. A program that was written a moment ago can be "busy" (`ETXTBSY`) while a
+/// process forked at that instant still holds the file open for writing; it is free again within
+/// milliseconds, so that one error is retried a few times.
+async fn spawn(plugin: &Plugin, ctx: &Context) -> Result<tokio::process::Child> {
+    let mut attempt = 0;
+    loop {
+        match command(plugin, ctx).spawn() {
+            Ok(child) => return Ok(child),
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && attempt < 20 => {
+                attempt += 1;
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+            Err(e) => return Err(Error::failed(format!("Could not start {}: {e}", plugin.manifest.command[0]))),
+        }
+    }
+}
+
 /// Reads one line of at most [`MAX_LINE`] bytes. `None` at the end of the stream; an over-long line
 /// comes back empty after the rest of it has been thrown away.
 async fn read_line<R: tokio::io::AsyncBufRead + Unpin>(reader: &mut R, bytes: &mut u64) -> Option<String> {
@@ -125,32 +144,44 @@ pub async fn run(
     mut stop: watch::Receiver<bool>,
     mut on_event: impl FnMut(Event) + Send,
 ) -> Result<Outcome> {
-    let mut child = command(plugin, ctx)
-        .spawn()
-        .map_err(|e| Error::failed(format!("Could not start {}: {e}", plugin.manifest.command[0])))?;
+    let mut child = spawn(plugin, ctx).await?;
     let mut lines = BufReader::new(child.stdout.take().expect("stdout is piped"));
     let mut stderr = child.stderr.take().expect("stderr is piped");
+    // What the program wrote on standard error, kept as it arrives: the stream may stay open after
+    // the program is gone, and what was read by then is still worth showing.
+    let kept = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
+    let sink = kept.clone();
     let errors = tokio::spawn(async move {
-        let mut kept = Vec::new();
         let mut buf = [0u8; 1024];
         while let Ok(n) = stderr.read(&mut buf).await {
             if n == 0 {
                 break;
             }
-            kept.extend_from_slice(&buf[..n]);
-            if kept.len() > STDERR_KEPT {
-                kept.drain(..kept.len() - STDERR_KEPT);
+            if let Ok(mut kept) = sink.lock() {
+                kept.extend_from_slice(&buf[..n]);
+                let over = kept.len().saturating_sub(STDERR_KEPT);
+                kept.drain(..over);
             }
         }
-        String::from_utf8_lossy(&kept).trim().to_string()
     });
 
     let deadline = timeout_of(plugin).map(|t| tokio::time::Instant::now() + t);
     let mut bytes = 0u64;
     let mut said_error = false;
+    // The program's exit code once it has exited, and the moment the output it left behind has
+    // had long enough to arrive. The end of the output is not the end of the program: a program
+    // that starts something in the background hands it the pipe, and the pipe stays open.
+    let mut exited: Option<Option<i32>> = None;
+    let mut drain_until: Option<tokio::time::Instant> = None;
     let outcome = loop {
         let timeout = async {
             match deadline {
+                Some(d) => tokio::time::sleep_until(d).await,
+                None => std::future::pending().await,
+            }
+        };
+        let drained = async {
+            match drain_until {
                 Some(d) => tokio::time::sleep_until(d).await,
                 None => std::future::pending().await,
             }
@@ -166,8 +197,19 @@ pub async fn run(
                         break Outcome::TooMuchOutput;
                     }
                 }
-                None => break Outcome::Finished(child.wait().await.ok().and_then(|s| s.code())),
+                None => {
+                    let code = match exited {
+                        Some(code) => code,
+                        None => child.wait().await.ok().and_then(|s| s.code()),
+                    };
+                    break Outcome::Finished(code);
+                }
             },
+            status = child.wait(), if exited.is_none() => {
+                exited = Some(status.ok().and_then(|s| s.code()));
+                drain_until = Some(tokio::time::Instant::now() + DRAIN);
+            }
+            _ = drained => break Outcome::Finished(exited.flatten()),
             _ = timeout => break Outcome::TimedOut,
             changed = stop.changed() => {
                 if changed.is_err() || *stop.borrow() {
@@ -179,7 +221,8 @@ pub async fn run(
     if !matches!(outcome, Outcome::Finished(_)) {
         let _ = child.kill().await;
     }
-    let tail = tokio::time::timeout(Duration::from_secs(1), errors).await.ok().and_then(|r| r.ok()).unwrap_or_default();
+    let _ = tokio::time::timeout(DRAIN, errors).await;
+    let tail = kept.lock().map(|k| String::from_utf8_lossy(&k).trim().to_string()).unwrap_or_default();
     match outcome {
         Outcome::Finished(code) if code != Some(0) && !said_error => {
             let code = code.map_or("a signal".to_string(), |c| format!("code {c}"));
@@ -332,6 +375,18 @@ mod tests {
         assert!(matches!(events.last(), Some(Event::Error { .. })));
         std::fs::remove_dir_all(root).ok();
         std::fs::remove_dir_all(root2).ok();
+    }
+
+    #[tokio::test]
+    async fn does_not_wait_for_a_background_process_that_keeps_the_output_open() {
+        let script = "#!/bin/sh\necho '{\"type\":\"text\",\"body\":\"before\"}'\n(sleep 20) &\necho '{\"type\":\"text\",\"body\":\"after\"}'\n";
+        let (p, root) = plugin("background", "once", script, "");
+        let started = std::time::Instant::now();
+        let (outcome, events) = collect(&p, &ctx()).await;
+        assert_eq!(outcome, Outcome::Finished(Some(0)));
+        assert_eq!(events.len(), 2, "both lines are read: {events:?}");
+        assert!(started.elapsed() < Duration::from_secs(5), "waited {:?}", started.elapsed());
+        std::fs::remove_dir_all(root).ok();
     }
 
     #[tokio::test]
