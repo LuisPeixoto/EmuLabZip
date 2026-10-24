@@ -87,6 +87,68 @@ fn recording(id: &str) -> Result<Recording, String> {
     library::get(id).map_err(|e| e.to_string())
 }
 
+/// Where sessions recorded from the app and the command line are kept.
+fn sessions_dir() -> std::path::PathBuf {
+    emulabzip_core::data_dir().join("sessions")
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionEntry {
+    id: String,
+    size: u64,
+    modified_ms: u64,
+    /// The recording did not finish: it is a folder, not a file.
+    partial: bool,
+}
+
+fn sessions_list() -> Result<String, String> {
+    let mut out = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(sessions_dir()) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let (id, partial) = match name.strip_suffix(".ezsession.partial") {
+                Some(id) => (id.to_string(), true),
+                None => match name.strip_suffix(".ezsession") {
+                    Some(id) => (id.to_string(), false),
+                    None => continue,
+                },
+            };
+            let meta = entry.metadata().ok();
+            let modified_ms = meta
+                .as_ref()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map_or(0, |d| d.as_millis() as u64);
+            out.push(SessionEntry { id, size: meta.map_or(0, |m| m.len()), modified_ms, partial });
+        }
+    }
+    out.sort_by_key(|e| std::cmp::Reverse(e.modified_ms));
+    json(&out)
+}
+
+/// A session name is a file name: nothing that could point outside the sessions folder.
+fn valid_session_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 200
+        && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+        && !id.contains("..")
+}
+
+fn session_summary(id: &str) -> Result<String, String> {
+    if !valid_session_id(id) {
+        return Err(format!("`{id}` is not a session name: use one from list_sessions"));
+    }
+    let dir = sessions_dir();
+    let path = [format!("{id}.ezsession"), format!("{id}.ezsession.partial")]
+        .into_iter()
+        .map(|n| dir.join(n))
+        .find(|p| p.exists())
+        .ok_or_else(|| format!("there is no session called `{id}`; list_sessions shows what exists"))?;
+    let session = emulabzip_session::Session::open(&path).map_err(|e| e.to_string())?;
+    json(&emulabzip_session::summarize(&session))
+}
+
 fn grant_of(action: &str) -> Result<Grant, String> {
     match action {
         "grant" => Ok(Grant::Grant),
@@ -193,6 +255,40 @@ impl EmuLabServer {
     #[tool(description = "Read one file of an app: text as it is, binary files as base64. Files over 256 KB are cut.")]
     async fn read_file(&self, Parameters(a): Parameters<args::Files>) -> CallToolResult {
         reply(self.read_file_inner(a).await)
+    }
+
+    #[tool(
+        description = "The views on a device's screen as a tree: class, text, label, id, size and position, and whether each can be tapped. Node numbers can be quoted back to the user. iOS needs Simulator.app open and the Accessibility permission."
+    )]
+    async fn get_layout(&self, Parameters(a): Parameters<args::Layout>) -> CallToolResult {
+        reply(self.layout_inner(a).await)
+    }
+
+    #[tool(
+        description = "Check the screen in front for accessibility problems: tappable views without a name, touch targets under 48 dp (Android) or 44 pt (iOS), text with too little contrast, and neighbours that sound the same. Each finding names the view, the WCAG criterion and a fix."
+    )]
+    async fn audit_accessibility(&self, Parameters(a): Parameters<args::Device>) -> CallToolResult {
+        reply(
+            async {
+                let snapshot = self.lab.layout(&self.target(&a.device).await?).await.map_err(|e| e.to_string())?;
+                json(&emulabzip_core::a11y::audit(&snapshot))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "List the sessions recorded with EmuLabZip (`emulabzip session record`, `emulabzip ci`, or the app), newest first."
+    )]
+    async fn list_sessions(&self) -> CallToolResult {
+        reply(sessions_list())
+    }
+
+    #[tool(
+        description = "Summarize a recorded session: duration, log errors and the most repeated ones, crashes, requests and the slowest, CPU and memory peaks."
+    )]
+    async fn session_summary(&self, Parameters(a): Parameters<args::Session>) -> CallToolResult {
+        reply(session_summary(&a.id))
     }
 
     #[tool(description = "List the crashes, native crashes and ANRs a device has recorded, newest first.")]
@@ -423,6 +519,60 @@ impl EmuLabServer {
 }
 
 impl EmuLabServer {
+    async fn layout_inner(&self, a: args::Layout) -> Result<String, String> {
+        let snapshot = self.lab.layout(&self.target(&a.device).await?).await.map_err(|e| e.to_string())?;
+        let depth = a.depth.unwrap_or(10).clamp(1, 40);
+        let unit = if snapshot.platform == emulabzip_core::Platform::Ios { "pt" } else { "px" };
+        let mut out = format!(
+            "{} views on a {}x{} {unit} screen (density {}). Format: #node class “text/label” @id size at x,y [flags]\n",
+            snapshot.root.count(),
+            snapshot.screen.width,
+            snapshot.screen.height,
+            snapshot.screen.density
+        );
+        fn walk(n: &emulabzip_core::UiNode, level: usize, max: usize, out: &mut String) {
+            let name = n.label.as_deref().or(n.text.as_deref()).filter(|t| !t.trim().is_empty());
+            let flags: Vec<&str> = [
+                n.clickable.then_some("tap"),
+                n.editable.then_some("edit"),
+                n.scrollable.then_some("scroll"),
+                (!n.enabled).then_some("disabled"),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+            out.push_str(&format!(
+                "{}#{} {}{}{} {}x{} at {},{}{}\n",
+                "  ".repeat(level),
+                n.id,
+                n.class.rsplit('.').next().unwrap_or(&n.class),
+                name.map(|t| format!(" “{}”", t.chars().take(60).collect::<String>())).unwrap_or_default(),
+                n.resource_id
+                    .as_deref()
+                    .map(|i| format!(" @{}", i.rsplit(['/', ':']).next().unwrap_or(i)))
+                    .unwrap_or_default(),
+                n.bounds.width,
+                n.bounds.height,
+                n.bounds.x,
+                n.bounds.y,
+                if flags.is_empty() { String::new() } else { format!(" [{}]", flags.join(",")) }
+            ));
+            if level + 1 < max {
+                for c in &n.children {
+                    walk(c, level + 1, max, out);
+                }
+            } else if !n.children.is_empty() {
+                out.push_str(&format!(
+                    "{}… {} more inside\n",
+                    "  ".repeat(level + 1),
+                    n.children.iter().map(|c| c.count()).sum::<usize>()
+                ));
+            }
+        }
+        walk(&snapshot.root, 0, depth, &mut out);
+        Ok(cap(out, MAX_TEXT))
+    }
+
     async fn read_logs_inner(&self, a: args::Logs) -> Result<String, String> {
         let target = self.target(&a.device).await?;
         let level = a

@@ -12,6 +12,7 @@ rust-version.workspace = true
 base64.workspace = true
 emulabzip-core.workspace = true
 emulabzip-plugin.workspace = true
+emulabzip-session.workspace = true
 emulabzip-trace.workspace = true
 rmcp.workspace = true
 schemars.workspace = true
