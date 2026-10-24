@@ -23,6 +23,8 @@ pub enum FlowKind {
 #[serde(rename_all = "camelCase")]
 pub enum FlowState {
     Pending,
+    /// Held at a breakpoint, waiting to be continued.
+    Paused,
     Completed,
     Failed,
 }
@@ -67,6 +69,10 @@ pub struct Flow {
     pub response_truncated: bool,
     pub timing: Timing,
     pub error: Option<String>,
+    /// The name of the rule that answered, delayed, blocked or held this flow.
+    pub rule: Option<String>,
+    /// The response was made up by a rule, not sent by the server.
+    pub mocked: bool,
 }
 
 impl Flow {
@@ -96,6 +102,8 @@ impl Flow {
             response_truncated: false,
             timing: Timing::default(),
             error: None,
+            rule: None,
+            mocked: false,
         }
     }
 
@@ -128,6 +136,8 @@ impl Flow {
             response_size: self.response_size,
             duration_ms: self.timing.total_ms,
             error: self.error.clone(),
+            rule: self.rule.clone(),
+            mocked: self.mocked,
         }
     }
 }
@@ -153,6 +163,8 @@ pub struct FlowSummary {
     pub response_size: u64,
     pub duration_ms: Option<u64>,
     pub error: Option<String>,
+    pub rule: Option<String>,
+    pub mocked: bool,
 }
 
 pub fn now_ms() -> u64 {
