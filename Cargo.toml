@@ -53,6 +53,7 @@ async-trait = "0.1"
 clap = { version = "4", features = ["derive", "env"] }
 parking_lot = "0.12"
 plist = "1"
+png = "0.18"
 prost = "0.14"
 roxmltree = "0.21"
 httparse = "1"
