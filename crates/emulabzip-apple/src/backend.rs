@@ -2,15 +2,15 @@
 
 use async_trait::async_trait;
 use emulabzip_core::{
-    App, Backend, CaInstall, CrashReport, CrashSummary, Device, Error, FileEntry, HeapDump, InfoSection, LogEntry,
-    LogOptions, MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile,
-    TraceRequest,
+    App, Backend, CaInstall, Control, ControlInfo, CrashReport, CrashSummary, Device, Error, FileEntry, HeapDump,
+    InfoSection, LogEntry, LogOptions, MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result,
+    StorageRoot, Stream, TraceFile, TraceRequest,
 };
 use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, crashes, memory, network, oslog, perf, simctl, storage, trace};
+use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, storage, trace};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -183,6 +183,14 @@ impl Backend for AppleBackend {
         tokio::task::spawn_blocking(move || crashes::get(&udid, &crash_id))
             .await
             .map_err(|e| Error::failed(e.to_string()))?
+    }
+
+    async fn controls(&self, id: &str, _app: Option<&str>) -> Result<ControlInfo> {
+        controls::info(id).await
+    }
+
+    async fn control(&self, id: &str, control: &Control) -> Result<()> {
+        controls::apply(id, control).await
     }
 
     async fn network_status(&self, _id: &str) -> Result<NetworkStatus> {
