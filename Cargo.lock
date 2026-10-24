@@ -1221,6 +1221,7 @@ dependencies = [
  "flate2",
  "http",
  "http-body-util",
+ "httparse",
  "hyper",
  "hyper-rustls",
  "hyper-util",
