@@ -77,6 +77,19 @@ pub struct Crash {
     pub raw: Option<bool>,
 }
 
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct Layout {
+    pub device: Option<String>,
+    /// How many levels of the view tree to return (default 10).
+    pub depth: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Session {
+    /// A name from `list_sessions`.
+    pub id: String,
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct Recording {
     /// An id from `list_traces`.
