@@ -176,3 +176,14 @@ pub struct Battery {
     pub level: Option<u8>,
     pub charging: Option<bool>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RunPlugin {
+    pub device: Option<String>,
+    /// The plugin's name, from `list_plugins`. It must be enabled.
+    pub name: String,
+    /// The app to hand to the plugin (a package name or bundle id).
+    pub app: Option<String>,
+    /// For a streaming plugin: how long to listen, in seconds (default 5, up to 60). A one-shot plugin runs to its end.
+    pub seconds: Option<u64>,
+}

@@ -8,6 +8,7 @@ use emulabzip_core::{
     Appearance, Control, Device, Grant, Lab, LogFilter, LogLevel, LogOptions, PerfOptions, PerfettoPreset, StatusBar,
     Target, TraceFormat, TraceRequest,
 };
+use emulabzip_plugin as plugin;
 use emulabzip_trace::flame::hotspots;
 use emulabzip_trace::library::{self, Recording};
 use emulabzip_trace::perfetto::processor::{self, Processor};
@@ -272,6 +273,27 @@ impl EmuLabServer {
     }
 
     #[tool(
+        description = "List the plugins installed on this computer: programs that collect their own data from a device. Only enabled plugins can be run."
+    )]
+    async fn list_plugins(&self) -> CallToolResult {
+        let (plugins, problems) = plugin::discover();
+        let approvals = plugin::Approvals::load();
+        let listed: Vec<_> = plugins
+            .iter()
+            .map(|p| serde_json::json!({ "name": p.manifest.name, "description": p.manifest.description, "mode": p.manifest.mode, "platforms": p.manifest.platforms, "enabled": approvals.is_approved(p) }))
+            .collect();
+        let problems: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.dir.display(), p.message)).collect();
+        reply(json(&serde_json::json!({ "plugins": listed, "problems": problems })))
+    }
+
+    #[tool(
+        description = "Run an enabled plugin on a device and return what it reported: metrics, tables, text and log lines. Plugins that the user has not enabled are refused."
+    )]
+    async fn run_plugin(&self, Parameters(a): Parameters<args::RunPlugin>) -> CallToolResult {
+        reply(self.run_plugin_inner(a).await)
+    }
+
+    #[tool(
         description = "What a device supports changing, its appearance, and the permissions of an app when `app` is given."
     )]
     async fn control_info(&self, Parameters(a): Parameters<args::App>) -> CallToolResult {
@@ -477,6 +499,59 @@ impl EmuLabServer {
             }),
         };
         json(&value)
+    }
+
+    async fn run_plugin_inner(&self, a: args::RunPlugin) -> Result<String, String> {
+        let (plugins, _) = plugin::discover();
+        let found = plugins
+            .into_iter()
+            .find(|p| p.manifest.name == a.name)
+            .ok_or_else(|| format!("There is no plugin called {}", a.name))?;
+        if !plugin::Approvals::load().is_approved(&found) {
+            return Err(format!(
+                "{} is not enabled. Ask the user to enable it (`emulabzip plugin enable {}`, or the Plugins view in the app): it runs a program on their computer.",
+                a.name, a.name
+            ));
+        }
+        let (device, target) = self.device(&a.device).await?;
+        if !found.manifest.supports(target.platform) {
+            return Err(format!("{} does not support {}", a.name, target.platform.label()));
+        }
+        let ctx = plugin::Context { device: target.id.clone(), platform: target.platform, app: a.app };
+        let (stop, stopped) = watch::channel(false);
+        let listen = match found.manifest.mode {
+            plugin::Mode::Stream => Some(Duration::from_secs(a.seconds.unwrap_or(5).clamp(1, 60))),
+            plugin::Mode::Once => None,
+        };
+        let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let sink = events.clone();
+        let running = plugin::run(&found, &ctx, stopped, move |e| {
+            if let Ok(mut list) = sink.lock() {
+                list.push(e);
+            }
+        });
+        tokio::pin!(running);
+        let stopper = async {
+            match listen {
+                Some(d) => tokio::time::sleep(d).await,
+                None => std::future::pending().await,
+            }
+        };
+        tokio::pin!(stopper);
+        let mut sent_stop = false;
+        let outcome = loop {
+            tokio::select! {
+                outcome = &mut running => break outcome.map_err(|e| e.to_string())?,
+                _ = &mut stopper, if !sent_stop => {
+                    sent_stop = true;
+                    let _ = stop.send(true);
+                }
+            }
+        };
+        let events = events.lock().map(|l| l.clone()).unwrap_or_default();
+        json(
+            &serde_json::json!({ "plugin": a.name, "device": device.name, "outcome": format!("{outcome:?}"), "events": events }),
+        )
     }
 
     async fn trace_summary_inner(&self, id: &str) -> Result<String, String> {
