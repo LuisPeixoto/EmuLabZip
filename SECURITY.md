@@ -54,6 +54,17 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   open, bound to `127.0.0.1`.
 - "Open in Perfetto UI" starts a short-lived server on `127.0.0.1` that answers for one file, only with CORS for
   `https://ui.perfetto.dev`, and stops after the file was fetched or after two minutes. Nothing is uploaded.
+- Rules can answer requests with content you wrote and change what an app receives. They are kept in
+  `net-rules.json` in EmuLabZip's data folder, and are applied only by a proxy you started. `emulabzip net --rules`
+  skips breakpoints, because nobody is there to continue them.
+- A request held at a breakpoint is kept in memory, with its headers and body, until you continue it, or for at most
+  two minutes. Edits are applied to that one message only.
+- Packet captures are parsed with bounds on every length, a size limit (512 MB) and caps on reassembled streams, and
+  nothing in them is executed. Captures and sessions can contain secrets: treat them like logs.
+- Reading an iOS Simulator's screen uses the macOS Accessibility API, which needs the permission you grant to the program
+  that runs EmuLabZip; EmuLabZip only reads the tree and never sends input.
+- A session (`.ezsession`) is a zip of JSON, a HAR file and PNGs. Readers refuse names that leave the archive, files
+  over 512 MB and formats newer than they know. The MCP tools read only the sessions folder.
 - The MCP server (`emulabzip mcp`) speaks only on standard input and output, with no network port. Its tools that act
   on a device (`control_*`, `open_url`, `record_trace`) are always on, and are checked like the app's own: values are
   validated, links to `file:`, `javascript:` and similar are refused, and nothing reaches a shell unquoted. It will not
