@@ -1170,6 +1170,7 @@ dependencies = [
  "emulabzip-mcp",
  "emulabzip-net",
  "emulabzip-plugin",
+ "emulabzip-session",
  "emulabzip-storage",
  "emulabzip-trace",
  "owo-colors",
