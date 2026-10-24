@@ -2,16 +2,16 @@
 
 use async_trait::async_trait;
 use emulabzip_adb::{AdbClient, DeviceEntry};
-use emulabzip_core::CaInstall;
 use emulabzip_core::{
     App, Backend, Device, DeviceKind, DeviceState, Error, FileEntry, HeapDump, InfoSection, LogEntry, LogOptions,
     MemoryReport, NetworkStatus, PerfOptions, PerfSample, Platform, Result, StorageRoot, Stream, TraceFile,
     TraceRequest,
 };
+use emulabzip_core::{CaInstall, CrashReport, CrashSummary};
 use tokio::task::JoinSet;
 
 use crate::props::Props;
-use crate::{apps, cert, heapdump, info, logcat, meminfo, network, perf, storage, trace};
+use crate::{apps, cert, crashes, heapdump, info, logcat, meminfo, network, perf, storage, trace};
 
 /// Android emulators and devices, through the local ADB server.
 #[derive(Debug, Clone, Default)]
@@ -160,6 +160,14 @@ impl Backend for AndroidBackend {
         stop: tokio::sync::watch::Receiver<bool>,
     ) -> Result<TraceFile> {
         trace::record(&self.adb, id, request, out_dir, stop).await
+    }
+
+    async fn crashes(&self, id: &str, app: Option<&str>) -> Result<Vec<CrashSummary>> {
+        crashes::list(&self.adb, id, app).await
+    }
+
+    async fn crash(&self, id: &str, crash_id: &str) -> Result<CrashReport> {
+        crashes::get(&self.adb, id, crash_id).await
     }
 
     async fn network_status(&self, id: &str) -> Result<NetworkStatus> {
