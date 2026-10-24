@@ -61,10 +61,17 @@
   }
 
   let current = "";
+  // The device list is replaced on every poll, so the effect follows ids, not objects: otherwise
+  // it would start over, and lose the samples, every few seconds.
+  const aKey = $derived(a ? `${a.platform}:${a.id}` : "");
+  const bKey = $derived(other ? `${other.platform}:${other.id}` : "");
+
   $effect(() => {
-    const [x, y] = [a, other];
+    aKey;
+    bKey;
     const appId = app.appId;
     untrack(() => {
+      const [x, y] = [a, other];
       stop();
       error = null;
       rows = [];
@@ -140,8 +147,8 @@
         {#each [{ d: a, png: shots.a }, { d: other, png: shots.b }] as { d, png } (d.id)}
           <section class="rounded-2xl border border-line bg-panel p-3">
             <p class="mb-2 flex items-center gap-2 text-[12.5px] font-medium"><Icon name={d.platform === "ios" ? "apple" : "android"} size={14} />{d.name}<span class="mono text-[11px] font-normal text-faint">{d.osVersion ?? ""}</span></p>
-            <div class="grid h-[420px] place-items-center rounded-xl bg-panel-2">
-              {#if png}<img src="data:image/png;base64,{png}" alt="Screen of {d.name}" class="max-h-full max-w-full rounded-lg" />{:else}<div class="skeleton h-3/4 w-1/3 rounded-lg"></div>{/if}
+            <div class="flex h-[420px] items-center justify-center overflow-hidden rounded-xl bg-panel-2 p-2">
+              {#if png}<img src="data:image/png;base64,{png}" alt="Screen of {d.name}" class="size-full rounded-lg object-contain" />{:else}<div class="skeleton h-3/4 w-1/3 rounded-lg"></div>{/if}
             </div>
           </section>
         {/each}
