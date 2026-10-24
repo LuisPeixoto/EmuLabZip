@@ -243,3 +243,27 @@ async fn applies_every_control_and_resets_it() {
     backend.control(&udid, &Control::ClearLocation).await.unwrap();
     assert!(backend.control(&udid, &Control::Battery { level: 10, charging: false }).await.is_err());
 }
+
+/// Needs Simulator.app open on the device and the Accessibility permission for the test runner.
+#[cfg(target_os = "macos")]
+#[tokio::test]
+#[ignore = "needs a booted iOS simulator with its window open"]
+async fn reads_the_layout_and_audits_it() {
+    let backend = AppleBackend::new();
+    let devices = backend.devices().await.unwrap();
+    let id = devices.first().expect("a booted simulator").id.clone();
+    let snapshot = backend.layout(&id).await.unwrap();
+    println!("{} views on a {}×{} pt screen", snapshot.root.count(), snapshot.screen.width, snapshot.screen.height);
+    snapshot.root.walk(&mut |n| {
+        if n.name().is_some() && n.clickable {
+            println!("{} {:?} {:?} {:?}", n.class, n.name(), n.resource_id, n.bounds);
+        }
+    });
+    assert!(snapshot.root.count() > 3);
+    assert!(snapshot.screenshot.starts_with(b"\x89PNG"));
+    let audit = emulabzip_core::a11y::audit(&snapshot);
+    for f in &audit.findings {
+        println!("{:?} {} {} {}", f.severity, f.rule, f.class, f.message);
+    }
+    assert!(!audit.contrast_skipped);
+}
