@@ -10,6 +10,10 @@ in the sidebar, while EmuLabZip is open.
 | **Native crash** | A fatal signal, from the tombstone | A bad memory access (`EXC_BAD_ACCESS`) and similar |
 | **ANR** | Application Not Responding, with the stack of every thread | not applicable |
 
+<p align="center">
+  <img src="images/crashes.png" alt="An ANR with the blocked main thread, hints and details" />
+</p>
+
 ## Quick start
 
 1. Open **Crashes** (<kbd>⌘8</kbd>). The newest crash opens by itself.

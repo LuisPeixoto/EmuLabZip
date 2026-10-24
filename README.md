@@ -87,6 +87,18 @@ It ships as a native desktop app and as a command-line tool.
   <sub><b>Traces</b>: a Perfetto system trace, summarized, with SQL and the Perfetto UI one click away.</sub>
 </p>
 
+<p align="center">
+  <img src="docs/images/crashes.png" alt="Crashes: an ANR with the blocked main thread, hints and the device's own details" /><br />
+  <sub><b>Crashes</b>: crashes, native crashes and ANRs with their stacks and what to try next.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/controls.png" alt="Controls: location, appearance, status bar, battery, notification and link" /><br /><sub><b>Controls</b>: another place, dark mode, a clean status bar, a low battery.</sub></td>
+    <td width="50%"><img src="docs/images/plugins.png" alt="Plugins: a streaming plugin charting the battery temperature" /><br /><sub><b>Plugins</b>: your own collector, charted live, after you enable it.</sub></td>
+  </tr>
+</table>
+
 <table>
   <tr>
     <td width="50%"><img src="docs/images/performance.png" alt="Live CPU, memory and frame rate charts" /><br /><sub><b>Performance</b>: CPU, memory, frames and battery, live.</sub></td>
