@@ -14,6 +14,10 @@ from the same card.
 | **Notification** | Posted from the shell | A simulated push to the picked app, with your own payload if you like |
 | **Open a link** | ✅ | ✅ |
 
+<p align="center">
+  <img src="images/controls.png" alt="The Controls view" />
+</p>
+
 ## Quick start
 
 Open **Controls** (<kbd>⌘9</kbd>). Only the cards the selected device supports are shown. The permissions card follows

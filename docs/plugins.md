@@ -7,6 +7,10 @@ or tiles, tables, text and log lines.
 There is no plugin code inside the app. A plugin cannot change the interface or break it, and it can only do what a
 program you started yourself could do.
 
+<p align="center">
+  <img src="images/plugins.png" alt="A streaming plugin charting the battery temperature" />
+</p>
+
 ## Install, enable, run
 
 ```bash
