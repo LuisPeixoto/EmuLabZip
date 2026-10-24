@@ -46,7 +46,7 @@ impl AppleBackend {
         devices::parse(&simctl::run(["list", "devices", "-j"]).await?)
     }
 
-    async fn simulator(&self, udid: &str) -> Result<SimDevice> {
+    pub(crate) async fn simulator(&self, udid: &str) -> Result<SimDevice> {
         self.simulators()
             .await?
             .into_iter()
@@ -106,6 +106,10 @@ impl Backend for AppleBackend {
             xcode: xcode.and_then(|x| x.lines().next().map(str::to_string)),
         };
         Ok(info::build_sections(&sim, &extras))
+    }
+
+    async fn layout(&self, id: &str) -> Result<emulabzip_core::LayoutSnapshot> {
+        crate::layout::snapshot(self, id).await
     }
 
     async fn apps(&self, id: &str) -> Result<Vec<App>> {
