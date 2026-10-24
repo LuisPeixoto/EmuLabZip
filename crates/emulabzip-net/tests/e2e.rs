@@ -607,3 +607,72 @@ async fn a_breakpoint_nobody_answers_lets_the_request_through() {
     let (status, _, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
     assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
 }
+
+// ---------------------------------------------------------------------------------------------
+// WebSocket messages
+// ---------------------------------------------------------------------------------------------
+
+/// A masked text frame, as a browser sends it.
+fn client_text_frame(text: &str) -> Vec<u8> {
+    let key = [0x37, 0xfa, 0x21, 0x3d];
+    let mut frame = vec![0x81, 0x80 | text.len() as u8];
+    frame.extend_from_slice(&key);
+    frame.extend(text.bytes().enumerate().map(|(i, b)| b ^ key[i % 4]));
+    frame
+}
+
+#[tokio::test]
+async fn websocket_messages_are_read_in_both_directions_and_exported() {
+    use emulabzip_net::ws::{Direction, Kind};
+
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (mut sender, conn) = hyper::client::conn::http1::handshake(TokioIo::new(client)).await.unwrap();
+    tokio::spawn(conn.with_upgrades());
+    let req = Request::get(format!("http://{}/ws", upstream.addr))
+        .header("upgrade", "websocket")
+        .header("connection", "Upgrade")
+        .header("sec-websocket-version", "13")
+        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
+        .body(Empty::<Bytes>::new())
+        .unwrap();
+    let res = sender.send_request(req).await.unwrap();
+    let mut io = TokioIo::new(hyper::upgrade::on(res).await.unwrap());
+
+    for text in ["hello socket", "second message"] {
+        let frame = client_text_frame(text);
+        io.write_all(&frame).await.unwrap();
+        let mut echoed = vec![0u8; frame.len()];
+        io.read_exact(&mut echoed).await.unwrap();
+        assert_eq!(echoed, frame, "the echo server's bytes reach the client untouched");
+    }
+    drop(io);
+
+    let flow = flow_where(&rig.store, "the finished WebSocket", |f| {
+        f.kind == FlowKind::WebSocket && f.state == FlowState::Completed
+    })
+    .await;
+    let seen: Vec<_> =
+        flow.messages.iter().map(|m| (m.direction, m.kind, m.text.clone().unwrap_or_default())).collect();
+    assert_eq!(
+        seen,
+        [
+            (Direction::Up, Kind::Text, "hello socket".to_string()),
+            (Direction::Down, Kind::Text, "hello socket".to_string()),
+            (Direction::Up, Kind::Text, "second message".to_string()),
+            (Direction::Down, Kind::Text, "second message".to_string()),
+        ]
+    );
+    assert_eq!(flow.summary().message_count, 4);
+
+    let har = to_har(&rig.store.all());
+    let entry = &har["log"]["entries"][0];
+    assert_eq!(entry["_resourceType"], "websocket");
+    let messages = entry["_webSocketMessages"].as_array().unwrap();
+    assert_eq!(
+        (messages[0]["type"].as_str(), messages[0]["opcode"].as_i64(), messages[1]["type"].as_str()),
+        (Some("send"), Some(1), Some("receive"))
+    );
+    assert_eq!(messages[2]["data"], "second message");
+}

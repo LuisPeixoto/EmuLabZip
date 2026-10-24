@@ -2,6 +2,8 @@
 
 use serde::Serialize;
 
+use crate::ws::WsMessage;
+
 pub type FlowId = u64;
 pub type Headers = Vec<(String, String)>;
 
@@ -73,6 +75,10 @@ pub struct Flow {
     pub rule: Option<String>,
     /// The response was made up by a rule, not sent by the server.
     pub mocked: bool,
+    /// The messages of a WebSocket, oldest first, up to [`crate::ws::MAX_MESSAGES`].
+    pub messages: Vec<WsMessage>,
+    /// How many messages came after the limit and were not kept.
+    pub messages_dropped: u64,
 }
 
 impl Flow {
@@ -104,6 +110,8 @@ impl Flow {
             error: None,
             rule: None,
             mocked: false,
+            messages: Vec::new(),
+            messages_dropped: 0,
         }
     }
 
@@ -138,6 +146,7 @@ impl Flow {
             error: self.error.clone(),
             rule: self.rule.clone(),
             mocked: self.mocked,
+            message_count: self.messages.len() as u64 + self.messages_dropped,
         }
     }
 }
@@ -165,6 +174,8 @@ pub struct FlowSummary {
     pub error: Option<String>,
     pub rule: Option<String>,
     pub mocked: bool,
+    /// Messages seen on a WebSocket, including any past the limit.
+    pub message_count: u64,
 }
 
 pub fn now_ms() -> u64 {
