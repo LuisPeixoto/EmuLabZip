@@ -172,6 +172,11 @@ enum Command {
         #[command(subcommand)]
         action: ControlAction,
     },
+    /// Run your own collectors: programs that print JSON lines for a device
+    Plugin {
+        #[command(subcommand)]
+        action: PluginAction,
+    },
     /// Serve the devices to an AI assistant over MCP (standard input and output)
     Mcp,
     /// Record and analyze traces: Perfetto, simpleperf flame graphs and Instruments
@@ -401,6 +406,41 @@ enum ControlAction {
 }
 
 #[derive(Subcommand)]
+enum PluginAction {
+    /// List the installed plugins and whether each is enabled
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Start a new plugin from a template
+    New { name: String },
+    /// Copy a plugin folder into EmuLabZip's plugins folder (it starts disabled)
+    Install {
+        folder: PathBuf,
+        /// Replace a plugin of the same name
+        #[arg(long)]
+        force: bool,
+    },
+    /// Allow a plugin to run from the app and from assistants
+    Enable { name: String },
+    /// Stop allowing a plugin to run
+    Disable { name: String },
+    /// Run a plugin on a device and print what it reports
+    Run {
+        name: String,
+        /// The app to hand to the plugin
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Stop a streaming plugin after this many seconds
+        #[arg(long)]
+        seconds: Option<u64>,
+        /// Print each event as JSON
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
 enum CaAction {
     /// Make the device trust the certificate (system store when the device allows it)
     Install,
@@ -501,6 +541,16 @@ async fn main() -> ExitCode {
             cmd::crashes::show(&lab, device, &id, raw, json, all_threads).await
         }
         Command::Control { action } => run_control(&lab, device, action).await,
+        Command::Plugin { action } => match action {
+            PluginAction::List { json } => cmd::plugin::list(json),
+            PluginAction::New { name } => cmd::plugin::new(&name),
+            PluginAction::Install { folder, force } => cmd::plugin::install(&folder, force),
+            PluginAction::Enable { name } => cmd::plugin::enable(&name, true),
+            PluginAction::Disable { name } => cmd::plugin::enable(&name, false),
+            PluginAction::Run { name, app, seconds, json } => {
+                cmd::plugin::run(&lab, device, &name, app, seconds, json).await
+            }
+        },
         Command::Mcp => emulabzip_mcp::serve(lab.clone()).await.map_err(|e| anyhow::anyhow!("{e}")),
         Command::Trace { action } => match action {
             TraceAction::Record { preset, config, duration, app, output, open } => {
