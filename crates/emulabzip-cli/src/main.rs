@@ -129,7 +129,10 @@ enum Command {
         output: Option<PathBuf>,
     },
     /// Capture a device's HTTP(S) traffic: run the proxy, point the device at it, print each request
+    #[command(args_conflicts_with_subcommands = true)]
     Net {
+        #[command(subcommand)]
+        action: Option<NetAction>,
         /// Port for the proxy, on this computer's loopback interface
         #[arg(short, long, default_value_t = 9090, env = "EMULABZIP_PORT")]
         port: u16,
@@ -142,6 +145,15 @@ enum Command {
         /// Print one JSON object per request
         #[arg(long)]
         json: bool,
+        /// Mock, delay or block requests with the rules in this JSON file
+        #[arg(long, value_name = "FILE")]
+        rules: Option<PathBuf>,
+        /// Talk HTTP/3 to servers that offer it
+        #[arg(long)]
+        http3: bool,
+        /// Show apps the servers' HTTP/3 offers instead of hiding them
+        #[arg(long, requires = "http3")]
+        show_h3: bool,
     },
     /// List the crashes, native crashes and ANRs a device has recorded
     Crashes {
@@ -232,6 +244,23 @@ impl From<Preset> for PerfettoPreset {
             Preset::Custom => PerfettoPreset::Custom,
         }
     }
+}
+
+#[derive(Subcommand)]
+enum NetAction {
+    /// Read a packet capture (.pcap or .pcapng, such as `emulator -tcpdump` writes) as requests
+    Import {
+        file: PathBuf,
+        /// Write the requests to a HAR file
+        #[arg(long, value_name = "FILE")]
+        har: Option<PathBuf>,
+        /// Print one JSON object per request
+        #[arg(long)]
+        json: bool,
+        /// Also list the DNS lookups
+        #[arg(long)]
+        dns: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -535,8 +564,13 @@ async fn main() -> ExitCode {
         Command::Pull { app, path, root, output } => {
             cmd::files::pull(&lab, device, &app, root.as_deref(), &path, output).await
         }
-        Command::Net { port, no_connect, har, json } => {
-            cmd::net::run(&lab, cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json }).await
+        Command::Net { action: Some(NetAction::Import { file, har, json, dns }), .. } => {
+            cmd::net::import(&file, har, json, dns).await
+        }
+        Command::Net { action: None, port, no_connect, har, json, rules, http3, show_h3 } => {
+            let args =
+                cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json, rules, http3, show_h3 };
+            cmd::net::run(&lab, args).await
         }
         Command::Crashes { app, kind, json } => cmd::crashes::list(&lab, device, app.as_deref(), kind, json).await,
         Command::Crash { id, raw, all_threads, json } => {
