@@ -332,6 +332,69 @@ export interface LayoutResult {
   audit: Audit;
 }
 
+export interface RecordingStatus {
+  recording: boolean;
+  device: string | null;
+  seconds: number;
+  logs: number;
+  samples: number;
+  crashes: number;
+  screens: number;
+  network: boolean;
+}
+
+export interface SessionFile {
+  name: string;
+  path: string;
+  size: number;
+  modifiedMs: number;
+}
+
+export interface RequestRow {
+  index: number;
+  method: string;
+  url: string;
+  status: number;
+  ms: number;
+  size: number;
+  started: string;
+  contentType: string;
+}
+
+export interface SessionSummary {
+  device: { id: string; name: string; platform: Platform; osVersion: string | null; model: string | null };
+  app: string | null;
+  startedMs: number;
+  durationMs: number | null;
+  partial: boolean;
+  logs: { total: number; warnings: number; errors: number; dropped: number };
+  topErrors: { message: string; count: number }[];
+  crashes: { id: string; kind: string; title: string; app: string | null }[];
+  network: { requests: number; failed: number; slowest: { method: string; url: string; status: number; ms: number }[] } | null;
+  perf: { samples: number; cpuAvg: number | null; cpuPeak: number | null; memoryPeakKb: number | null; fpsAvg: number | null; jankPeak: number | null } | null;
+  screens: number;
+}
+
+export interface SessionView {
+  path: string;
+  meta: { startedMs: number; endedMs: number | null; app: string | null; network: boolean };
+  summary: SessionSummary;
+  logs: LogEntry[];
+  logsTotal: number;
+  perf: PerfSample[];
+  requests: RequestRow[];
+  crashes: CrashSummary[];
+  screens: string[];
+}
+
+export interface DiffRow {
+  section: string;
+  key: string;
+  a: string | null;
+  b: string | null;
+  same: boolean;
+}
+
 export interface RuleMatcher {
   methods: string[];
   host: string | null;
@@ -658,6 +721,17 @@ export const api = {
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
   layoutRead: (target: Target) => invoke<LayoutResult>("layout_read", { target }),
+  sessionStatus: () => invoke<RecordingStatus>("session_status"),
+  sessionStart: (target: Target, app: string | null, network: boolean, screensEvery: number | null) =>
+    invoke<RecordingStatus>("session_start", { target, app, network, screensEvery }),
+  sessionStop: () => invoke<{ path: string }>("session_stop"),
+  sessionList: () => invoke<SessionFile[]>("session_list"),
+  sessionOpen: (path: string | null) => invoke<SessionView | null>("session_open", { path }),
+  sessionRequest: (index: number) => invoke<Record<string, any>>("session_request", { index }),
+  sessionScreen: (name: string) => invoke<string>("session_screen", { name }),
+  sessionDelete: (path: string) => invoke<void>("session_delete", { path }),
+  sessionReveal: (path: string) => invoke<void>("session_reveal", { path }),
+  compareInfo: (a: Target, b: Target) => invoke<{ rows: DiffRow[] }>("compare_info", { a, b }),
   netRulesGet: () => invoke<Rule[]>("net_rules_get"),
   netRulesSet: (rules: Rule[]) => invoke<Rule[]>("net_rules_set", { rules }),
   async netBreakpointsSubscribe(onEvent: (e: BreakpointEvent) => void): Promise<number> {
