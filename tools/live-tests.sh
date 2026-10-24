@@ -20,10 +20,18 @@ if [[ -n "${ANDROID:-}" ]]; then
   export EMULABZIP_DEVICE="$ANDROID"
   cargo test -p emulabzip-android --test live -- --ignored --test-threads=1
   cargo test -p emulabzip-cli --test mcp_live -- --ignored --test-threads=1
+  cargo test -p emulabzip-cli --test live_session -- --ignored --test-threads=1
+  # Chrome has to be past its first run: write its command line, and dismiss the notification prompt once.
+  # They also need the internet (example.com, cloudflare-quic.com).
+  cargo test -p emulabzip-cli --test live_net -- --ignored --test-threads=1
 fi
+
+# HTTP/3 from the proxy to a public server. Needs the internet, not a device.
+cargo test -p emulabzip-net --test e2e -- --ignored live_http3
 
 if [[ -n "${SIMULATOR:-}" ]]; then
   echo "› iOS Simulator: $SIMULATOR"
   export EMULABZIP_DEVICE="$SIMULATOR"
+  # Layout needs Simulator.app open on the device and the Accessibility permission for this terminal.
   cargo test -p emulabzip-apple --test live -- --ignored --test-threads=1
 fi
