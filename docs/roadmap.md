@@ -56,8 +56,43 @@ targets, contrast) on Android and the iOS Simulator · **sessions** recorded to 
 records around a test run · **comparing two devices**. See [Mocks](mocks.md), [WebSockets](websockets.md),
 [Capture import](pcap.md), [Layout](layout.md), [Sessions](sessions.md), [CI mode](ci.md) and [Compare](compare.md).
 
+## Phase 7: Performance and quality (v0.7)
+
+**App start time**, cold, warm and hot: `am start -W` and the `Displayed` lines on Android, `simctl launch` with the
+unified log's launch signposts on iOS, repeated N times with the median shown · **energy** per app: `dumpsys
+batterystats` (CPU, wakelocks, radio, GPS) on Android, the thermal state and CPU time on the simulator · a **leak
+finder** for `.hprof` heap dumps: retained sizes, dominators, and destroyed Activities and Fragments that are still
+reachable, with the path to the GC root · **performance budgets** in an `emulabzip.toml` (start time, memory peak,
+janky frames, request count) that `emulabzip ci` checks, failing the run when one is broken · **baselines**: compare a
+run with the last good one and say what got slower.
+
+## Phase 8: Inside the frameworks (v0.8)
+
+**Flutter**: the Dart VM service of debug builds (widget tree, frame timings, memory) · **React Native**: Hermes and the
+React tree through the debugger protocol · **Jetpack Compose and SwiftUI** in Layout through their semantics trees, with
+recomposition counts where Android exposes them · network decoding for **gRPC and protobuf** (with `.proto` files, or
+raw) and **GraphQL**, with operations named in the list · **edit and resend** a request · **network conditions** in the
+proxy: presets for 3G, slow Wi-Fi, high latency, offline and packet loss.
+
+## Phase 9: Devices and platforms (v0.9)
+
+**Physical iPhones and iPads** through the tools Xcode ships (`devicectl`, `usbmuxd`): logs, apps, screenshots, crashes
+and files where iOS allows it, and a plain note where it does not · **Android over Wi-Fi**, with wireless debugging
+pairing from the app · **Wear OS and Android TV** emulators, and **watchOS, tvOS and visionOS** simulators, with the
+views that apply to each · **several devices at once**: logs and requests from two devices in one list, tagged by device.
+
+## Phase 10: Team and ecosystem, 1.0 (v1.0)
+
+**Comparing sessions** side by side, and a **shareable HTML report** of a session (one file, no server) · **shared rule
+libraries**: a rules file kept in the app's repository, loaded by the app and the command line · a **VS Code extension**
+with devices, logs and the MCP server in the editor · a **plugin catalog**: community plugins listed with checksums, still
+enabled one by one by the user · an **interface in Portuguese** and other languages · **updates**: signed auto-update in
+the app, and Homebrew, winget and Scoop packages · the **1.0 promise**: the command line's options and JSON, the MCP
+tools and the `.ezsession` format are stable, and change only with a major version.
+
 ## Ideas
 
-Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
-side · a library of rules shared between a team · more accessibility checks (focus order, text scaling) · HTTP/3 streaming
-for very large responses · plugins that read sessions.
+What is not in a phase yet: layouts for apps that draw their own UI (games, canvases) · more accessibility checks (focus
+order, text scaling, colour blindness simulation) · HTTP/3 streaming for very large responses · plugins that read
+sessions · a timeline that lines up logs, requests and frames · screen video recorded into a session · AI-written
+summaries of a session through the MCP server.

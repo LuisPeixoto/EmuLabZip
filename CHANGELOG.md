@@ -6,6 +6,11 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+### Documentation
+
+- The roadmap lists Phases 7 to 10, up to 1.0: performance and quality, the inside of frameworks, more devices and
+  platforms, and the team and ecosystem features that close 1.0.
+
 ## [0.6.0] - 2026-10-24
 
 Phase 6: network power tools, layout and accessibility, sessions, comparing devices.
