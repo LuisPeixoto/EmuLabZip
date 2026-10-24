@@ -11,6 +11,7 @@ use crate::crash::{CrashReport, CrashSummary};
 use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
+use crate::layout::LayoutSnapshot;
 use crate::log::LogEntry;
 use crate::memory::{HeapDump, MemoryReport};
 use crate::network::{CaInstall, NetworkStatus};
@@ -148,6 +149,11 @@ pub trait Backend: Send + Sync {
     async fn control(&self, _id: &str, _control: &Control) -> Result<()> {
         Err(Error::Unsupported("Device controls"))
     }
+
+    /// The views on screen now, with a screenshot taken at the same moment.
+    async fn layout(&self, _id: &str) -> Result<LayoutSnapshot> {
+        Err(Error::Unsupported("Layout inspection"))
+    }
 }
 
 /// Every available backend behind one handle.
@@ -232,6 +238,10 @@ impl Lab {
 
     pub async fn screenshot(&self, target: &Target) -> Result<Vec<u8>> {
         self.backend(target.platform)?.screenshot(&target.id).await
+    }
+
+    pub async fn layout(&self, target: &Target) -> Result<LayoutSnapshot> {
+        self.backend(target.platform)?.layout(&target.id).await
     }
 
     pub async fn perf(&self, target: &Target, options: PerfOptions) -> Result<Stream<PerfSample>> {
