@@ -275,6 +275,63 @@ export interface FlowDetail {
   response: BodyView | null;
 }
 
+export interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface UiNode {
+  id: number;
+  class: string;
+  text: string | null;
+  label: string | null;
+  hint: string | null;
+  resourceId: string | null;
+  package: string | null;
+  bounds: Bounds;
+  clickable: boolean;
+  focusable: boolean;
+  enabled: boolean;
+  checked: boolean | null;
+  scrollable: boolean;
+  editable: boolean;
+  children: UiNode[];
+}
+
+export interface Screen {
+  width: number;
+  height: number;
+  density: number;
+}
+
+export type Severity = "info" | "warning" | "error";
+
+export interface Finding {
+  rule: string;
+  severity: Severity;
+  node: number;
+  class: string;
+  resourceId: string | null;
+  bounds: Bounds;
+  message: string;
+  wcag: string;
+  fix: string;
+}
+
+export interface Audit {
+  findings: Finding[];
+  checked: number;
+  contrastSkipped: boolean;
+}
+
+export interface LayoutResult {
+  layout: { platform: Platform; root: UiNode; screen: Screen };
+  screenshot: string;
+  audit: Audit;
+}
+
 export interface RuleMatcher {
   methods: string[];
   host: string | null;
@@ -600,6 +657,7 @@ export const api = {
     channel.onmessage = onBatch;
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
+  layoutRead: (target: Target) => invoke<LayoutResult>("layout_read", { target }),
   netRulesGet: () => invoke<Rule[]>("net_rules_get"),
   netRulesSet: (rules: Rule[]) => invoke<Rule[]>("net_rules_set", { rules }),
   async netBreakpointsSubscribe(onEvent: (e: BreakpointEvent) => void): Promise<number> {
