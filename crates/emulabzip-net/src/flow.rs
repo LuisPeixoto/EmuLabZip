@@ -57,6 +57,9 @@ pub struct Flow {
     pub url: String,
     /// The version the client spoke to the proxy.
     pub http_version: String,
+    /// What the proxy spoke to the server: `h1`, `h2` or `h3`. Empty until the server answered.
+    #[serde(default)]
+    pub server_protocol: String,
     pub status: Option<u16>,
     pub request_headers: Headers,
     pub response_headers: Headers,
@@ -99,6 +102,7 @@ impl Flow {
             path: path.to_string(),
             url: format!("{scheme}://{host}{port_part}{path}"),
             http_version: String::new(),
+            server_protocol: String::new(),
             status: None,
             request_headers: Vec::new(),
             response_headers: Vec::new(),
@@ -141,6 +145,7 @@ impl Flow {
             path: self.path.clone(),
             url: self.url.clone(),
             http_version: self.http_version.clone(),
+            server_protocol: self.server_protocol.clone(),
             status: self.status,
             content_type: self.content_type(),
             request_size: self.request_size,
@@ -170,6 +175,7 @@ pub struct FlowSummary {
     pub path: String,
     pub url: String,
     pub http_version: String,
+    pub server_protocol: String,
     pub status: Option<u16>,
     pub content_type: Option<String>,
     pub request_size: u64,

@@ -11,6 +11,7 @@ pub mod ca;
 pub mod decode;
 pub mod flow;
 pub mod har;
+pub mod http3;
 pub mod io;
 pub mod pcap;
 pub mod proxy;
@@ -22,6 +23,7 @@ pub use breakpoints::{BreakpointEvent, Breakpoints, Edits, Paused, Phase, Resume
 pub use ca::{CertificateAuthority, default_dir};
 pub use flow::{Flow, FlowId, FlowKind, FlowState, FlowSummary, Headers};
 pub use har::to_har;
+pub use http3::Http3;
 pub use proxy::{Proxy, ProxyConfig, ProxyHandle};
 pub use rules::{Action, Matcher, Rule, RuleSet};
 pub use store::{FlowEvent, FlowStore};

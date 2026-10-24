@@ -31,6 +31,7 @@ use tokio_rustls::{TlsAcceptor, TlsConnector};
 use crate::breakpoints::{Breakpoints, Edits, Hold, Phase, Resume};
 use crate::ca::CertificateAuthority;
 use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
+use crate::http3::{self, Http3};
 use crate::io::{BoxIo, Prefixed};
 use crate::rules::{Action, Rule, RuleSet, mock_bytes};
 use crate::store::FlowStore;
@@ -54,6 +55,10 @@ pub struct ProxyConfig {
     pub rules: Arc<RuleSet>,
     /// Where held requests and responses wait. Shared with whoever shows them.
     pub breakpoints: Arc<Breakpoints>,
+    /// Send requests to servers that offer HTTP/3 over QUIC. They are found through `Alt-Svc`.
+    pub http3: bool,
+    /// Remove HTTP/3 from the `Alt-Svc` the device is shown, so apps do not try QUIC around the proxy.
+    pub hide_http3: bool,
 }
 
 impl Default for ProxyConfig {
@@ -64,6 +69,8 @@ impl Default for ProxyConfig {
             extra_roots_pem: Vec::new(),
             rules: Arc::new(RuleSet::new()),
             breakpoints: Arc::new(Breakpoints::new()),
+            http3: false,
+            hide_http3: true,
         }
     }
 }
@@ -80,6 +87,7 @@ struct Ctx {
     bypass: Mutex<HashSet<String>>,
     rules: Arc<RuleSet>,
     breakpoints: Arc<Breakpoints>,
+    http3: Http3,
     shutdown: watch::Receiver<bool>,
 }
 
@@ -113,6 +121,24 @@ impl ProxyHandle {
         self.ctx.rules.clone()
     }
 
+    /// Whether requests go to servers over HTTP/3 when they offer it.
+    pub fn http3(&self) -> bool {
+        self.ctx.http3.enabled()
+    }
+
+    pub fn set_http3(&self, on: bool) {
+        self.ctx.http3.set_enabled(on);
+    }
+
+    /// Whether HTTP/3 is removed from the `Alt-Svc` the device sees.
+    pub fn hides_http3(&self) -> bool {
+        self.ctx.http3.hides()
+    }
+
+    pub fn set_hide_http3(&self, on: bool) {
+        self.ctx.http3.set_hide(on);
+    }
+
     /// Where requests and responses held at breakpoints wait.
     pub fn breakpoints(&self) -> Arc<Breakpoints> {
         self.ctx.breakpoints.clone()
@@ -141,6 +167,7 @@ impl Proxy {
         let https =
             HttpsConnectorBuilder::new().with_tls_config(tls.clone()).https_or_http().enable_all_versions().build();
         let client = Client::builder(TokioExecutor::new()).build::<_, Full<Bytes>>(https);
+        let http3 = Http3::new(&tls, config.http3, config.hide_http3);
         let mut http1_only = tls;
         http1_only.alpn_protocols = vec![b"http/1.1".to_vec()];
 
@@ -156,6 +183,7 @@ impl Proxy {
             bypass: Mutex::new(HashSet::new()),
             rules: config.rules,
             breakpoints: config.breakpoints,
+            http3,
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -533,6 +561,7 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
             Ok(uri) => uri,
             Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
         };
+    let h3_body = body.clone();
     let mut upstream = Request::new(Full::new(body));
     *upstream.method_mut() = parts.method.clone();
     *upstream.uri_mut() = uri;
@@ -543,13 +572,82 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
         }
     }
 
-    match ctx.client.request(upstream).await {
-        Ok(res) if matches!(rule.as_ref().map(|r| &r.action), Some(Action::Breakpoint { response: true, .. })) => {
-            hold_response(&ctx, id, started, client_version, res, &parts.method).await
+    let holds_response = matches!(rule.as_ref().map(|r| &r.action), Some(Action::Breakpoint { response: true, .. }));
+    if scheme == "https"
+        && !holds_response
+        && let Some(udp_port) = ctx.http3.port_for(&host, port)
+    {
+        let sent =
+            ctx.http3.request(&host, udp_port, parts.method.clone(), &path, upstream.headers(), h3_body.clone()).await;
+        match sent {
+            Ok((head, bytes)) => return respond_h3(&ctx, id, started, client_version, &host, port, head, bytes),
+            Err(e) => {
+                tracing::debug!(%host, error = %error_chain(&*e), "HTTP/3 failed; using TCP");
+                ctx.http3.failed(&host, port);
+            }
         }
+    }
+
+    match ctx.client.request(upstream).await {
+        Ok(res) if holds_response => hold_response(&ctx, id, started, client_version, res, &parts.method).await,
         Ok(res) => respond(&ctx, id, started, client_version, res),
         Err(e) => fail(&ctx, id, StatusCode::BAD_GATEWAY, error_chain(&e)),
     }
+}
+
+fn protocol_name(version: http::Version) -> &'static str {
+    match version {
+        http::Version::HTTP_3 => "h3",
+        http::Version::HTTP_2 => "h2",
+        _ => "h1",
+    }
+}
+
+/// Notes what the server said about HTTP/3, then takes it out of what the device will see.
+fn learn_and_hide(ctx: &Ctx, id: FlowId, headers: &mut HeaderMap) {
+    if let Some((host, port)) = ctx.store.get(id).map(|f| (f.host, f.port)) {
+        ctx.http3.learn(&host, port, headers);
+    }
+    if ctx.http3.hides() {
+        http3::hide_from_headers(headers);
+    }
+}
+
+/// Records an answer that came over HTTP/3. It is read in full, so it is not streamed.
+#[allow(clippy::too_many_arguments)]
+fn respond_h3(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    host: &str,
+    port: u16,
+    mut parts: http::response::Parts,
+    bytes: Bytes,
+) -> Resp {
+    let total = started.elapsed().as_millis() as u64;
+    ctx.http3.learn(host, port, &parts.headers);
+    let listed = header_list(&parts.headers);
+    let (status, size) = (parts.status.as_u16(), bytes.len() as u64);
+    ctx.store.update(id, |f| {
+        f.status = Some(status);
+        f.response_headers = listed;
+        f.server_protocol = "h3".into();
+        f.response_body = bytes[..bytes.len().min(ctx.body_limit)].to_vec();
+        f.response_size = size;
+        f.response_truncated = bytes.len() > ctx.body_limit;
+        f.timing.ttfb_ms = Some(total);
+        f.timing.total_ms = Some(total);
+        f.state = FlowState::Completed;
+    });
+    if ctx.http3.hides() {
+        http3::hide_from_headers(&mut parts.headers);
+    }
+    for name in parts.headers.keys().filter(|k| is_hop_by_hop(k)).cloned().collect::<Vec<_>>() {
+        parts.headers.remove(name);
+    }
+    parts.version = version;
+    Response::from_parts(parts, full(bytes))
 }
 
 /// Applies what was edited at a request breakpoint.
@@ -644,6 +742,7 @@ async fn hold_response(
     ctx.store.update(id, |f| {
         f.status = Some(parts.status.as_u16());
         f.response_headers = shown.clone();
+        f.server_protocol = protocol_name(parts.version).to_string();
         f.timing.ttfb_ms = Some(ttfb);
         f.state = FlowState::Paused;
     });
@@ -701,11 +800,14 @@ fn respond(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, res:
     let ttfb = started.elapsed().as_millis() as u64;
     let headers = header_list(&parts.headers);
     let status = parts.status.as_u16();
+    let protocol = protocol_name(parts.version);
     ctx.store.update(id, |f| {
         f.status = Some(status);
         f.response_headers = headers;
+        f.server_protocol = protocol.to_string();
         f.timing.ttfb_ms = Some(ttfb);
     });
+    learn_and_hide(ctx, id, &mut parts.headers);
     // Set aside the headers that only made sense on the upstream connection.
     let hop: Vec<_> = parts.headers.keys().filter(|k| is_hop_by_hop(k)).cloned().collect();
     for name in hop {

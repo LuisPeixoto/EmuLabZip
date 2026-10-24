@@ -47,6 +47,10 @@ async fn upstream_handler(req: Request<hyper::body::Incoming>) -> Result<Respons
                 .body(Full::new(Bytes::from(gz.finish().unwrap())))
                 .unwrap()
         }
+        "/alt" => Response::builder()
+            .header("alt-svc", format!(r#"h3=":{}"; ma=60, h2=":443""#, req.uri().query().unwrap_or("0")))
+            .body(Full::new(Bytes::from("over tcp")))
+            .unwrap(),
         "/echo" => {
             let body = req.into_body().collect().await.unwrap().to_bytes();
             Response::builder().header("x-seen-version", version).body(Full::new(body)).unwrap()
@@ -675,4 +679,151 @@ async fn websocket_messages_are_read_in_both_directions_and_exported() {
         (Some("send"), Some(1), Some("receive"))
     );
     assert_eq!(messages[2]["data"], "second message");
+}
+
+// ---------------------------------------------------------------------------------------------
+// HTTP/3
+// ---------------------------------------------------------------------------------------------
+
+/// A QUIC server that answers every request with "over h3". Returns its UDP port and the CA to trust.
+async fn start_h3_server() -> (u16, String) {
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let mut tls = (*ca.server_config("localhost").unwrap()).clone();
+    tls.alpn_protocols = vec![b"h3".to_vec()];
+    let quic = quinn::crypto::rustls::QuicServerConfig::try_from(tls).unwrap();
+    let endpoint =
+        quinn::Endpoint::server(quinn::ServerConfig::with_crypto(Arc::new(quic)), "127.0.0.1:0".parse().unwrap())
+            .unwrap();
+    let port = endpoint.local_addr().unwrap().port();
+    tokio::spawn(async move {
+        while let Some(incoming) = endpoint.accept().await {
+            tokio::spawn(async move {
+                let Ok(connection) = incoming.await else { return };
+                let Ok(mut h3) = h3::server::Connection::new(h3_quinn::Connection::new(connection)).await else {
+                    return;
+                };
+                while let Ok(Some(resolver)) = h3.accept().await {
+                    tokio::spawn(async move {
+                        let Ok((_, mut stream)) = resolver.resolve_request().await else { return };
+                        let head = Response::builder().header("x-seen-version", "h3").body(()).unwrap();
+                        let _ = stream.send_response(head).await;
+                        let _ = stream.send_data(Bytes::from("over h3")).await;
+                        let _ = stream.finish().await;
+                    });
+                }
+            });
+        }
+    });
+    (port, ca.cert_pem().to_string())
+}
+
+async fn start_proxy_h3(extra_roots: Vec<String>, hide: bool) -> Rig {
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let store = FlowStore::new(1000);
+    let config = ProxyConfig {
+        addr: "127.0.0.1:0".parse().unwrap(),
+        extra_roots_pem: extra_roots,
+        http3: true,
+        hide_http3: hide,
+        ..Default::default()
+    };
+    let proxy = Proxy::start(config, ca.clone(), store.clone()).await.unwrap();
+    Rig { proxy, store, ca }
+}
+
+async fn get_through(rig: &Rig, authority: &str, path: &str) -> Reply {
+    let tunnel = connect_tunnel(rig.proxy.addr(), authority).await;
+    let io = tls(tunnel, rig.ca.cert_pem(), "localhost", b"h2").await.unwrap();
+    send_h2(io, get(&format!("https://{authority}{path}"))).await
+}
+
+#[tokio::test]
+async fn a_server_that_offers_http3_is_reached_over_quic_next_time() {
+    let upstream = start_upstream(true).await;
+    let (udp, h3_ca) = start_h3_server().await;
+    let rig = start_proxy_h3(vec![upstream.ca_pem.clone(), h3_ca], true).await;
+    let authority = format!("localhost:{}", upstream.addr.port());
+
+    // The first answer comes over TCP and says where HTTP/3 is.
+    let (_, headers, body) = get_through(&rig, &authority, &format!("/alt?{udp}")).await;
+    assert_eq!(&body[..], b"over tcp");
+    let offered: Vec<_> = headers.get_all("alt-svc").iter().map(|v| v.to_str().unwrap()).collect();
+    assert_eq!(offered, [r#"h2=":443""#], "the app never hears about HTTP/3");
+    let first =
+        flow_where(&rig.store, "the /alt flow", |f| f.path.starts_with("/alt") && f.state == FlowState::Completed)
+            .await;
+    assert_eq!(first.server_protocol, "h2");
+    assert!(
+        first.response_headers.iter().any(|(k, v)| k == "alt-svc" && v.starts_with("h3=")),
+        "the flow keeps the truth"
+    );
+
+    // The next one goes over QUIC.
+    let (status, headers, body) = get_through(&rig, &authority, "/hello").await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"over h3"[..]));
+    assert_eq!(headers["x-seen-version"], "h3");
+    let second =
+        flow_where(&rig.store, "the /hello flow", |f| f.path == "/hello" && f.state == FlowState::Completed).await;
+    assert_eq!((second.server_protocol.as_str(), second.http_version.as_str()), ("h3", "HTTP/2.0"));
+    assert_eq!(second.response_body, b"over h3");
+}
+
+#[tokio::test]
+async fn http3_stays_off_unless_it_is_switched_on() {
+    let upstream = start_upstream(true).await;
+    let (udp, h3_ca) = start_h3_server().await;
+    let rig = start_proxy_h3(vec![upstream.ca_pem.clone(), h3_ca], false).await;
+    rig.proxy.set_http3(false);
+    let authority = format!("localhost:{}", upstream.addr.port());
+
+    let (_, headers, _) = get_through(&rig, &authority, &format!("/alt?{udp}")).await;
+    assert!(headers["alt-svc"].to_str().unwrap().starts_with("h3="), "shown when hiding is off");
+    let (_, _, body) = get_through(&rig, &authority, "/hello").await;
+    assert_eq!(&body[..], b"hello");
+
+    // Switched on, the host learned a moment ago is used at once.
+    rig.proxy.set_http3(true);
+    let (_, _, body) = get_through(&rig, &authority, "/hello").await;
+    assert_eq!(&body[..], b"over h3");
+}
+
+#[tokio::test]
+async fn a_failed_quic_attempt_falls_back_to_tcp_and_is_not_repeated() {
+    let upstream = start_upstream(true).await;
+    // A UDP port nobody listens on.
+    let silent = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    let udp = silent.local_addr().unwrap().port();
+    let rig = start_proxy_h3(vec![upstream.ca_pem.clone()], true).await;
+    let authority = format!("localhost:{}", upstream.addr.port());
+
+    get_through(&rig, &authority, &format!("/alt?{udp}")).await;
+    let started = std::time::Instant::now();
+    let (status, _, body) = get_through(&rig, &authority, "/hello").await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]), "answered over TCP after QUIC failed");
+    assert!(started.elapsed() < Duration::from_secs(25));
+    let flow =
+        flow_where(&rig.store, "the /hello flow", |f| f.path == "/hello" && f.state == FlowState::Completed).await;
+    assert_eq!(flow.server_protocol, "h2");
+
+    // Remembered: the next request does not wait for QUIC again.
+    let started = std::time::Instant::now();
+    let (_, _, body) = get_through(&rig, &authority, "/hello").await;
+    assert_eq!(&body[..], b"hello");
+    assert!(started.elapsed() < Duration::from_secs(5), "took {:?}", started.elapsed());
+}
+
+/// Needs the internet: `cargo test -p emulabzip-net --test e2e -- --ignored live_http3`.
+#[tokio::test]
+#[ignore = "talks to a public server"]
+async fn live_http3_public_server() {
+    let rig = start_proxy_h3(Vec::new(), true).await;
+    for _ in 0..2 {
+        let tunnel = connect_tunnel(rig.proxy.addr(), "cloudflare-quic.com:443").await;
+        let io = tls(tunnel, rig.ca.cert_pem(), "cloudflare-quic.com", b"h2").await.unwrap();
+        let (status, _, _) = send_h2(io, get("https://cloudflare-quic.com/")).await;
+        assert!(status.is_success() || status.is_redirection(), "{status}");
+    }
+    let flows = rig.store.all();
+    let protocols: Vec<_> = flows.iter().map(|f| f.server_protocol.as_str()).collect();
+    assert_eq!(protocols.last(), Some(&"h3"), "{protocols:?}");
 }
