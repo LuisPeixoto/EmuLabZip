@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use emulabzip_android::AndroidBackend;
 use emulabzip_apple::AppleBackend;
 use emulabzip_core::{Lab, Target};
-use emulabzip_net::{CertificateAuthority, FlowStore, ProxyHandle};
+use emulabzip_net::{Breakpoints, CertificateAuthority, FlowStore, ProxyHandle, RuleSet};
 use emulabzip_trace::perfetto::processor::Processor;
 use parking_lot::Mutex;
 use tauri::async_runtime::JoinHandle;
@@ -17,13 +17,34 @@ use tokio::sync::watch;
 use crate::traces::Loaded;
 
 /// The proxy and the devices pointed at it.
-#[derive(Default)]
 pub struct NetRuntime {
     pub proxy: Option<ProxyHandle>,
     pub port: u16,
     pub ca: Option<Arc<CertificateAuthority>>,
     /// Devices whose settings we changed, so they can be put back when the app quits.
     pub connected: Vec<Target>,
+    /// Rules and held requests outlive the proxy, so stopping it does not lose them.
+    pub rules: Arc<RuleSet>,
+    pub breakpoints: Arc<Breakpoints>,
+    /// Send requests to servers over HTTP/3 when they offer it.
+    pub http3: bool,
+    /// Keep HTTP/3 out of what the device is told.
+    pub hide_http3: bool,
+}
+
+impl Default for NetRuntime {
+    fn default() -> Self {
+        NetRuntime {
+            proxy: None,
+            port: 0,
+            ca: None,
+            connected: Vec::new(),
+            rules: Arc::new(RuleSet::load_default()),
+            breakpoints: Arc::new(Breakpoints::new()),
+            http3: false,
+            hide_http3: true,
+        }
+    }
 }
 
 pub struct AppState {

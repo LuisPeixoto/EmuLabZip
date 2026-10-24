@@ -3,9 +3,11 @@
   import { net } from "../../stores/net.svelte";
   import { bytes } from "../../format";
   import Icon from "../Icon.svelte";
+  import type { Rule } from "../../api";
   import BodyViewer from "./BodyViewer.svelte";
+  import Messages from "./Messages.svelte";
 
-  type Tab = "headers" | "request" | "response" | "timing";
+  type Tab = "headers" | "request" | "response" | "messages" | "timing";
   let tab = $state<Tab>("headers");
 
   const d = $derived(net.detail);
@@ -18,8 +20,31 @@
     app.toast("URL copied", "ok");
   }
 
+  /** Opens the rules with a mock that answers this request the way the server did. */
+  function mockThis() {
+    if (!flow || !d) return;
+    const path = flow.path.split("?")[0];
+    const text = d.response?.text ?? null;
+    const draft: Rule = {
+      id: 0,
+      name: `Mock ${flow.method} ${path}`,
+      enabled: true,
+      matcher: { methods: [flow.method], host: flow.host, path, urlContains: null },
+      action: {
+        type: "mock",
+        status: flow.status ?? 200,
+        headers: flow.responseHeaders.filter(([k]) => ["content-type"].includes(k.toLowerCase())),
+        body: text ?? "",
+        base64: false,
+        delayMs: 0,
+      },
+    };
+    net.openRules(draft);
+  }
+
   const tabs = $derived<{ id: Tab; label: string; note?: string }[]>([
     { id: "headers", label: "Headers" },
+    ...(flow?.kind === "webSocket" ? [{ id: "messages" as Tab, label: "Messages", note: String(flow.messages.length + flow.messagesDropped) }] : []),
     { id: "request", label: "Request", note: d?.request ? bytes(d.request.size) : undefined },
     { id: "response", label: "Response", note: d?.response ? bytes(d.response.size) : undefined },
     { id: "timing", label: "Timing" },
@@ -61,6 +86,11 @@
       {#if flow.status}
         <span class="mono text-[12px] font-semibold {flow.status >= 400 ? 'text-err' : flow.status >= 300 ? 'text-info' : 'text-ok'}">{flow.status}</span>
       {/if}
+      {#if flow.mocked}<span class="rounded-md bg-accent-soft px-1.5 py-px text-[10.5px] font-semibold text-accent" title="Answered by a rule">MOCK</span>{:else if flow.rule}<span class="rounded-md bg-warn/12 px-1.5 py-px text-[10.5px] font-semibold text-warn" title="A rule matched this request">RULE</span>{/if}
+      {#if flow.source}<span class="rounded-md bg-hover px-1.5 py-px text-[10.5px] font-semibold text-muted" title="Imported from a capture file">{flow.source.toUpperCase()}</span>{/if}
+      {#if flow.kind === "http" && !flow.source}
+        <button onclick={mockThis} title="Mock this response" class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="sliders" size={13} />Mock</button>
+      {/if}
       <button onclick={copyUrl} title="Copy the URL" class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg"><Icon name="copy" size={13} /></button>
       <button onclick={() => net.select(null)} title="Close" class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg"><Icon name="x" size={13} /></button>
     </header>
@@ -93,13 +123,16 @@
         {#if tab === "headers"}
           {@render headers(flow.requestHeaders, "Request")}
           {@render headers(flow.responseHeaders, "Response")}
+        {:else if tab === "messages"}
+          <Messages messages={flow.messages} dropped={flow.messagesDropped} />
         {:else if tab === "request"}
           <BodyViewer body={d?.request ?? null} empty="This request has no body." />
         {:else if tab === "response"}
           <BodyViewer body={d?.response ?? null} empty={flow.state === "pending" ? "Waiting for the response…" : "This response has no body."} />
         {:else}
           <dl class="mono grid max-w-[460px] grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 px-4 py-4 text-[12px]">
-            <dt class="text-muted">Protocol</dt><dd>{flow.httpVersion}</dd>
+            <dt class="text-muted">App to proxy</dt><dd>{flow.httpVersion || "—"}</dd>
+            <dt class="text-muted">Proxy to server</dt><dd>{flow.serverProtocol ? { h1: "HTTP/1.1", h2: "HTTP/2", h3: "HTTP/3" }[flow.serverProtocol] ?? flow.serverProtocol : "—"}</dd>
             {#each rows as [label, ms] (label)}
               <dt class="text-muted">{label}</dt><dd>{ms == null ? "—" : `${ms} ms`}</dd>
             {/each}

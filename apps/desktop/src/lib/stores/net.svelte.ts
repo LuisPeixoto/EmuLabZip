@@ -4,9 +4,12 @@ import {
   type CaInstall,
   type FlowDetail,
   type FlowSummary,
+  type Imported,
   type NetBatch,
   type NetState,
   type NetworkStatus,
+  type Paused,
+  type Rule,
 } from "../api";
 import { app } from "./app.svelte";
 
@@ -47,6 +50,15 @@ class NetStore {
   device = $state<NetworkStatus | null>(null);
   busy = $state<"start" | "stop" | "connect" | "disconnect" | "certificate" | null>(null);
   certificate = $state<CaInstall | null>(null);
+  /** The rules, as saved. */
+  rules = $state<Rule[]>([]);
+  /** The rules dialog is open; `draft` is a rule to start editing when it opens. */
+  rulesOpen = $state(false);
+  draft = $state<Rule | null>(null);
+  /** Requests and responses held at breakpoints, oldest first. */
+  paused = $state.raw<Paused[]>([]);
+  /** What the last imported capture held. */
+  imported = $state<Imported | null>(null);
 
   running = $derived(this.state?.running ?? false);
   methods = $derived([...new Set(this.flows.map((f) => f.method))].filter((m) => m !== "CONNECT").sort());
@@ -73,6 +85,14 @@ class NetStore {
     try {
       this.state = await api.netState();
       this.#session = await api.netSubscribe((b) => this.#apply(b));
+      this.rules = await api.netRulesGet();
+      await api.netBreakpointsSubscribe((e) => {
+        if (e.type === "paused") {
+          if (!this.paused.some((p) => p.id === e.paused.id)) this.paused = [...this.paused, e.paused];
+        } else {
+          this.paused = this.paused.filter((p) => p.id !== e.id);
+        }
+      });
     } catch (e) {
       app.toast(errorText(e), "err");
     }
@@ -221,6 +241,46 @@ class NetStore {
   async exportHar() {
     const path = await app.attempt(() => api.netExportHar());
     if (path) app.toast(`Saved to ${path}`, "ok");
+  }
+
+  /** Saves the whole list of rules. Returns whether it was accepted. */
+  async saveRules(rules: Rule[]): Promise<boolean> {
+    const saved = await app.attempt(() => api.netRulesSet(rules));
+    if (!saved) return false;
+    this.rules = saved;
+    return true;
+  }
+
+  /** Opens the rules dialog, optionally with a rule ready to edit. */
+  openRules(draft: Rule | null = null) {
+    this.draft = draft;
+    this.rulesOpen = true;
+  }
+
+  async resume(id: number, abort: boolean, edits = {}) {
+    await app.attempt(() => api.netResume(id, abort, edits));
+  }
+
+  async resumeAll() {
+    await app.attempt(() => api.netResumeAll());
+  }
+
+  async setHttp3(enabled: boolean) {
+    const state = await app.attempt(() => api.netSetHttp3(enabled));
+    if (state) this.state = state;
+  }
+
+  async setHideHttp3(hide: boolean) {
+    const state = await app.attempt(() => api.netSetHideHttp3(hide));
+    if (state) this.state = state;
+  }
+
+  async importPcap() {
+    const result = await app.attempt(() => api.netImportPcap());
+    if (!result) return;
+    this.imported = result;
+    const { httpRequests, tlsConnections, otherConnections } = result.summary;
+    app.toast(`Imported ${httpRequests + tlsConnections + otherConnections} connections from ${result.file}`, "ok");
   }
 
   resetFilter() {

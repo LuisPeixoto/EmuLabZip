@@ -8,14 +8,18 @@ use base64::Engine;
 use emulabzip_core::{CaInstall, NetworkStatus, Target};
 use emulabzip_net::decode::decode;
 use emulabzip_net::flow::{Flow, FlowSummary};
+use emulabzip_net::pcap::dns::Lookup;
+use emulabzip_net::pcap::{Summary, import};
 use emulabzip_net::store::FlowEvent;
-use emulabzip_net::{CertificateAuthority, Proxy, ProxyConfig, default_dir, to_har};
+use emulabzip_net::{
+    BreakpointEvent, CertificateAuthority, Edits, Proxy, ProxyConfig, Resume, Rule, default_dir, to_har,
+};
 use emulabzip_storage::{FileKind, detect, image_mime};
 use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
-use crate::commands::{CmdResult, ask_save_path, err};
+use crate::commands::{CmdResult, ask_open_path, ask_save_path, err};
 use crate::files::{HEX_BYTES, MAX_TEXT, hex_dump};
 use crate::state::{AppState, NetRuntime};
 
@@ -31,6 +35,10 @@ pub struct NetState {
     pub bypassed: Vec<String>,
     /// Devices pointed at the proxy by this app, as `platform:id`.
     pub connected: Vec<String>,
+    /// Requests go to servers over HTTP/3 when they offer it.
+    pub http3: bool,
+    /// HTTP/3 is removed from what the device is told.
+    pub hide_http3: bool,
 }
 
 fn ca(rt: &mut NetRuntime) -> CmdResult<Arc<CertificateAuthority>> {
@@ -49,6 +57,8 @@ fn snapshot(rt: &NetRuntime) -> NetState {
         ca_path: rt.ca.as_ref().and_then(|c| c.cert_path()).map(|p| p.display().to_string()),
         bypassed: rt.proxy.as_ref().map(|p| p.bypassed()).unwrap_or_default(),
         connected: rt.connected.iter().map(|t| format!("{:?}:{}", t.platform, t.id).to_lowercase()).collect(),
+        http3: rt.http3,
+        hide_http3: rt.hide_http3,
     }
 }
 
@@ -58,7 +68,15 @@ async fn start(state: &AppState, rt: &mut NetRuntime, port: u16) -> CmdResult<()
     }
     let ca = ca(rt)?;
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    let handle = Proxy::start(ProxyConfig { addr, ..Default::default() }, ca, state.flows.clone())
+    let config = ProxyConfig {
+        addr,
+        rules: rt.rules.clone(),
+        breakpoints: rt.breakpoints.clone(),
+        http3: rt.http3,
+        hide_http3: rt.hide_http3,
+        ..Default::default()
+    };
+    let handle = Proxy::start(config, ca, state.flows.clone())
         .await
         .map_err(|e| format!("Could not listen on port {port}. Is another proxy using it? {e}"))?;
     rt.port = handle.addr().port();
@@ -311,6 +329,139 @@ pub async fn net_export_har(app: AppHandle, state: State<'_, AppState>) -> CmdRe
     };
     tokio::fs::write(&path, serde_json::to_vec_pretty(&har).map_err(err)?).await.map_err(err)?;
     Ok(Some(path.display().to_string()))
+}
+
+// ---------------------------------------------------------------------------------------------
+// Rules and breakpoints
+// ---------------------------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn net_rules_get(state: State<'_, AppState>) -> CmdResult<Vec<Rule>> {
+    Ok(state.net.lock().await.rules.rules())
+}
+
+/// Replaces the rules. They apply to the next request, and are kept for the next launch.
+#[tauri::command]
+pub async fn net_rules_set(state: State<'_, AppState>, rules: Vec<Rule>) -> CmdResult<Vec<Rule>> {
+    let rt = state.net.lock().await;
+    rt.rules.set(rules).map_err(err)?;
+    Ok(rt.rules.rules())
+}
+
+/// Sends what is held now, then every change.
+#[tauri::command]
+pub async fn net_breakpoints_subscribe(
+    state: State<'_, AppState>,
+    on_event: Channel<BreakpointEvent>,
+) -> CmdResult<u64> {
+    let breakpoints = state.net.lock().await.breakpoints.clone();
+    let mut events = breakpoints.subscribe();
+    for paused in breakpoints.pending() {
+        let _ = on_event.send(BreakpointEvent::Paused { paused: Box::new(paused) });
+    }
+    let task = tauri::async_runtime::spawn(async move {
+        loop {
+            match events.recv().await {
+                Ok(event) => {
+                    if on_event.send(event).is_err() {
+                        break;
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    // Whatever was missed is shown again from what is still held.
+                    for paused in breakpoints.pending() {
+                        let _ = on_event.send(BreakpointEvent::Paused { paused: Box::new(paused) });
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+            }
+        }
+    });
+    Ok(state.add_session(task))
+}
+
+/// What the user changed in a held message. Fields left out stay as they were.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct EditsInput {
+    pub headers: Option<Vec<(String, String)>>,
+    pub body_text: Option<String>,
+    pub body_base64: Option<String>,
+    pub status: Option<u16>,
+}
+
+fn edits(input: EditsInput) -> CmdResult<Edits> {
+    let body = match (input.body_text, input.body_base64) {
+        (Some(text), _) => Some(text.into_bytes()),
+        (None, Some(b64)) => Some(base64::engine::general_purpose::STANDARD.decode(b64).map_err(err)?),
+        (None, None) => None,
+    };
+    Ok(Edits { headers: input.headers, body, status: input.status })
+}
+
+/// Lets a held message go on, with edits, or fails it.
+#[tauri::command]
+pub async fn net_resume(state: State<'_, AppState>, id: u64, abort: bool, edits_input: EditsInput) -> CmdResult<()> {
+    let breakpoints = state.net.lock().await.breakpoints.clone();
+    let answer = if abort { Resume::Abort } else { Resume::Continue(edits(edits_input)?) };
+    if breakpoints.resume(id, answer) { Ok(()) } else { Err("That request is no longer held.".into()) }
+}
+
+#[tauri::command]
+pub async fn net_resume_all(state: State<'_, AppState>) -> CmdResult<()> {
+    state.net.lock().await.breakpoints.resume_all();
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------
+// HTTP/3
+// ---------------------------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn net_set_http3(state: State<'_, AppState>, enabled: bool) -> CmdResult<NetState> {
+    let mut rt = state.net.lock().await;
+    rt.http3 = enabled;
+    if let Some(proxy) = &rt.proxy {
+        proxy.set_http3(enabled);
+    }
+    Ok(snapshot(&rt))
+}
+
+#[tauri::command]
+pub async fn net_set_hide_http3(state: State<'_, AppState>, hide: bool) -> CmdResult<NetState> {
+    let mut rt = state.net.lock().await;
+    rt.hide_http3 = hide;
+    if let Some(proxy) = &rt.proxy {
+        proxy.set_hide_http3(hide);
+    }
+    Ok(snapshot(&rt))
+}
+
+// ---------------------------------------------------------------------------------------------
+// Packet captures
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Imported {
+    pub file: String,
+    pub summary: Summary,
+    pub dns: Vec<Lookup>,
+}
+
+/// Asks for a `.pcap` or `.pcapng` file and adds what it holds to the list. `None` when cancelled.
+#[tauri::command]
+pub async fn net_import_pcap(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Option<Imported>> {
+    let Some(path) = ask_open_path(&app, ("Packet capture", &["pcap", "pcapng", "cap"])).await else {
+        return Ok(None);
+    };
+    let bytes = tokio::fs::read(&path).await.map_err(err)?;
+    let capture = tokio::task::spawn_blocking(move || import(&bytes)).await.map_err(err)?.map_err(err)?;
+    for flow in capture.flows {
+        state.flows.begin(flow);
+    }
+    let file = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    Ok(Some(Imported { file, summary: capture.summary, dns: capture.dns }))
 }
 
 #[cfg(test)]
