@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 use emulabzip_android::AndroidBackend;
 use emulabzip_apple::AppleBackend;
-use emulabzip_core::{Lab, LogLevel, PerfettoPreset};
+use emulabzip_core::{Control, CrashKind, Lab, LogLevel, PerfettoPreset};
 
 #[derive(Parser)]
 #[command(
@@ -142,6 +142,35 @@ enum Command {
         /// Print one JSON object per request
         #[arg(long)]
         json: bool,
+    },
+    /// List the crashes, native crashes and ANRs a device has recorded
+    Crashes {
+        /// Only this app (package name or bundle id)
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Only this kind: crash, native or anr
+        #[arg(short, long, value_parser = cmd::crashes::parse_kind)]
+        kind: Option<CrashKind>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show one crash with its stack and what to try next
+    Crash {
+        /// An id from `emulabzip crashes`
+        id: String,
+        /// Print the report as the device wrote it
+        #[arg(long)]
+        raw: bool,
+        /// Print every thread, not only the one that crashed
+        #[arg(long)]
+        all_threads: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Change what the device reports or does: location, appearance, status bar, permissions, …
+    Control {
+        #[command(subcommand)]
+        action: ControlAction,
     },
     /// Record and analyze traces: Perfetto, simpleperf flame graphs and Instruments
     Trace {
@@ -277,11 +306,160 @@ enum TraceAction {
 }
 
 #[derive(Subcommand)]
+enum LocationAction {
+    /// Put the device at these coordinates, in degrees
+    Set { lat: String, lon: String },
+    /// Go back to no simulated location (the emulator's default position on Android)
+    Clear,
+}
+
+#[derive(Subcommand)]
+enum StatusBarAction {
+    /// Show a clean status bar
+    Set {
+        /// For example 9:41
+        #[arg(long)]
+        time: Option<String>,
+        /// Battery level, 0 to 100
+        #[arg(long)]
+        battery: Option<u8>,
+        /// Show full Wi-Fi signal (or hide it with --wifi=false)
+        #[arg(long)]
+        wifi: Option<bool>,
+        /// Show full cellular signal (or hide it with --cellular=false)
+        #[arg(long)]
+        cellular: Option<bool>,
+    },
+    /// Go back to the real status bar
+    Clear,
+}
+
+#[derive(Subcommand)]
+enum BatteryAction {
+    /// Pretend the battery is at this level (Android)
+    Set {
+        level: u8,
+        #[arg(long)]
+        charging: bool,
+    },
+    /// Go back to the real battery
+    Reset,
+}
+
+#[derive(Subcommand)]
+enum ControlAction {
+    /// Show what the device supports, its appearance and the permissions of --app
+    Info {
+        #[arg(short, long)]
+        app: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    Location {
+        #[command(subcommand)]
+        action: LocationAction,
+    },
+    /// Switch between light and dark mode
+    Appearance {
+        /// light or dark
+        #[arg(value_parser = ["light", "dark"])]
+        mode: String,
+    },
+    Statusbar {
+        #[command(subcommand)]
+        action: StatusBarAction,
+    },
+    Battery {
+        #[command(subcommand)]
+        action: BatteryAction,
+    },
+    /// Grant, revoke or reset a permission (an Android permission name, or an iOS service such as photos)
+    Permission {
+        app: String,
+        permission: String,
+        /// grant, revoke or reset
+        #[arg(value_parser = ["grant", "revoke", "reset"])]
+        action: String,
+    },
+    /// Post a notification (Android) or send a simulated push to an app (iOS)
+    Notify {
+        /// The app that receives the push on iOS; ignored on Android
+        #[arg(default_value = "com.android.shell")]
+        app: String,
+        #[arg(long, default_value = "EmuLabZip")]
+        title: String,
+        #[arg(long, default_value = "A notification from your computer")]
+        body: String,
+        /// A JSON file with the whole push payload (iOS)
+        #[arg(long, value_name = "FILE")]
+        payload: Option<PathBuf>,
+    },
+    /// Open a web address, or a link of an app, on the device
+    Open { url: String },
+}
+
+#[derive(Subcommand)]
 enum CaAction {
     /// Make the device trust the certificate (system store when the device allows it)
     Install,
     /// Print where the certificate file is
     Path,
+}
+
+async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> anyhow::Result<()> {
+    use cmd::control::{appearance, apply, grant, read_payload, status_bar};
+    match action {
+        ControlAction::Info { app, json } => cmd::control::info(lab, device, app.as_deref(), json).await,
+        ControlAction::Location { action: LocationAction::Set { lat, lon } } => {
+            apply(lab, device, Control::Location { lat, lon }, "Location set").await
+        }
+        ControlAction::Location { action: LocationAction::Clear } => {
+            apply(lab, device, Control::ClearLocation, "Location cleared").await
+        }
+        ControlAction::Appearance { mode } => {
+            let dark = mode == "dark";
+            apply(
+                lab,
+                device,
+                Control::Appearance { appearance: appearance(dark) },
+                &format!("Appearance set to {mode}"),
+            )
+            .await
+        }
+        ControlAction::Statusbar { action: StatusBarAction::Set { time, battery, wifi, cellular } } => {
+            apply(
+                lab,
+                device,
+                Control::StatusBar { status_bar: status_bar(time, battery, wifi, cellular) },
+                "Status bar overridden",
+            )
+            .await
+        }
+        ControlAction::Statusbar { action: StatusBarAction::Clear } => {
+            apply(lab, device, Control::ClearStatusBar, "Status bar back to normal").await
+        }
+        ControlAction::Battery { action: BatteryAction::Set { level, charging } } => {
+            apply(lab, device, Control::Battery { level, charging }, "Battery overridden").await
+        }
+        ControlAction::Battery { action: BatteryAction::Reset } => {
+            apply(lab, device, Control::ResetBattery, "Battery back to normal").await
+        }
+        ControlAction::Permission { app, permission, action } => {
+            let grant = grant(&action).map_err(anyhow::Error::msg)?;
+            apply(
+                lab,
+                device,
+                Control::Permission { app, permission: permission.clone(), grant },
+                &format!("{permission}: {action}"),
+            )
+            .await
+        }
+        ControlAction::Notify { app, title, body, payload } => {
+            let payload = read_payload(payload)?;
+            apply(lab, device, Control::Notification { app, title, body, payload }, "Notification sent").await
+        }
+        ControlAction::Open { url } => apply(lab, device, Control::OpenUrl { url }, "Link opened").await,
+    }
 }
 
 #[tokio::main]
@@ -316,6 +494,11 @@ async fn main() -> ExitCode {
         Command::Net { port, no_connect, har, json } => {
             cmd::net::run(&lab, cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json }).await
         }
+        Command::Crashes { app, kind, json } => cmd::crashes::list(&lab, device, app.as_deref(), kind, json).await,
+        Command::Crash { id, raw, all_threads, json } => {
+            cmd::crashes::show(&lab, device, &id, raw, json, all_threads).await
+        }
+        Command::Control { action } => run_control(&lab, device, action).await,
         Command::Trace { action } => match action {
             TraceAction::Record { preset, config, duration, app, output, open } => {
                 let args = cmd::trace::RecordArgs {
