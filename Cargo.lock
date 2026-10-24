@@ -1137,6 +1137,7 @@ dependencies = [
  "emulabzip-trace",
  "md-5",
  "rcgen",
+ "roxmltree",
  "tokio",
  "tracing",
  "x509-parser",
