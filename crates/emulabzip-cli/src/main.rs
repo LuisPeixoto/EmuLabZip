@@ -172,6 +172,8 @@ enum Command {
         #[command(subcommand)]
         action: ControlAction,
     },
+    /// Serve the devices to an AI assistant over MCP (standard input and output)
+    Mcp,
     /// Record and analyze traces: Perfetto, simpleperf flame graphs and Instruments
     Trace {
         #[command(subcommand)]
@@ -499,6 +501,7 @@ async fn main() -> ExitCode {
             cmd::crashes::show(&lab, device, &id, raw, json, all_threads).await
         }
         Command::Control { action } => run_control(&lab, device, action).await,
+        Command::Mcp => emulabzip_mcp::serve(lab.clone()).await.map_err(|e| anyhow::anyhow!("{e}")),
         Command::Trace { action } => match action {
             TraceAction::Record { preset, config, duration, app, output, open } => {
                 let args = cmd::trace::RecordArgs {
