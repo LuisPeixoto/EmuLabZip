@@ -129,7 +129,7 @@
         <div class="flex shrink-0 items-center gap-3 border-b border-line px-4 py-2.5">
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px] font-semibold">{v.summary.device.name}{v.summary.app ? ` · ${v.summary.app}` : ""}</p>
-            <p class="mono truncate text-[11px] text-faint">{dateTime(v.meta.startedMs / 1000)} · {duration(v.summary.durationMs)}{v.summary.partial ? " · cut short" : ""} · {v.path}</p>
+            <p class="mono truncate text-[11px] text-faint">{dateTime(v.meta.startedMs / 1000)} · {duration(v.summary.durationMs)}{v.summary.partial ? " · cut short" : ""} · <span title={v.path}>{v.path.split(/[\\/]/).pop()}</span></p>
           </div>
           <button onclick={() => sessions.close()} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close"><Icon name="x" size={14} /></button>
         </div>

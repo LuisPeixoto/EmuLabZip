@@ -33,6 +33,16 @@ fn partial_session() -> PathBuf {
             .join("\n"),
     )
     .unwrap();
+    // Samples of the device as a whole, taken with no app picked.
+    std::fs::write(
+        dir.join("perf.jsonl"),
+        concat!(
+            r#"{"tMs":0,"pid":null,"appCpu":null,"deviceCpu":12.5,"appMemoryKb":null,"deviceMemoryUsedKb":2048000,"deviceMemoryTotalKb":4096000,"fps":null,"jankPercent":null,"batteryLevel":null,"batteryTempC":null}"#,
+            "\n",
+            r#"{"tMs":1000,"pid":null,"appCpu":null,"deviceCpu":30.0,"appMemoryKb":null,"deviceMemoryUsedKb":2148000,"deviceMemoryTotalKb":4096000,"fps":null,"jankPercent":null,"batteryLevel":null,"batteryTempC":null}"#
+        ),
+    )
+    .unwrap();
     dir
 }
 
@@ -49,6 +59,8 @@ fn session_show_summarizes_a_session_folder() {
     let json = bin().args(["session", "show", "--json"]).arg(&dir).output().unwrap();
     let v: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
     assert_eq!((v["logs"]["errors"].as_u64(), v["partial"].as_bool()), (Some(2), Some(true)));
+    // With no app sampled, the device's own numbers stand in.
+    assert_eq!((v["perf"]["cpuPeak"].as_f64(), v["perf"]["memoryPeakKb"].as_u64()), (Some(30.0), Some(2_148_000)));
 
     let md = bin().args(["session", "show", "--markdown"]).arg(&dir).output().unwrap();
     assert!(String::from_utf8_lossy(&md.stdout).starts_with("## EmuLabZip session"));
