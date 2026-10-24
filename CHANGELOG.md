@@ -6,6 +6,42 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-24
+
+Phase 6: network power tools, layout and accessibility, sessions, comparing devices.
+
+### Added
+
+- **Mocks and breakpoints**: rules that answer a request yourself (status, headers, text or binary body, delay), slow it
+  down, block it, or hold the request and/or the response so you can edit it and continue. A Rules dialog with presets
+  and "Mock this response" from any request, a drawer for held messages, `emulabzip net --rules file.json`. Held
+  messages continue by themselves after two minutes.
+- **WebSocket messages**: a frame parser (RFC 6455, fragments, control frames, `permessage-deflate`) feeds a Messages
+  tab with direction, text, JSON and hex, and goes into the HAR export as `_webSocketMessages`.
+- **Packet capture import**: `.pcap` and `.pcapng` files (such as `emulator -tcpdump` writes) become requests, TLS
+  connections named by their server name, and DNS lookups, with TCP streams put back together. In the app (**Import**)
+  and as `emulabzip net import`.
+- **HTTP/3 to servers**: with **Use HTTP/3 to servers** on, hosts that announce `Alt-Svc: h3` are reached over QUIC,
+  with a fallback to TCP. A Proto column shows `h1`, `h2` or `h3`. **Hide HTTP/3 from apps** (on by default) keeps apps
+  from trying QUIC around the proxy.
+- **Layout and accessibility**: the views on screen with their names, sizes and flags (`uiautomator` on Android, the
+  Accessibility API on the iOS Simulator), a Layout view with the screenshot, the tree and properties, and an audit of
+  missing labels, touch targets, contrast and duplicate names. `emulabzip layout` and `emulabzip a11y --fail-on`, and the
+  MCP tools `get_layout` and `audit_accessibility`.
+- **Sessions**: a recorder that writes logs, samples, requests, crashes and screenshots into one `.ezsession` file
+  (still readable if the run was killed), a Sessions view, `emulabzip session record` and `session show`, and the MCP
+  tools `list_sessions` and `session_summary`.
+- **CI mode**: `emulabzip ci -o run.ezsession -- <command>` records around a command, keeps its exit code, writes a
+  Markdown report (also to `$GITHUB_STEP_SUMMARY`), and `--fail-on-crash` fails a run whose app crashed.
+- **Compare**: two devices side by side with both screens, CPU and memory charts, and a table of what differs;
+  `emulabzip compare`.
+- Live tests for all of it in `tools/live-tests.sh`, and a capture written by a real emulator as a test fixture.
+
+### Changed
+
+- WebSocket connections are no longer opaque tunnels: the bytes still pass unchanged, and the messages are read from
+  them.
+
 ## [0.5.0] - 2026-10-24
 
 Phase 5: crashes and automation.
