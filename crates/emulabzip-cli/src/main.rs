@@ -328,7 +328,7 @@ enum StatusBarAction {
         #[arg(long)]
         time: Option<String>,
         /// Battery level, 0 to 100
-        #[arg(long)]
+        #[arg(long, value_parser = clap::value_parser!(u8).range(..=100))]
         battery: Option<u8>,
         /// Show full Wi-Fi signal (or hide it with --wifi=false)
         #[arg(long)]
@@ -345,6 +345,8 @@ enum StatusBarAction {
 enum BatteryAction {
     /// Pretend the battery is at this level (Android)
     Set {
+        /// 0 to 100
+        #[arg(value_parser = clap::value_parser!(u8).range(..=100))]
         level: u8,
         #[arg(long)]
         charging: bool,
