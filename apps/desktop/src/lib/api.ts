@@ -411,6 +411,35 @@ export interface CrashReport {
   raw: string;
 }
 
+export type Appearance = "light" | "dark";
+export type Grant = "grant" | "revoke" | "reset";
+
+export interface StatusBarOverride {
+  time: string | null;
+  battery: number | null;
+  wifi: boolean | null;
+  cellular: boolean | null;
+}
+
+export type Control =
+  | { action: "location"; lat: string; lon: string }
+  | { action: "clearLocation" }
+  | { action: "appearance"; appearance: Appearance }
+  | { action: "statusBar"; statusBar: StatusBarOverride }
+  | { action: "clearStatusBar" }
+  | { action: "permission"; app: string; permission: string; grant: Grant }
+  | { action: "notification"; app: string; title: string; body: string; payload: string | null }
+  | { action: "openUrl"; url: string }
+  | { action: "battery"; level: number; charging: boolean }
+  | { action: "resetBattery" };
+
+export interface ControlInfo {
+  appearance: Appearance | null;
+  supported: string[];
+  permissions: { name: string; granted: boolean }[];
+  notes: string[];
+}
+
 export function errorText(e: unknown): string {
   return typeof e === "string" ? e : e instanceof Error ? e.message : JSON.stringify(e);
 }
@@ -445,6 +474,8 @@ export const api = {
   crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
   crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
   crashSave: (target: Target, id: string) => invoke<string | null>("crash_save", { target, id }),
+  controlsInfo: (target: Target, app: string | null) => invoke<ControlInfo>("controls_info", { target, app }),
+  controlApply: (target: Target, control: Control) => invoke<void>("control_apply", { target, control }),
   traceTemplates: (target: Target) => invoke<string[]>("trace_templates", { target }),
   async traceStart(target: Target, device: string, request: TraceRequest, onEvent: (e: TraceEvent) => void): Promise<number> {
     const channel = new Channel<TraceEvent>();

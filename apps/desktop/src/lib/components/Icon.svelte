@@ -1,6 +1,7 @@
 <script lang="ts">
   // Lucide-style 24px stroke icons (ISC licensed shapes), inlined so the app works fully offline.
   const paths: Record<string, string> = {
+    bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0",
     pause: "M8 5v14M16 5v14",
     trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
     search: "M11 11m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M21 21l-4.3-4.3",

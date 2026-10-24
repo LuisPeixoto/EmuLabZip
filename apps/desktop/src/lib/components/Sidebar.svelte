@@ -24,6 +24,7 @@
     { view: "network", icon: "globe", label: "Network" },
     { view: "traces", icon: "route", label: "Traces" },
   ];
+  const control: Item[] = [{ view: "controls", icon: "sliders", label: "Controls" }];
 </script>
 
 {#snippet section(title: string, items: Item[])}
@@ -49,6 +50,7 @@
   <nav class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
     {@render section("Inspect", inspect)}
     {@render section("Profile", profile)}
+    {@render section("Control", control)}
   </nav>
   <div class="flex items-center gap-2.5 border-t border-line px-3 py-3">
     <span class="brand-gradient grid size-7 place-items-center rounded-lg text-white shadow-[0_6px_16px_-6px_#5b5bf0]">
