@@ -64,6 +64,32 @@ fn home_dir() -> Option<PathBuf> {
     env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from)
 }
 
+/// Keeps this process's standard handles from being inherited by the programs it starts.
+///
+/// On Windows a child inherits every inheritable handle, not only the ones it is given as its own
+/// standard streams. The adb server that `adb start-server` leaves behind would then keep the pipe
+/// this process writes to open for as long as it runs, and whoever reads that pipe (a script, a
+/// test, another program) would never see the end of it.
+#[cfg(windows)]
+fn hide_std_handles() {
+    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, SetHandleInformation};
+    use windows_sys::Win32::System::Console::{GetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE};
+
+    for id in [STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE] {
+        // SAFETY: plain Win32 calls on handles the process owns; a failure only means the handle
+        // stays inheritable, as it was.
+        unsafe {
+            let handle = GetStdHandle(id);
+            if !handle.is_null() && handle != INVALID_HANDLE_VALUE {
+                SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+            }
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn hide_std_handles() {}
+
 /// How long `adb start-server` may take.
 const START_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
@@ -78,6 +104,7 @@ pub async fn start_server() -> Result<()> {
         "Install the Android SDK platform tools, or set ANDROID_HOME or EMULABZIP_ADB.",
     ))?;
     tracing::info!(adb = %adb.display(), "starting the adb server");
+    hide_std_handles();
     let log = env::temp_dir().join(format!("emulabzip-adb-start-{}.log", std::process::id()));
     let file = std::fs::File::create(&log)?;
     let status = tokio::time::timeout(
