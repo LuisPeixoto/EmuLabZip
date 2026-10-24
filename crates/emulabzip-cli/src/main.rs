@@ -632,8 +632,27 @@ async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> 
     }
 }
 
-#[tokio::main]
-async fn main() -> ExitCode {
+/// Windows gives the main thread 1 MB, which the argument parser for this many commands can use up
+/// before anything runs. The command runs on a thread with room to spare, on every platform.
+const STACK_BYTES: usize = 16 * 1024 * 1024;
+
+fn main() -> ExitCode {
+    let runner = std::thread::Builder::new().name("emulabzip".into()).stack_size(STACK_BYTES).spawn(|| {
+        match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
+            Ok(runtime) => runtime.block_on(run()),
+            Err(e) => {
+                eprintln!("error: could not start the async runtime: {e}");
+                ExitCode::FAILURE
+            }
+        }
+    });
+    match runner.map(std::thread::JoinHandle::join) {
+        Ok(Ok(code)) => code,
+        _ => ExitCode::FAILURE,
+    }
+}
+
+async fn run() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::try_from_env("EMULABZIP_LOG").unwrap_or_else(|_| "warn".into()))
         .with_writer(std::io::stderr)
