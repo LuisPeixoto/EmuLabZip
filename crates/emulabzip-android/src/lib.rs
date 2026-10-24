@@ -11,6 +11,7 @@ pub mod controls;
 pub mod crashes;
 pub mod heapdump;
 pub mod info;
+pub mod layout;
 pub mod logcat;
 pub mod meminfo;
 pub mod network;
