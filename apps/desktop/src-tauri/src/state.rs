@@ -38,6 +38,8 @@ pub struct AppState {
     databases: Mutex<HashMap<u64, PathBuf>>,
     /// Recordings in progress, by session, so they can be stopped early.
     pub trace_stops: Mutex<HashMap<u64, watch::Sender<bool>>>,
+    /// Plugin runs in progress, by session, so they can be stopped.
+    pub plugin_stops: Mutex<HashMap<u64, watch::Sender<bool>>>,
     /// The trace processor that has the open Perfetto recording loaded.
     pub processor: tokio::sync::Mutex<Option<(String, Arc<Processor>)>>,
     /// The parsed CPU profile of the open recording.
@@ -54,6 +56,7 @@ impl AppState {
             sessions: Mutex::new(HashMap::new()),
             databases: Mutex::new(HashMap::new()),
             trace_stops: Mutex::new(HashMap::new()),
+            plugin_stops: Mutex::new(HashMap::new()),
             processor: tokio::sync::Mutex::new(None),
             profile: Mutex::new(None),
             next_id: AtomicU64::new(1),
