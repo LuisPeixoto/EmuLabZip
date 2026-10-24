@@ -28,7 +28,9 @@ pub fn diff(a: &[InfoSection], b: &[InfoSection]) -> Vec<DiffRow> {
     for title in titles {
         let left = a.iter().find(|s| s.title == title);
         let right = b.iter().find(|s| s.title == title);
-        let value = |s: Option<&InfoSection>, key: &str| s.and_then(|s| s.items.iter().find(|(k, _)| k == key)).map(|(_, v)| v.clone());
+        let value = |s: Option<&InfoSection>, key: &str| {
+            s.and_then(|s| s.items.iter().find(|(k, _)| k == key)).map(|(_, v)| v.clone())
+        };
         let mut keys: Vec<&str> = left.map(|s| s.items.iter().map(|(k, _)| k.as_str()).collect()).unwrap_or_default();
         for (k, _) in right.map(|s| s.items.as_slice()).unwrap_or_default() {
             if !keys.contains(&k.as_str()) {
@@ -56,7 +58,8 @@ mod tests {
         let a = [section("Software", &[("OS", "14"), ("API", "34")]), section("Display", &[("Size", "1080x2400")])];
         let b = [section("Software", &[("OS", "13"), ("API", "34")]), section("Display", &[("Size", "1080x2400")])];
         let rows = diff(&a, &b);
-        let differing: Vec<_> = rows.iter().filter(|r| !r.same).map(|r| (r.key.as_str(), r.a.as_deref(), r.b.as_deref())).collect();
+        let differing: Vec<_> =
+            rows.iter().filter(|r| !r.same).map(|r| (r.key.as_str(), r.a.as_deref(), r.b.as_deref())).collect();
         assert_eq!(differing, [("OS", Some("14"), Some("13"))]);
         assert_eq!(rows.len(), 3);
     }
@@ -67,7 +70,10 @@ mod tests {
         let b = [section("Software", &[("OS", "14"), ("Xcode", "26")]), section("Locale", &[("Region", "BR")])];
         let rows = diff(&a, &b);
         let find = |k: &str| rows.iter().find(|r| r.key == k).unwrap();
-        assert_eq!((find("Level").a.as_deref(), find("Level").b.as_deref(), find("Level").same), (Some("80"), None, false));
+        assert_eq!(
+            (find("Level").a.as_deref(), find("Level").b.as_deref(), find("Level").same),
+            (Some("80"), None, false)
+        );
         assert_eq!((find("Xcode").a.as_deref(), find("Xcode").b.as_deref()), (None, Some("26")));
         assert_eq!(find("Region").section, "Locale");
         // The first device's order, then what only the second has.
