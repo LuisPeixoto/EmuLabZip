@@ -74,6 +74,13 @@ recomposition counts where Android exposes them · network decoding for **gRPC a
 raw) and **GraphQL**, with operations named in the list · **edit and resend** a request · **network conditions** in the
 proxy: presets for 3G, slow Wi-Fi, high latency, offline and packet loss.
 
+## Phase 9: Devices and platforms (v0.9)
+
+**Physical iPhones and iPads** through the tools Xcode ships (`devicectl`, `usbmuxd`): logs, apps, screenshots, crashes
+and files where iOS allows it, and a plain note where it does not · **Android over Wi-Fi**, with wireless debugging
+pairing from the app · **Wear OS and Android TV** emulators, and **watchOS, tvOS and visionOS** simulators, with the
+views that apply to each · **several devices at once**: logs and requests from two devices in one list, tagged by device.
+
 ## Ideas
 
 Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
