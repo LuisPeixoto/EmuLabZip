@@ -53,6 +53,10 @@ pub struct AppState {
     /// does not lose the list.
     pub flows: Arc<FlowStore>,
     pub net: tokio::sync::Mutex<NetRuntime>,
+    /// The recording in progress, if any.
+    pub recording: tokio::sync::Mutex<Option<crate::sessions::Active>>,
+    /// The session open in the Sessions view.
+    pub opened: Mutex<Option<Arc<emulabzip_session::Session>>>,
     /// Live streams (logs today, samplers later) by id, so the UI can stop them.
     sessions: Mutex<HashMap<u64, JoinHandle<()>>>,
     /// Database files copied from devices for the SQLite inspector, by preview id.
@@ -74,6 +78,8 @@ impl AppState {
             lab: Lab::new().with(AndroidBackend::new()).with(AppleBackend::new()),
             flows: FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY),
             net: tokio::sync::Mutex::new(NetRuntime::default()),
+            recording: tokio::sync::Mutex::new(None),
+            opened: Mutex::new(None),
             sessions: Mutex::new(HashMap::new()),
             databases: Mutex::new(HashMap::new()),
             trace_stops: Mutex::new(HashMap::new()),

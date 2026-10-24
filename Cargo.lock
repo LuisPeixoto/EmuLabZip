@@ -1203,6 +1203,7 @@ dependencies = [
  "emulabzip-core",
  "emulabzip-net",
  "emulabzip-plugin",
+ "emulabzip-session",
  "emulabzip-storage",
  "emulabzip-trace",
  "flate2",
