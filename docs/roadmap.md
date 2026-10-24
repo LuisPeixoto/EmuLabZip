@@ -66,6 +66,14 @@ reachable, with the path to the GC root · **performance budgets** in an `emulab
 janky frames, request count) that `emulabzip ci` checks, failing the run when one is broken · **baselines**: compare a
 run with the last good one and say what got slower.
 
+## Phase 8: Inside the frameworks (v0.8)
+
+**Flutter**: the Dart VM service of debug builds (widget tree, frame timings, memory) · **React Native**: Hermes and the
+React tree through the debugger protocol · **Jetpack Compose and SwiftUI** in Layout through their semantics trees, with
+recomposition counts where Android exposes them · network decoding for **gRPC and protobuf** (with `.proto` files, or
+raw) and **GraphQL**, with operations named in the list · **edit and resend** a request · **network conditions** in the
+proxy: presets for 3G, slow Wi-Fi, high latency, offline and packet loss.
+
 ## Ideas
 
 Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
