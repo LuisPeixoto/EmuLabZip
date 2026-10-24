@@ -95,7 +95,7 @@ async fn stream(store: &FlowStore, json: bool) -> Result<()> {
             event = events.recv() => match event {
                 Ok(FlowEvent::Added { flow } | FlowEvent::Updated { flow }) => {
                     // A flow is shown once, when it is finished.
-                    if flow.state != FlowState::Pending && printed.insert(flow.id) {
+                    if matches!(flow.state, FlowState::Completed | FlowState::Failed) && printed.insert(flow.id) {
                         if json { println!("{}", serde_json::to_string(&flow)?) } else { println!("{}", output::flow_line(&flow)) }
                     }
                 }

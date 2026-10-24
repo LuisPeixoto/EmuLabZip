@@ -28,9 +28,11 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::watch;
 use tokio_rustls::{TlsAcceptor, TlsConnector};
 
+use crate::breakpoints::{Breakpoints, Edits, Hold, Phase, Resume};
 use crate::ca::CertificateAuthority;
 use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::io::{BoxIo, Prefixed};
+use crate::rules::{Action, Rule, RuleSet, mock_bytes};
 use crate::store::FlowStore;
 
 type BoxErr = Box<dyn std::error::Error + Send + Sync>;
@@ -47,6 +49,10 @@ pub struct ProxyConfig {
     /// Extra certificate authorities (PEM) trusted when talking to servers, for example a
     /// company root, on top of the system's and the built-in list.
     pub extra_roots_pem: Vec<String>,
+    /// Rules that mock, delay, block or hold requests. Shared, so they can change while it runs.
+    pub rules: Arc<RuleSet>,
+    /// Where held requests and responses wait. Shared with whoever shows them.
+    pub breakpoints: Arc<Breakpoints>,
 }
 
 impl Default for ProxyConfig {
@@ -55,6 +61,8 @@ impl Default for ProxyConfig {
             addr: SocketAddr::from(([127, 0, 0, 1], 9090)),
             body_limit: BODY_LIMIT,
             extra_roots_pem: Vec::new(),
+            rules: Arc::new(RuleSet::new()),
+            breakpoints: Arc::new(Breakpoints::new()),
         }
     }
 }
@@ -69,6 +77,8 @@ struct Ctx {
     /// Hosts that rejected our certificate. They are passed through from then on, so an app that
     /// pins its certificates keeps working instead of failing on every request.
     bypass: Mutex<HashSet<String>>,
+    rules: Arc<RuleSet>,
+    breakpoints: Arc<Breakpoints>,
     shutdown: watch::Receiver<bool>,
 }
 
@@ -95,6 +105,16 @@ impl ProxyHandle {
     /// Tries to decrypt the passed-through hosts again, for example after installing the certificate.
     pub fn clear_bypass(&self) {
         self.ctx.bypass.lock().clear();
+    }
+
+    /// The rules the proxy applies.
+    pub fn rules(&self) -> Arc<RuleSet> {
+        self.ctx.rules.clone()
+    }
+
+    /// Where requests and responses held at breakpoints wait.
+    pub fn breakpoints(&self) -> Arc<Breakpoints> {
+        self.ctx.breakpoints.clone()
     }
 
     pub fn stop(self) {}
@@ -133,6 +153,8 @@ impl Proxy {
             upgrade_tls: TlsConnector::from(Arc::new(http1_only)),
             body_limit: config.body_limit,
             bypass: Mutex::new(HashSet::new()),
+            rules: config.rules,
+            breakpoints: config.breakpoints,
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -463,15 +485,57 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     flow.request_body = body[..body.len().min(ctx.body_limit)].to_vec();
     let id = ctx.store.begin(flow);
 
+    // A rule may answer, delay, fail or hold the request.
+    let rule = ctx.rules.find(parts.method.as_str(), &host, &path);
+    let mut headers = parts.headers.clone();
+    let mut body = body;
+    if let Some(rule) = &rule {
+        ctx.store.update(id, |f| f.rule = Some(rule.name.clone()));
+        match &rule.action {
+            Action::Mock { .. } => return mock(&ctx, id, started, client_version, rule).await,
+            Action::Delay { ms } => tokio::time::sleep(std::time::Duration::from_millis(*ms)).await,
+            Action::Block => {
+                return fail(&ctx, id, StatusCode::BAD_GATEWAY, format!("Blocked by the rule “{}”.", rule.name));
+            }
+            Action::Breakpoint { request: true, .. } => {
+                let hold = Hold {
+                    flow: id,
+                    phase: Phase::Request,
+                    method: parts.method.to_string(),
+                    url: format!("{scheme}://{host}:{port}{path}"),
+                    status: None,
+                    headers: header_list(&headers),
+                    body: body.to_vec(),
+                };
+                ctx.store.update(id, |f| f.state = FlowState::Paused);
+                match ctx.breakpoints.pause(hold).await {
+                    Resume::Abort => return fail(&ctx, id, StatusCode::BAD_GATEWAY, "Stopped at a breakpoint.".into()),
+                    Resume::Continue(edits) => {
+                        apply_request_edits(&mut headers, &mut body, edits);
+                        let shown = header_list(&headers);
+                        let (size, kept) = (body.len() as u64, body[..body.len().min(ctx.body_limit)].to_vec());
+                        ctx.store.update(id, |f| {
+                            f.state = FlowState::Pending;
+                            f.request_headers = shown;
+                            f.request_size = size;
+                            f.request_body = kept;
+                        });
+                    }
+                }
+            }
+            Action::Breakpoint { .. } => {}
+        }
+    }
+
     let uri =
         match Uri::builder().scheme(scheme).authority(format!("{host}:{port}")).path_and_query(path.as_str()).build() {
             Ok(uri) => uri,
             Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
         };
     let mut upstream = Request::new(Full::new(body));
-    *upstream.method_mut() = parts.method;
+    *upstream.method_mut() = parts.method.clone();
     *upstream.uri_mut() = uri;
-    for (name, value) in &parts.headers {
+    for (name, value) in &headers {
         // `Host` and the length come from the address and the body.
         if !is_hop_by_hop(name) && name != header::HOST && name != header::CONTENT_LENGTH {
             upstream.headers_mut().append(name.clone(), value.clone());
@@ -479,9 +543,154 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     }
 
     match ctx.client.request(upstream).await {
+        Ok(res) if matches!(rule.as_ref().map(|r| &r.action), Some(Action::Breakpoint { response: true, .. })) => {
+            hold_response(&ctx, id, started, client_version, res, &parts.method).await
+        }
         Ok(res) => respond(&ctx, id, started, client_version, res),
         Err(e) => fail(&ctx, id, StatusCode::BAD_GATEWAY, error_chain(&e)),
     }
+}
+
+/// Applies what was edited at a request breakpoint.
+fn apply_request_edits(headers: &mut HeaderMap, body: &mut Bytes, edits: Edits) {
+    if let Some(list) = edits.headers {
+        *headers = to_header_map(&list);
+    }
+    if let Some(new_body) = edits.body {
+        *body = Bytes::from(new_body);
+    }
+}
+
+/// A header map from a list, skipping what is not a valid header.
+fn to_header_map(list: &[(String, String)]) -> HeaderMap {
+    let mut map = HeaderMap::new();
+    for (k, v) in list {
+        if let (Ok(name), Ok(value)) = (header::HeaderName::from_bytes(k.as_bytes()), header::HeaderValue::from_str(v))
+        {
+            map.append(name, value);
+        }
+    }
+    map
+}
+
+/// Answers from a mock rule, without asking the server.
+async fn mock(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, rule: &Rule) -> Resp {
+    let Action::Mock { status, headers, body, base64, delay_ms } = &rule.action else {
+        return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, "Not a mock rule.".into());
+    };
+    if *delay_ms > 0 {
+        tokio::time::sleep(std::time::Duration::from_millis(*delay_ms)).await;
+    }
+    let bytes = match mock_bytes(body, *base64) {
+        Ok(bytes) => bytes,
+        Err(e) => return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    };
+    let mut map = to_header_map(headers);
+    // The length is the body's, whatever the rule said.
+    map.remove(header::CONTENT_LENGTH);
+    map.remove(header::TRANSFER_ENCODING);
+    let mut res = Response::new(full(bytes.clone()));
+    *res.status_mut() = StatusCode::from_u16(*status).unwrap_or(StatusCode::OK);
+    *res.headers_mut() = map;
+    *res.version_mut() = version;
+    let total = started.elapsed().as_millis() as u64;
+    let (code, shown) = (*status, header_list(res.headers()));
+    let size = bytes.len() as u64;
+    ctx.store.update(id, |f| {
+        f.status = Some(code);
+        f.response_headers = shown;
+        f.response_body = bytes[..bytes.len().min(ctx.body_limit)].to_vec();
+        f.response_size = size;
+        f.response_truncated = bytes.len() > ctx.body_limit;
+        f.timing.ttfb_ms = Some(total);
+        f.timing.total_ms = Some(total);
+        f.mocked = true;
+        f.state = FlowState::Completed;
+    });
+    res
+}
+
+/// Holds a response at a breakpoint. The body is read in full and decoded, so it can be edited as
+/// text; what continues is sent uncompressed.
+async fn hold_response(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    res: Response<Incoming>,
+    method: &Method,
+) -> Resp {
+    let (mut parts, body) = res.into_parts();
+    let ttfb = started.elapsed().as_millis() as u64;
+    let raw = match body.collect().await {
+        Ok(collected) => collected.to_bytes(),
+        Err(e) => {
+            return fail(
+                ctx,
+                id,
+                StatusCode::BAD_GATEWAY,
+                format!("The response was interrupted: {}", error_chain(&e)),
+            );
+        }
+    };
+    let encoding = parts.headers.get(header::CONTENT_ENCODING).and_then(|v| v.to_str().ok()).map(str::to_string);
+    let decoded = crate::decode::decode(encoding.as_deref(), &raw).unwrap_or_else(|_| raw.to_vec());
+    let mut shown = header_list(&parts.headers);
+    if decoded.len() != raw.len() || encoding.is_some() {
+        shown.retain(|(k, _)| !k.eq_ignore_ascii_case("content-encoding") && !k.eq_ignore_ascii_case("content-length"));
+    }
+    let url = ctx.store.get(id).map(|f| f.url).unwrap_or_default();
+    ctx.store.update(id, |f| {
+        f.status = Some(parts.status.as_u16());
+        f.response_headers = shown.clone();
+        f.timing.ttfb_ms = Some(ttfb);
+        f.state = FlowState::Paused;
+    });
+    let hold = Hold {
+        flow: id,
+        phase: Phase::Response,
+        method: method.to_string(),
+        url,
+        status: Some(parts.status.as_u16()),
+        headers: shown,
+        body: decoded.clone(),
+    };
+    let (mut headers, mut bytes, mut status) = (to_header_map(&hold.headers), Bytes::from(decoded), parts.status);
+    match ctx.breakpoints.pause(hold).await {
+        Resume::Abort => return fail(ctx, id, StatusCode::BAD_GATEWAY, "Stopped at a breakpoint.".into()),
+        Resume::Continue(edits) => {
+            if let Some(list) = edits.headers {
+                headers = to_header_map(&list);
+            }
+            if let Some(new_body) = edits.body {
+                bytes = Bytes::from(new_body);
+            }
+            if let Some(code) = edits.status.and_then(|c| StatusCode::from_u16(c).ok()) {
+                status = code;
+            }
+        }
+    }
+    for name in headers.keys().filter(|k| is_hop_by_hop(k)).cloned().collect::<Vec<_>>() {
+        headers.remove(name);
+    }
+    headers.remove(header::CONTENT_LENGTH);
+    headers.remove(header::CONTENT_ENCODING);
+    parts.status = status;
+    parts.headers = headers;
+    parts.version = version;
+    let total = started.elapsed().as_millis() as u64;
+    let listed = header_list(&parts.headers);
+    let size = bytes.len() as u64;
+    ctx.store.update(id, |f| {
+        f.status = Some(status.as_u16());
+        f.response_headers = listed;
+        f.response_body = bytes[..bytes.len().min(ctx.body_limit)].to_vec();
+        f.response_size = size;
+        f.response_truncated = bytes.len() > ctx.body_limit;
+        f.timing.total_ms = Some(total);
+        f.state = FlowState::Completed;
+    });
+    Response::from_parts(parts, full(bytes))
 }
 
 /// Records the response head and returns the response, with a body that records itself as it
