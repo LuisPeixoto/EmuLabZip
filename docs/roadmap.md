@@ -56,6 +56,16 @@ targets, contrast) on Android and the iOS Simulator · **sessions** recorded to 
 records around a test run · **comparing two devices**. See [Mocks](mocks.md), [WebSockets](websockets.md),
 [Capture import](pcap.md), [Layout](layout.md), [Sessions](sessions.md), [CI mode](ci.md) and [Compare](compare.md).
 
+## Phase 7: Performance and quality (v0.7)
+
+**App start time**, cold, warm and hot: `am start -W` and the `Displayed` lines on Android, `simctl launch` with the
+unified log's launch signposts on iOS, repeated N times with the median shown · **energy** per app: `dumpsys
+batterystats` (CPU, wakelocks, radio, GPS) on Android, the thermal state and CPU time on the simulator · a **leak
+finder** for `.hprof` heap dumps: retained sizes, dominators, and destroyed Activities and Fragments that are still
+reachable, with the path to the GC root · **performance budgets** in an `emulabzip.toml` (start time, memory peak,
+janky frames, request count) that `emulabzip ci` checks, failing the run when one is broken · **baselines**: compare a
+run with the last good one and say what got slower.
+
 ## Ideas
 
 Physical iOS devices · layouts for apps that draw their own UI (games, Flutter canvases) · comparing sessions side by
