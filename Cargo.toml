@@ -21,6 +21,7 @@ emulabzip-apple = { path = "crates/emulabzip-apple" }
 emulabzip-storage = { path = "crates/emulabzip-storage" }
 emulabzip-net = { path = "crates/emulabzip-net" }
 emulabzip-trace = { path = "crates/emulabzip-trace" }
+emulabzip-mcp = { path = "crates/emulabzip-mcp" }
 
 anyhow = "1"
 base64 = "0.22"
@@ -50,6 +51,8 @@ parking_lot = "0.12"
 plist = "1"
 prost = "0.14"
 roxmltree = "0.21"
+rmcp = { version = "3.7", default-features = false, features = ["server", "macros", "schemars", "transport-io"] }
+schemars = "1"
 sha2 = "0.10"
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
