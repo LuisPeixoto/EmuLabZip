@@ -1,4 +1,6 @@
 pub mod apps;
+pub mod control;
+pub mod crashes;
 pub mod devices;
 pub mod files;
 pub mod info;
