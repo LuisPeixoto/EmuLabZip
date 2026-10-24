@@ -1148,6 +1148,7 @@ name = "emulabzip-apple"
 version = "0.5.0"
 dependencies = [
  "async-trait",
+ "core-foundation",
  "emulabzip-core",
  "emulabzip-trace",
  "rcgen",
