@@ -13,7 +13,7 @@ use emulabzip_net::{Action, CertificateAuthority, FlowStore, Proxy, ProxyConfig,
 
 use crate::output;
 
-fn load_ca() -> Result<Arc<CertificateAuthority>> {
+pub(crate) fn load_ca() -> Result<Arc<CertificateAuthority>> {
     let dir = default_dir();
     Ok(Arc::new(
         CertificateAuthority::load_or_create(&dir).with_context(|| format!("could not use {}", dir.display()))?,

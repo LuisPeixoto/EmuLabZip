@@ -7,6 +7,7 @@
 pub mod a11y;
 pub mod backend;
 pub mod buffer;
+pub mod compare;
 pub mod control;
 pub mod crash;
 pub mod device;
@@ -24,6 +25,7 @@ pub mod trace;
 pub use a11y::{Audit, Finding, Severity};
 pub use backend::{Backend, Lab, LogOptions};
 pub use buffer::RingBuffer;
+pub use compare::{DiffRow, diff};
 pub use control::{Appearance, Control, ControlInfo, Grant, PermissionState, StatusBar};
 pub use crash::{CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, Hint, ThreadTrace};
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};

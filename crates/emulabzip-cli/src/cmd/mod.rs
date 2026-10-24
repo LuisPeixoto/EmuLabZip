@@ -1,13 +1,17 @@
 pub mod apps;
+pub mod ci;
+pub mod compare;
 pub mod control;
 pub mod crashes;
 pub mod devices;
 pub mod files;
 pub mod info;
+pub mod layout;
 pub mod logs;
 pub mod mem;
 pub mod net;
 pub mod perf;
 pub mod plugin;
 pub mod screenshot;
+pub mod session;
 pub mod trace;
