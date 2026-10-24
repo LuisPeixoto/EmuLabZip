@@ -1280,6 +1280,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulabzip-session"
+version = "0.5.0"
+dependencies = [
+ "async-trait",
+ "emulabzip-core",
+ "emulabzip-net",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "zip",
+]
+
+[[package]]
 name = "emulabzip-storage"
 version = "0.5.0"
 dependencies = [
