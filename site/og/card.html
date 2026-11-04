@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>EmuLabZip social card</title>
+<style>
+  /* Rendered to assets/img/og-<code>.png at 1200x630 by headless Chrome; see CONTRIBUTING.md. */
+  @font-face { font-family: "Space Grotesk"; src: url("../assets/fonts/display.woff2") format("woff2"); font-weight: 300 700; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: #07080f; color: #eef0ff; font-family: "Space Grotesk", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  .bg { position: absolute; inset: 0; background:
+    radial-gradient(520px 420px at 12% 18%, rgba(139,109,255,.55), transparent 70%),
+    radial-gradient(520px 420px at 96% 12%, rgba(34,211,238,.38), transparent 70%),
+    radial-gradient(520px 420px at 60% 110%, rgba(91,91,240,.5), transparent 70%); }
+  .grid { position: absolute; inset: 0; opacity: .35; background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(100deg, #000 0%, transparent 70%); -webkit-mask-image: linear-gradient(100deg, #000 0%, transparent 70%); }
+  .left { position: absolute; left: 64px; top: 56px; width: 560px; height: 520px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 16px; font-weight: 700; font-size: 34px; letter-spacing: -.01em; }
+  .brand img { width: 56px; height: 56px; border-radius: 14px; }
+  h1 { margin-top: 54px; font-size: 62px; line-height: 1.07; font-weight: 700; letter-spacing: -.035em; }
+  h1 span { background: linear-gradient(120deg, #a78bfa, #7c83ff 45%, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p { margin-top: 26px; font-size: 25px; color: #a4a9c6; letter-spacing: .01em; }
+  .url { margin-top: auto; font-size: 24px; font-weight: 600; color: #22d3ee; }
+  .shot { position: absolute; right: -150px; top: 108px; width: 760px; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); box-shadow: 0 40px 90px -20px rgba(91,91,240,.8); transform: perspective(1400px) rotateY(-14deg) rotateX(4deg); }
+  .shot img { display: block; width: 100%; }
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grid"></div>
+<div class="left">
+  <div class="brand"><img src="../assets/img/logo.svg" alt=""><span>EmuLabZip</span></div>
+  <h1 id="t"></h1>
+  <p id="s"></p>
+  <div class="url">emulabzip.luispeixoto.dev</div>
+</div>
+<div class="shot"><img src="../assets/img/network.webp" alt=""></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const [lead, accent] = (q.get("t") || "").split("|");
+  document.getElementById("t").innerHTML = "";
+  const t = document.getElementById("t");
+  t.append(lead + " ");
+  const sp = document.createElement("span");
+  sp.textContent = accent || "";
+  t.append(sp);
+  document.getElementById("s").textContent = q.get("s") || "";
+</script>
+</body>
+</html>
