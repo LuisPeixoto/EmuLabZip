@@ -15,10 +15,12 @@
   <a href="https://github.com/LuisPeixoto/EmuLabZip/releases"><img src="https://img.shields.io/github/v/release/LuisPeixoto/EmuLabZip?include_prereleases&color=22d3ee" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-5b6cff.svg" alt="Supported platforms" />
   <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20Tauri-orange.svg" alt="Built with Rust and Tauri" />
+  <a href="https://emulabzip.luispeixoto.dev"><img src="https://img.shields.io/badge/website-emulabzip.luispeixoto.dev-22d3ee.svg" alt="Website" /></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" /></a>
 </p>
 
 <p align="center">
+  <a href="https://emulabzip.luispeixoto.dev">Website</a> ·
   <a href="#install">Install</a> ·
   <a href="#features">Features</a> ·
   <a href="docs/getting-started.md">Getting started</a> ·
