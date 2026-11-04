@@ -107,6 +107,34 @@ cd apps/desktop && npm run check
   private Apple frameworks or vendor agents.
 - The UI is Svelte 5 with TypeScript and Tailwind CSS. Reuse the colour tokens defined in `src/app.css`; do not hard-code colours.
 
+## The website
+
+The website at <https://emulabzip.luispeixoto.dev> lives in `site/` and is built by a small script with no
+dependencies (Node 20 or newer). It has four languages: English (the default), Spanish, Brazilian Portuguese and
+Simplified Chinese.
+
+```bash
+node site/build.mjs --check      # builds site/dist and checks translations, markup and SEO rules
+python3 -m http.server -d site/dist 8000
+```
+
+- **Text** is in `site/i18n/<code>.json` (`en`, `es`, `pt`, `zh`). Every language must have the same keys as English,
+  and `--check` fails when one is missing. Write each language the way a native speaker would, not word for word. The
+  title and description have length limits that `--check` enforces.
+- **Layout and style** are in `site/template.html`, `site/assets/styles.css` and `site/assets/main.js`.
+- **Screenshots** in `site/assets/img` are WebP copies of `docs/images` (1600 and 800 pixels wide).
+- **A new release**: change `version` in `site/site.json`, which the download buttons use.
+- **Share images** (`site/assets/img/og-<code>.png`, 1200 × 630) are rendered from `site/og/card.html` with headless
+  Chrome, for example:
+
+  ```bash
+  chrome --headless=new --window-size=1200,630 --force-device-scale-factor=1 \
+    --screenshot=site/assets/img/og-en.png \
+    "file://$PWD/site/og/card.html?t=Debug%20Android%20emulators%7Cand%20iOS%20simulators&s=Logs%20%C2%B7%20Network"
+  ```
+
+Pushing to `main` publishes the site with the *Website* workflow. Aim for 100 in all four Lighthouse categories.
+
 ## Security
 
 Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md), not in public issues.
