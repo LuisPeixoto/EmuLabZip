@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://emulabzip.luispeixoto.dev/sitemap.xml
