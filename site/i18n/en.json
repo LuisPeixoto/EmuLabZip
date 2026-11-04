@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "title": "EmuLabZip – Android Emulator & iOS Simulator Debugging Lab",
+    "description": "EmuLabZip is a free, open-source lab to inspect, monitor and debug apps in Android emulators and iOS simulators: logs, network, performance, crashes and more.",
+    "ogAlt": "EmuLabZip showing the overview of an Android emulator in a dark, futuristic interface"
+  },
+  "nav": {
+    "skip": "Skip to the content",
+    "label": "Main",
+    "features": "Features",
+    "showcase": "Screens",
+    "cli": "Command line",
+    "ai": "AI assistants",
+    "roadmap": "Roadmap",
+    "faq": "FAQ",
+    "github": "GitHub",
+    "language": "Language"
+  },
+  "hero": {
+    "eyebrow": "Open source · MIT · v0.6",
+    "titleLead": "The debugging lab for your",
+    "titleAccent": "Android emulator and iOS simulator",
+    "lead": "<strong>EmuLabZip</strong> brings logs, network traffic, performance, memory, storage, crashes and accessibility of your <strong>Android emulators and iOS simulators</strong> into one fast, native app. Nothing to install on the device.",
+    "download": "Download EmuLabZip",
+    "downloadMac": "Download for macOS",
+    "downloadWin": "Download for Windows",
+    "downloadLinux": "Download for Linux",
+    "github": "Star on GitHub",
+    "installLabel": "Install the command line tool",
+    "copy": "Copy",
+    "copied": "Copied",
+    "badges": ["Rust + Tauri", "macOS · Windows · Linux", "Android + iOS", "MCP for AI assistants"],
+    "shotAlt": "EmuLabZip desktop app showing the overview of an Android emulator: build, hardware, display, battery and a live screen preview"
+  },
+  "platforms": {
+    "title": "Works with",
+    "items": ["Android Emulator", "iOS Simulator", "ADB", "simctl", "Perfetto", "Instruments", "macOS", "Windows", "Linux"]
+  },
+  "features": {
+    "kicker": "Everything in one place",
+    "title": "One lab for everything your emulator knows",
+    "lead": "Stop switching between Logcat, Instruments, Android Studio profilers and a proxy. EmuLabZip reads the public interfaces of the platforms, so it keeps working when Xcode and Android Studio update.",
+    "items": [
+      { "icon": "logs", "title": "Live logs", "text": "logcat and the iOS unified log in one table that stays smooth at thousands of lines per second, with level, tag, text and regex filters." },
+      { "icon": "performance", "title": "Performance", "text": "CPU, memory, frame rate, janky frames and battery for the app you pick, charted as it runs." },
+      { "icon": "memory", "title": "Memory", "text": "Snapshots with a diff by category, plus heap dumps (.hprof) and memory graphs (.memgraph) one click away." },
+      { "icon": "storage", "title": "Storage", "text": "Browse an app's sandbox and open SQLite databases, preferences, property lists, JSON and images in place." },
+      { "icon": "network", "title": "Network proxy", "text": "Decrypt HTTPS from your app, read headers and bodies, follow WebSockets and HTTP/3, export HAR, import packet captures." },
+      { "icon": "rules", "title": "Mocks and breakpoints", "text": "Answer a request yourself, slow it down, block it, or stop it and edit the request or the response." },
+      { "icon": "traces", "title": "Traces and flame graphs", "text": "Perfetto system traces with SQL, simpleperf and Instruments recordings, shown as flame graphs." },
+      { "icon": "crashes", "title": "Crashes and ANRs", "text": "Crashes, native crashes and ANRs with stacks, the facts the device wrote down and hints for symbolication." },
+      { "icon": "controls", "title": "Device controls", "text": "Change location, dark mode, the status bar, battery, permissions, notifications and links, each with a way back." },
+      { "icon": "layout", "title": "Layout and accessibility", "text": "See every view of a screen and audit labels, touch targets and contrast, on Android and the iOS Simulator." },
+      { "icon": "sessions", "title": "Sessions and CI", "text": "Record a whole run into one file, and let emulabzip ci record around your test command in GitHub Actions." },
+      { "icon": "compare", "title": "Compare devices", "text": "Two emulators side by side: both screens, CPU and memory charts and every fact that differs." }
+    ]
+  },
+  "showcase": {
+    "kicker": "See it working",
+    "title": "Real screens from the real app",
+    "lead": "Every image below is a screenshot of EmuLabZip debugging an Android emulator or an iOS simulator.",
+    "tabs": [
+      { "id": "network", "shot": "network", "label": "Network", "title": "Decrypted requests, with the protocol used", "text": "Every request of your app with headers, decoded bodies and timing, and which HTTP version each one used.", "alt": "Network view listing HTTPS requests from an Android emulator, with HTTP/2 and HTTP/3 shown in the protocol column" },
+      { "id": "rules", "shot": "network-rules", "label": "Mocks", "title": "Change what your app gets back", "text": "Mock a response, add a delay, block a request or hold it at a breakpoint, without touching the server.", "alt": "Rules dialog with a mock that answers with status 418" },
+      { "id": "layout", "shot": "layout", "label": "Layout", "title": "Every view on the screen", "text": "A screenshot with the tree of views beside it: names, sizes, ids and what can be tapped.", "alt": "Layout view with a screenshot of Chrome on an Android emulator and the tree of its views" },
+      { "id": "a11y", "shot": "layout-audit", "label": "Accessibility", "title": "Find what a screen reader would trip over", "text": "Missing labels, small touch targets and low-contrast text, each with the view, the WCAG criterion and a fix.", "alt": "Accessibility audit listing small touch targets and low-contrast text found on an Android screen" },
+      { "id": "sessions", "shot": "sessions", "label": "Sessions", "title": "A whole run in one file", "text": "Errors, crashes, requests, CPU and memory of a run, kept as a file you can open later or collect from CI.", "alt": "Sessions view summarizing a recorded run with a crash, repeated errors and slow requests" },
+      { "id": "traces", "shot": "traces-flame", "label": "Traces", "title": "Where the CPU time goes", "text": "A whole-system CPU profile as a flame graph, coloured by whose code it is.", "alt": "Flame graph of a CPU profile of an Android emulator" },
+      { "id": "crashes", "shot": "crashes", "label": "Crashes", "title": "Crashes, with what to try next", "text": "Stacks grouped by thread, the device's own details and hints for symbolication.", "alt": "Crashes view showing an ANR with the blocked main thread and hints" },
+      { "id": "compare", "shot": "compare", "label": "Compare", "title": "Two devices side by side", "text": "An Android emulator next to an iPhone simulator, with charts and a table of differences.", "alt": "Compare view with an Android emulator and an iOS simulator side by side" }
+    ]
+  },
+  "cli": {
+    "kicker": "For scripts and CI",
+    "title": "A command line that prints tables for people and JSON for scripts",
+    "lead": "The same engine as the app, in one small binary. Run it on your laptop or in your CI pipeline.",
+    "points": [
+      "Mock or block requests from a JSON file with net --rules",
+      "Fail a build when the screen regresses with a11y --fail-on",
+      "Record logs, requests, crashes and screenshots around your tests with ci",
+      "Use it from macOS, Windows and Linux, on Android emulators and iOS simulators"
+    ],
+    "alt": "A terminal running emulabzip commands: devices, net with rules, a11y and ci",
+    "lines": [
+      { "cmd": "emulabzip devices", "out": ["Android  Pixel 9    Android 15 (API 35)  online", "iOS      iPhone 17  iOS 26.2             online"] },
+      { "cmd": "emulabzip net --rules rules.json", "out": ["200 GET https://api.example.com/profile  mocked by “stub the profile”"] },
+      { "cmd": "emulabzip a11y --fail-on warning", "out": ["warning touch-target  40 × 40 dp; at least 48 × 48 dp is recommended"] },
+      { "cmd": "emulabzip ci -o run.ezsession -- ./gradlew connectedCheck", "out": ["Saved run.ezsession (0 crashes, 3 log errors)"] }
+    ]
+  },
+  "ai": {
+    "kicker": "Built for AI assistants",
+    "title": "Let your AI assistant look at the emulator",
+    "lead": "EmuLabZip includes an MCP server. Connect Claude, or any MCP client, and it can read logs and crashes, take screenshots, audit a screen and control the device.",
+    "points": [
+      "29 tools: logs, crashes, traces, layout, sessions and device controls",
+      "Speaks on standard input and output only, with no network port",
+      "Actions are validated, and plugins run only after you enable them"
+    ],
+    "more": "Read how to connect an assistant",
+    "alt": "A conversation in which an AI assistant reads a crash and audits the accessibility of a screen through EmuLabZip",
+    "chat": [
+      { "role": "you", "who": "You", "text": "Why does the checkout screen crash on the Pixel emulator?" },
+      { "role": "ai", "who": "AI", "text": "list_crashes found 1 crash: NumberFormatException in CheckoutViewModel.parse, line 84." },
+      { "role": "you", "who": "You", "text": "Check that screen for accessibility problems." },
+      { "role": "ai", "who": "AI", "text": "audit_accessibility: the Pay button has no label, and 2 touch targets are under 48 dp." }
+    ]
+  },
+  "why": {
+    "kicker": "Why EmuLabZip",
+    "title": "Built to be trusted with your devices",
+    "lead": "A small, fast and honest tool, made in the open.",
+    "items": [
+      { "title": "Open source, MIT", "text": "Read the code, run it, change it. No account, no telemetry, no connections of its own." },
+      { "title": "Public interfaces only", "text": "ADB, simctl, Perfetto and the accessibility tree. No private frameworks and no agent installed on the device." },
+      { "title": "Android and iOS together", "text": "One tool and one habit for both platforms, instead of one tool for each." },
+      { "title": "Native and light", "text": "A Rust core with a Tauri interface: a small download, a fast start and low memory use." },
+      { "title": "Undoes what it changes", "text": "Proxy settings and device overrides are put back when you stop, also after an error." },
+      { "title": "Made to be scripted", "text": "Every feature is in the command line and in the MCP server, with JSON output." }
+    ]
+  },
+  "roadmap": {
+    "kicker": "Roadmap",
+    "title": "Where EmuLabZip is going",
+    "lead": "Six phases are done. The next four lead to a stable 1.0.",
+    "phases": [
+      { "state": "done", "version": "v0.1 – v0.3", "title": "Observe", "text": "Devices, logs, performance, memory, storage and the network proxy." },
+      { "state": "done", "version": "v0.4", "title": "Tracing", "text": "Perfetto, simpleperf and Instruments, with flame graphs and SQL." },
+      { "state": "done", "version": "v0.5", "title": "Crashes and automation", "text": "Crashes, device controls, an MCP server and plugins." },
+      { "state": "done", "version": "v0.6", "title": "Power tools", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, accessibility, sessions and CI." },
+      { "state": "next", "version": "v0.7", "title": "Performance and quality", "text": "App start time, energy, leak finder and performance budgets in CI." },
+      { "state": "later", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
+      { "state": "later", "version": "v0.9", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
+      { "state": "later", "version": "v1.0", "title": "Team and ecosystem", "text": "Shareable reports, rule libraries, a VS Code extension and a stable promise." }
+    ]
+  },
+  "faq": {
+    "kicker": "Questions",
+    "title": "Frequently asked questions",
+    "items": [
+      { "q": "What is EmuLabZip?", "a": "EmuLabZip is a free, open-source desktop app and command line tool that lets you inspect, monitor and debug apps running in Android emulators and iOS simulators: logs, network traffic, performance, memory, storage, crashes, layout and accessibility." },
+      { "q": "Is EmuLabZip free?", "a": "Yes. EmuLabZip is open source under the MIT license. There is no account, no paid plan and no telemetry." },
+      { "q": "Which operating systems does it run on?", "a": "macOS, Windows and Linux. iOS simulators need a Mac with Xcode, because Apple only provides them there. Android emulators work on all three systems." },
+      { "q": "Do I need to install anything on the emulator?", "a": "No. EmuLabZip uses the public tools of each platform (ADB and simctl), so nothing is installed on the device or inside your app." },
+      { "q": "Can it see my app's HTTPS traffic?", "a": "Yes. The built-in proxy decrypts HTTPS once the emulator trusts the EmuLabZip certificate, which the app installs for you. Apps that pin their certificate are passed through unchanged." },
+      { "q": "Does it work with AI assistants?", "a": "Yes. EmuLabZip includes an MCP server, so assistants such as Claude can read logs and crashes, take screenshots, audit accessibility and control the device." },
+      { "q": "Can I use it in CI?", "a": "Yes. The emulabzip ci command records a session around your test command, keeps its exit code, and can fail the run when the app crashes or the screen has accessibility problems." },
+      { "q": "Does it support physical devices?", "a": "Not yet. Android emulators and iOS simulators are supported today. Physical iPhones and Android over Wi-Fi are planned for v0.9." }
+    ]
+  },
+  "final": {
+    "title": "Start debugging your emulators in a minute",
+    "text": "Download the app, boot an emulator or a simulator, and it shows up on its own.",
+    "download": "Download the latest release",
+    "star": "Star on GitHub"
+  },
+  "author": {
+    "title": "Made by Luis Peixoto",
+    "role": "Software Engineer",
+    "text": "EmuLabZip is created and maintained by <strong>Luis Peixoto</strong>, a software engineer working on mobile apps with React Native and Flutter, who built the lab he wanted for debugging emulators and simulators."
+  },
+  "footer": {
+    "tagline": "Inspect, monitor and debug the apps running in your Android emulators and iOS simulators.",
+    "project": "Project",
+    "releases": "Releases",
+    "changelog": "Changelog",
+    "issues": "Report an issue",
+    "docs": "Documentation",
+    "start": "Getting started",
+    "cli": "Command line",
+    "roadmap": "Roadmap",
+    "license": "Released under the MIT license."
+  },
+  "hint": {
+    "text": "This page is also available in English.",
+    "go": "Read in English",
+    "close": "Dismiss"
+  }
+}
