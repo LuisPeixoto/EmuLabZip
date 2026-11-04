@@ -1,0 +1,13 @@
+{
+  "name": "EmuLabZip",
+  "short_name": "EmuLabZip",
+  "description": "Open-source lab to inspect, monitor and debug apps in Android emulators and iOS simulators.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07080f",
+  "theme_color": "#07080f",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
