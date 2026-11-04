@@ -139,19 +139,27 @@ function walk(dir) {
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, "assets"), { recursive: true });
 
-// Assets get a hash in their name, so they can be cached for ever.
+// Assets get a hash in their name, so they can be cached for ever. Fonts and images come first, so the
+// stylesheet can point at their final names.
 const assetNames = {};
-for (const file of walk(join(root, "assets"))) {
-  const rel = relative(join(root, "assets"), file);
-  let body = readFileSync(file);
-  if (file.endsWith(".css")) body = Buffer.from(minifyCss(body.toString("utf8")));
-  if (file.endsWith(".js")) body = Buffer.from(minifyJs(body.toString("utf8")));
+const writeAsset = (rel, body) => {
   const dot = rel.lastIndexOf(".");
   const name = `${rel.slice(0, dot)}.${hash(body)}${rel.slice(dot)}`;
   assetNames[rel] = `/assets/${name}`;
   mkdirSync(dirname(join(dist, "assets", name)), { recursive: true });
   writeFileSync(join(dist, "assets", name), body);
+};
+const assetFiles = walk(join(root, "assets")).map((file) => ({ file, rel: relative(join(root, "assets"), file) }));
+for (const { file, rel } of assetFiles.filter((a) => !/\.(css|js)$/.test(a.rel))) writeAsset(rel, readFileSync(file));
+for (const { file, rel } of assetFiles.filter((a) => a.rel.endsWith(".css"))) {
+  // url("fonts/x.woff2") in the stylesheet becomes the hashed path.
+  const css = readFileSync(file, "utf8").replace(/url\("([^"]+)"\)/g, (m, u) => {
+    if (!assetNames[u]) throw new Error(`the stylesheet points at ${u}, which is not an asset`);
+    return `url("${assetNames[u]}")`;
+  });
+  writeAsset(rel, Buffer.from(minifyCss(css)));
 }
+for (const { file, rel } of assetFiles.filter((a) => a.rel.endsWith(".js"))) writeAsset(rel, Buffer.from(minifyJs(readFileSync(file, "utf8"))));
 const asset = (rel) => {
   if (!assetNames[rel]) throw new Error(`no such asset: ${rel}`);
   return assetNames[rel];
