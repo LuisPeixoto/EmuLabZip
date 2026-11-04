@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "title": "EmuLabZip – Depure emuladores Android e simuladores iOS",
+    "description": "EmuLabZip é um laboratório gratuito e open source para inspecionar, monitorar e depurar apps em emuladores Android e simuladores iOS: logs, rede e desempenho.",
+    "ogAlt": "EmuLabZip mostrando a visão geral de um emulador Android em uma interface escura e futurista"
+  },
+  "nav": {
+    "skip": "Pular para o conteúdo",
+    "label": "Principal",
+    "features": "Recursos",
+    "showcase": "Telas",
+    "cli": "Linha de comando",
+    "ai": "Assistentes de IA",
+    "roadmap": "Roadmap",
+    "faq": "Perguntas",
+    "github": "GitHub",
+    "language": "Idioma"
+  },
+  "hero": {
+    "eyebrow": "Código aberto · MIT · v0.6",
+    "titleLead": "O laboratório de depuração do seu",
+    "titleAccent": "emulador Android e simulador iOS",
+    "lead": "O <strong>EmuLabZip</strong> reúne logs, tráfego de rede, desempenho, memória, armazenamento, crashes e acessibilidade dos seus <strong>emuladores Android e simuladores iOS</strong> em um único app nativo e rápido. Nada para instalar no dispositivo.",
+    "download": "Baixar o EmuLabZip",
+    "downloadMac": "Baixar para macOS",
+    "downloadWin": "Baixar para Windows",
+    "downloadLinux": "Baixar para Linux",
+    "github": "Dê uma estrela no GitHub",
+    "installLabel": "Instalar a ferramenta de linha de comando",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "badges": ["Rust + Tauri", "macOS · Windows · Linux", "Android + iOS", "MCP para assistentes de IA"],
+    "shotAlt": "App de desktop EmuLabZip mostrando a visão geral de um emulador Android: build, hardware, tela, bateria e uma prévia ao vivo"
+  },
+  "platforms": {
+    "title": "Funciona com",
+    "items": ["Android Emulator", "iOS Simulator", "ADB", "simctl", "Perfetto", "Instruments", "macOS", "Windows", "Linux"]
+  },
+  "features": {
+    "kicker": "Tudo em um só lugar",
+    "title": "Um laboratório para tudo que o seu emulador sabe",
+    "lead": "Chega de alternar entre Logcat, Instruments, os profilers do Android Studio e um proxy. O EmuLabZip usa as interfaces públicas de cada plataforma, então continua funcionando quando o Xcode e o Android Studio atualizam.",
+    "items": [
+      { "icon": "logs", "title": "Logs ao vivo", "text": "logcat e o log unificado do iOS em uma tabela fluida com milhares de linhas por segundo e filtros por nível, tag, texto e regex." },
+      { "icon": "performance", "title": "Desempenho", "text": "CPU, memória, taxa de quadros, quadros lentos e bateria do app que você escolher, em gráficos em tempo real." },
+      { "icon": "memory", "title": "Memória", "text": "Snapshots com diff por categoria, além de heap dumps (.hprof) e grafos de memória (.memgraph) a um clique." },
+      { "icon": "storage", "title": "Armazenamento", "text": "Explore o sandbox de um app e abra bancos SQLite, preferências, property lists, JSON e imagens sem sair da ferramenta." },
+      { "icon": "network", "title": "Proxy de rede", "text": "Descriptografe o HTTPS do seu app, leia cabeçalhos e corpos, acompanhe WebSockets e HTTP/3, exporte HAR e importe capturas de pacotes." },
+      { "icon": "rules", "title": "Mocks e breakpoints", "text": "Responda você mesmo a uma requisição, deixe-a lenta, bloqueie ou pare-a para editar a requisição ou a resposta." },
+      { "icon": "traces", "title": "Traces e flame graphs", "text": "Traces de sistema do Perfetto com SQL, simpleperf e gravações do Instruments, exibidos como flame graphs." },
+      { "icon": "crashes", "title": "Crashes e ANRs", "text": "Crashes, crashes nativos e ANRs com stacks, os dados que o dispositivo registrou e dicas de simbolização." },
+      { "icon": "controls", "title": "Controles do dispositivo", "text": "Mude localização, modo escuro, barra de status, bateria, permissões, notificações e links, sempre com um jeito de voltar." },
+      { "icon": "layout", "title": "Layout e acessibilidade", "text": "Veja cada view de uma tela e audite rótulos, áreas de toque e contraste, no Android e no simulador do iOS." },
+      { "icon": "sessions", "title": "Sessões e CI", "text": "Grave uma execução inteira em um arquivo e deixe o emulabzip ci gravar em volta dos seus testes no GitHub Actions." },
+      { "icon": "compare", "title": "Comparar dispositivos", "text": "Dois emuladores lado a lado: as duas telas, gráficos de CPU e memória e cada informação que difere." }
+    ]
+  },
+  "showcase": {
+    "kicker": "Veja funcionando",
+    "title": "Telas reais do app de verdade",
+    "lead": "Cada imagem é uma captura do EmuLabZip depurando um emulador Android ou um simulador iOS.",
+    "tabs": [
+      { "id": "network", "shot": "network", "label": "Rede", "title": "Requisições descriptografadas, com o protocolo usado", "text": "Cada requisição do seu app com cabeçalhos, corpos decodificados e tempos, e a versão do HTTP que cada uma usou.", "alt": "Tela de rede com requisições HTTPS de um emulador Android e HTTP/2 e HTTP/3 na coluna de protocolo" },
+      { "id": "rules", "shot": "network-rules", "label": "Mocks", "title": "Mude o que o seu app recebe", "text": "Simule uma resposta, adicione um atraso, bloqueie uma requisição ou segure-a em um breakpoint, sem tocar no servidor.", "alt": "Diálogo de regras com um mock que responde com o status 418" },
+      { "id": "layout", "shot": "layout", "label": "Layout", "title": "Cada view da tela", "text": "Uma captura com a árvore de views ao lado: nomes, tamanhos, ids e o que pode ser tocado.", "alt": "Tela de layout com uma captura do Chrome em um emulador Android e a árvore das suas views" },
+      { "id": "a11y", "shot": "layout-audit", "label": "Acessibilidade", "title": "Descubra no que um leitor de tela tropeçaria", "text": "Rótulos ausentes, áreas de toque pequenas e texto com pouco contraste, cada um com a view, o critério WCAG e a correção.", "alt": "Auditoria de acessibilidade listando áreas de toque pequenas e texto de baixo contraste em uma tela Android" },
+      { "id": "sessions", "shot": "sessions", "label": "Sessões", "title": "Uma execução inteira em um arquivo", "text": "Erros, crashes, requisições, CPU e memória de uma execução, guardados em um arquivo que você abre depois ou coleta do CI.", "alt": "Tela de sessões resumindo uma execução gravada, com um crash, erros repetidos e requisições lentas" },
+      { "id": "traces", "shot": "traces-flame", "label": "Traces", "title": "Para onde vai o tempo de CPU", "text": "Um perfil de CPU do sistema inteiro como flame graph, colorido conforme de quem é o código.", "alt": "Flame graph de um perfil de CPU de um emulador Android" },
+      { "id": "crashes", "shot": "crashes", "label": "Crashes", "title": "Crashes, com o que tentar a seguir", "text": "Stacks agrupadas por thread, os detalhes do próprio dispositivo e dicas de simbolização.", "alt": "Tela de crashes mostrando um ANR com a thread principal bloqueada e dicas" },
+      { "id": "compare", "shot": "compare", "label": "Comparar", "title": "Dois dispositivos lado a lado", "text": "Um emulador Android ao lado de um simulador de iPhone, com gráficos e uma tabela de diferenças.", "alt": "Tela de comparação com um emulador Android e um simulador iOS lado a lado" }
+    ]
+  },
+  "cli": {
+    "kicker": "Para scripts e CI",
+    "title": "Uma linha de comando com tabelas para pessoas e JSON para scripts",
+    "lead": "O mesmo motor do app, em um binário pequeno. Use no seu notebook ou no pipeline de CI.",
+    "points": [
+      "Simule ou bloqueie requisições a partir de um arquivo JSON com net --rules",
+      "Quebre o build quando a tela piorar com a11y --fail-on",
+      "Grave logs, requisições, crashes e capturas em volta dos seus testes com ci",
+      "Funciona em macOS, Windows e Linux, com emuladores Android e simuladores iOS"
+    ],
+    "alt": "Um terminal executando comandos do emulabzip: devices, net com regras, a11y e ci",
+    "lines": [
+      { "cmd": "emulabzip devices", "out": ["Android  Pixel 9    Android 15 (API 35)  online", "iOS      iPhone 17  iOS 26.2             online"] },
+      { "cmd": "emulabzip net --rules rules.json", "out": ["200 GET https://api.example.com/profile  mocked by “stub the profile”"] },
+      { "cmd": "emulabzip a11y --fail-on warning", "out": ["warning touch-target  40 × 40 dp; at least 48 × 48 dp is recommended"] },
+      { "cmd": "emulabzip ci -o run.ezsession -- ./gradlew connectedCheck", "out": ["Saved run.ezsession (0 crashes, 3 log errors)"] }
+    ]
+  },
+  "ai": {
+    "kicker": "Feito para assistentes de IA",
+    "title": "Deixe seu assistente de IA olhar o emulador",
+    "lead": "O EmuLabZip inclui um servidor MCP. Conecte o Claude, ou qualquer cliente MCP, e ele poderá ler logs e crashes, tirar capturas de tela, auditar uma tela e controlar o dispositivo.",
+    "points": [
+      "29 ferramentas: logs, crashes, traces, layout, sessões e controles do dispositivo",
+      "Fala apenas por entrada e saída padrão, sem abrir nenhuma porta de rede",
+      "As ações são validadas e os plugins só rodam depois que você os ativa"
+    ],
+    "more": "Veja como conectar um assistente",
+    "alt": "Uma conversa em que um assistente de IA lê um crash e audita a acessibilidade de uma tela usando o EmuLabZip",
+    "chat": [
+      { "role": "you", "who": "Você", "text": "Por que a tela de pagamento fecha no emulador Pixel?" },
+      { "role": "ai", "who": "IA", "text": "list_crashes encontrou 1 crash: NumberFormatException em CheckoutViewModel.parse, linha 84." },
+      { "role": "you", "who": "Você", "text": "Verifique essa tela em busca de problemas de acessibilidade." },
+      { "role": "ai", "who": "IA", "text": "audit_accessibility: o botão Pagar não tem rótulo e 2 áreas de toque têm menos de 48 dp." }
+    ]
+  },
+  "why": {
+    "kicker": "Por que o EmuLabZip",
+    "title": "Feito para você confiar seus dispositivos a ele",
+    "lead": "Uma ferramenta pequena, rápida e honesta, feita às claras.",
+    "items": [
+      { "title": "Código aberto, MIT", "text": "Leia o código, rode, altere. Sem conta, sem telemetria e sem conexões próprias." },
+      { "title": "Só interfaces públicas", "text": "ADB, simctl, Perfetto e a árvore de acessibilidade. Sem frameworks privados e sem agente instalado no dispositivo." },
+      { "title": "Android e iOS juntos", "text": "Uma ferramenta e um hábito só para as duas plataformas, em vez de uma ferramenta para cada." },
+      { "title": "Nativo e leve", "text": "Um núcleo em Rust com interface Tauri: download pequeno, início rápido e pouco uso de memória." },
+      { "title": "Desfaz o que muda", "text": "As configurações de proxy e as alterações no dispositivo são restauradas ao parar, mesmo depois de um erro." },
+      { "title": "Feito para automatizar", "text": "Cada recurso está na linha de comando e no servidor MCP, com saída em JSON." }
+    ]
+  },
+  "roadmap": {
+    "kicker": "Roadmap",
+    "title": "Para onde o EmuLabZip está indo",
+    "lead": "Seis fases já foram concluídas. As quatro próximas levam a uma versão 1.0 estável.",
+    "phases": [
+      { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
+      { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
+      { "state": "done", "version": "v0.5", "title": "Crashes e automação", "text": "Crashes, controles do dispositivo, um servidor MCP e plugins." },
+      { "state": "done", "version": "v0.6", "title": "Ferramentas avançadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, acessibilidade, sessões e CI." },
+      { "state": "next", "version": "v0.7", "title": "Desempenho e qualidade", "text": "Tempo de abertura, energia, detector de vazamentos e orçamentos de desempenho no CI." },
+      { "state": "later", "version": "v0.8", "title": "Por dentro dos frameworks", "text": "Flutter, React Native, Compose e SwiftUI; gRPC e GraphQL." },
+      { "state": "later", "version": "v0.9", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas da Apple." },
+      { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios compartilháveis, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
+    ]
+  },
+  "faq": {
+    "kicker": "Perguntas",
+    "title": "Perguntas frequentes",
+    "items": [
+      { "q": "O que é o EmuLabZip?", "a": "O EmuLabZip é um app de desktop e uma ferramenta de linha de comando, gratuitos e de código aberto, para inspecionar, monitorar e depurar apps rodando em emuladores Android e simuladores iOS: logs, tráfego de rede, desempenho, memória, armazenamento, crashes, layout e acessibilidade." },
+      { "q": "O EmuLabZip é gratuito?", "a": "Sim. O EmuLabZip é código aberto com licença MIT. Não há conta, plano pago nem telemetria." },
+      { "q": "Em quais sistemas operacionais funciona?", "a": "macOS, Windows e Linux. Os simuladores de iOS precisam de um Mac com Xcode, porque a Apple só os oferece lá. Os emuladores Android funcionam nos três sistemas." },
+      { "q": "Preciso instalar algo no emulador?", "a": "Não. O EmuLabZip usa as ferramentas públicas de cada plataforma (ADB e simctl), então nada é instalado no dispositivo nem dentro do seu app." },
+      { "q": "Ele consegue ver o tráfego HTTPS do meu app?", "a": "Sim. O proxy embutido descriptografa o HTTPS quando o emulador confia no certificado do EmuLabZip, que o app instala para você. Apps que fixam o certificado passam sem alteração." },
+      { "q": "Funciona com assistentes de IA?", "a": "Sim. O EmuLabZip inclui um servidor MCP, então assistentes como o Claude podem ler logs e crashes, tirar capturas de tela, auditar acessibilidade e controlar o dispositivo." },
+      { "q": "Posso usar no CI?", "a": "Sim. O comando emulabzip ci grava uma sessão em volta do seu comando de testes, mantém o código de saída dele e pode reprovar a execução quando o app dá crash ou a tela tem problemas de acessibilidade." },
+      { "q": "Suporta dispositivos físicos?", "a": "Ainda não. Hoje há suporte a emuladores Android e simuladores iOS. iPhones físicos e Android por Wi-Fi estão previstos para a v0.9." }
+    ]
+  },
+  "final": {
+    "title": "Comece a depurar seus emuladores em um minuto",
+    "text": "Baixe o app, inicie um emulador ou um simulador e ele aparece sozinho.",
+    "download": "Baixar a versão mais recente",
+    "star": "Dê uma estrela no GitHub"
+  },
+  "author": {
+    "title": "Criado por Luis Peixoto",
+    "role": "Engenheiro de software",
+    "text": "O EmuLabZip é criado e mantido por <strong>Luis Peixoto</strong>, engenheiro de software que trabalha com apps mobile em React Native e Flutter e construiu o laboratório que queria para depurar emuladores e simuladores."
+  },
+  "footer": {
+    "tagline": "Inspecione, monitore e depure os apps rodando nos seus emuladores Android e simuladores iOS.",
+    "project": "Projeto",
+    "releases": "Versões",
+    "changelog": "Histórico de mudanças",
+    "issues": "Relatar um problema",
+    "docs": "Documentação",
+    "start": "Primeiros passos",
+    "cli": "Linha de comando",
+    "roadmap": "Roadmap",
+    "license": "Publicado sob a licença MIT."
+  },
+  "hint": {
+    "text": "Esta página também está disponível em português.",
+    "go": "Ler em português",
+    "close": "Fechar"
+  }
+}
