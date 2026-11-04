@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "title": "EmuLabZip – Android 与 iOS 模拟器调试工具",
+    "description": "EmuLabZip 是免费开源的调试实验室，可检查、监控并调试 Android 模拟器和 iOS 模拟器中的应用：日志、网络、性能、崩溃等一应俱全。",
+    "ogAlt": "EmuLabZip 在深色未来感界面中展示 Android 模拟器的概览"
+  },
+  "nav": {
+    "skip": "跳到正文",
+    "label": "主导航",
+    "features": "功能",
+    "showcase": "界面",
+    "cli": "命令行",
+    "ai": "AI 助手",
+    "roadmap": "路线图",
+    "faq": "常见问题",
+    "github": "GitHub",
+    "language": "语言"
+  },
+  "hero": {
+    "eyebrow": "开源 · MIT · v0.6",
+    "titleLead": "专为你的",
+    "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
+    "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
+    "download": "下载 EmuLabZip",
+    "downloadMac": "下载 macOS 版",
+    "downloadWin": "下载 Windows 版",
+    "downloadLinux": "下载 Linux 版",
+    "github": "在 GitHub 上点个星",
+    "installLabel": "安装命令行工具",
+    "copy": "复制",
+    "copied": "已复制",
+    "badges": ["Rust + Tauri", "macOS · Windows · Linux", "Android + iOS", "支持 AI 助手的 MCP"],
+    "shotAlt": "EmuLabZip 桌面应用显示 Android 模拟器的概览：版本、硬件、屏幕、电量和实时屏幕预览"
+  },
+  "platforms": {
+    "title": "支持",
+    "items": ["Android Emulator", "iOS Simulator", "ADB", "simctl", "Perfetto", "Instruments", "macOS", "Windows", "Linux"]
+  },
+  "features": {
+    "kicker": "一站式",
+    "title": "模拟器知道的一切，一个实验室就够了",
+    "lead": "不必再在 Logcat、Instruments、Android Studio 分析器和代理之间来回切换。EmuLabZip 使用各平台的公开接口，因此 Xcode 和 Android Studio 更新后依然可用。",
+    "items": [
+      { "icon": "logs", "title": "实时日志", "text": "logcat 与 iOS 统一日志合并在一张表里，每秒数千行依然流畅，支持按级别、标签、文本和正则过滤。" },
+      { "icon": "performance", "title": "性能", "text": "实时图表展示所选应用的 CPU、内存、帧率、卡顿帧和电量。" },
+      { "icon": "memory", "title": "内存", "text": "按类别对比内存快照，并可一键获取堆转储（.hprof）和内存图（.memgraph）。" },
+      { "icon": "storage", "title": "存储", "text": "浏览应用沙盒，直接打开 SQLite 数据库、偏好设置、属性列表、JSON 和图片。" },
+      { "icon": "network", "title": "网络代理", "text": "解密应用的 HTTPS，查看请求头和正文，跟踪 WebSocket 和 HTTP/3，导出 HAR，导入抓包文件。" },
+      { "icon": "rules", "title": "模拟响应与断点", "text": "自己回复请求、让它变慢、直接拦截，或暂停后编辑请求和响应。" },
+      { "icon": "traces", "title": "追踪与火焰图", "text": "支持 SQL 查询的 Perfetto 系统追踪，以及 simpleperf 和 Instruments 录制，以火焰图呈现。" },
+      { "icon": "crashes", "title": "崩溃与 ANR", "text": "崩溃、原生崩溃和 ANR，附调用栈、设备记录的信息和符号化提示。" },
+      { "icon": "controls", "title": "设备控制", "text": "修改位置、深色模式、状态栏、电量、权限、通知和链接，且每项都能还原。" },
+      { "icon": "layout", "title": "布局与无障碍", "text": "查看屏幕上的每个视图，并审计标签、点击区域和对比度，支持 Android 和 iOS 模拟器。" },
+      { "icon": "sessions", "title": "会话与 CI", "text": "把一次完整运行录进一个文件，并让 emulabzip ci 在 GitHub Actions 里围绕测试命令自动录制。" },
+      { "icon": "compare", "title": "设备对比", "text": "两台模拟器并排对比：双屏画面、CPU 和内存图表，以及所有不同之处。" }
+    ]
+  },
+  "showcase": {
+    "kicker": "亲眼看看",
+    "title": "来自真实应用的真实界面",
+    "lead": "下面每一张图都是 EmuLabZip 调试 Android 模拟器或 iOS 模拟器时的真实截图。",
+    "tabs": [
+      { "id": "network", "shot": "network", "label": "网络", "title": "解密后的请求，并显示所用协议", "text": "应用的每个请求都有请求头、解码后的正文和耗时，还能看到每个请求使用的 HTTP 版本。", "alt": "网络视图列出 Android 模拟器的 HTTPS 请求，协议列显示 HTTP/2 和 HTTP/3" },
+      { "id": "rules", "shot": "network-rules", "label": "模拟", "title": "改变应用收到的内容", "text": "无需改动服务器，就能模拟响应、增加延迟、拦截请求，或在断点处暂停。", "alt": "规则对话框，其中一条模拟规则返回状态码 418" },
+      { "id": "layout", "shot": "layout", "label": "布局", "title": "屏幕上的每个视图", "text": "截图旁边就是视图树：名称、尺寸、标识符，以及哪些可以点击。", "alt": "布局视图：Android 模拟器上的 Chrome 截图和它的视图树" },
+      { "id": "a11y", "shot": "layout-audit", "label": "无障碍", "title": "找出屏幕阅读器会卡住的地方", "text": "缺失的标签、过小的点击区域和低对比度文字，每项都附视图、WCAG 条款和修复建议。", "alt": "无障碍审计列出 Android 屏幕上过小的点击区域和低对比度文字" },
+      { "id": "sessions", "shot": "sessions", "label": "会话", "title": "一次完整运行，一个文件", "text": "一次运行的错误、崩溃、请求、CPU 和内存都保存为文件，之后可随时打开，也可从 CI 收集。", "alt": "会话视图汇总一次录制的运行：一次崩溃、重复出现的错误和较慢的请求" },
+      { "id": "traces", "shot": "traces-flame", "label": "追踪", "title": "CPU 时间都花在哪里", "text": "整个系统的 CPU 分析以火焰图呈现，并按代码归属着色。", "alt": "Android 模拟器 CPU 分析的火焰图" },
+      { "id": "crashes", "shot": "crashes", "label": "崩溃", "title": "崩溃，以及下一步该试什么", "text": "按线程分组的调用栈、设备自己记录的详情和符号化提示。", "alt": "崩溃视图显示一次 ANR、被阻塞的主线程和提示" },
+      { "id": "compare", "shot": "compare", "label": "对比", "title": "两台设备并排", "text": "Android 模拟器和 iPhone 模拟器并排，附图表和差异表。", "alt": "对比视图：Android 模拟器和 iOS 模拟器并排显示" }
+    ]
+  },
+  "cli": {
+    "kicker": "适用于脚本和 CI",
+    "title": "给人看表格，给脚本输出 JSON 的命令行",
+    "lead": "与应用相同的引擎，封装成一个小巧的可执行文件。在笔记本或 CI 流水线里都能运行。",
+    "points": [
+      "用 net --rules 从 JSON 文件模拟或拦截请求",
+      "用 a11y --fail-on 在界面退化时让构建失败",
+      "用 ci 围绕测试录制日志、请求、崩溃和截图",
+      "可在 macOS、Windows 和 Linux 上使用，支持 Android 模拟器和 iOS 模拟器"
+    ],
+    "alt": "终端中运行 emulabzip 命令：devices、带规则的 net、a11y 和 ci",
+    "lines": [
+      { "cmd": "emulabzip devices", "out": ["Android  Pixel 9    Android 15 (API 35)  online", "iOS      iPhone 17  iOS 26.2             online"] },
+      { "cmd": "emulabzip net --rules rules.json", "out": ["200 GET https://api.example.com/profile  mocked by “stub the profile”"] },
+      { "cmd": "emulabzip a11y --fail-on warning", "out": ["warning touch-target  40 × 40 dp; at least 48 × 48 dp is recommended"] },
+      { "cmd": "emulabzip ci -o run.ezsession -- ./gradlew connectedCheck", "out": ["Saved run.ezsession (0 crashes, 3 log errors)"] }
+    ]
+  },
+  "ai": {
+    "kicker": "为 AI 助手而生",
+    "title": "让你的 AI 助手直接查看模拟器",
+    "lead": "EmuLabZip 内置 MCP 服务器。连接 Claude 或任何 MCP 客户端后，它就能读取日志和崩溃、截屏、审计屏幕并控制设备。",
+    "points": [
+      "29 个工具：日志、崩溃、追踪、布局、会话和设备控制",
+      "仅通过标准输入输出通信，不开放任何网络端口",
+      "所有操作都经过校验，插件只有在你启用后才会运行"
+    ],
+    "more": "了解如何连接 AI 助手",
+    "alt": "AI 助手通过 EmuLabZip 读取崩溃并审计屏幕无障碍的对话",
+    "chat": [
+      { "role": "you", "who": "你", "text": "为什么结账页面在 Pixel 模拟器上会崩溃？" },
+      { "role": "ai", "who": "AI", "text": "list_crashes 发现 1 次崩溃：CheckoutViewModel.parse 第 84 行出现 NumberFormatException。" },
+      { "role": "you", "who": "你", "text": "检查这个页面有没有无障碍问题。" },
+      { "role": "ai", "who": "AI", "text": "audit_accessibility：“支付”按钮没有标签，另有 2 个点击区域小于 48 dp。" }
+    ]
+  },
+  "why": {
+    "kicker": "为什么选择 EmuLabZip",
+    "title": "值得把你的设备交给它",
+    "lead": "小巧、快速、坦诚，并且公开开发。",
+    "items": [
+      { "title": "开源，MIT 许可", "text": "代码可读、可运行、可修改。无需账号，没有遥测，也不会主动建立任何连接。" },
+      { "title": "只用公开接口", "text": "ADB、simctl、Perfetto 和无障碍树。不使用私有框架，也不在设备上安装代理。" },
+      { "title": "Android 与 iOS 合一", "text": "两个平台用同一个工具、同一种习惯，而不是各用一套。" },
+      { "title": "原生且轻量", "text": "Rust 内核加 Tauri 界面：下载体积小、启动快、内存占用低。" },
+      { "title": "改动全部可还原", "text": "代理设置和设备上的改动会在停止时恢复，即使出错也一样。" },
+      { "title": "天生适合脚本化", "text": "每项功能都能在命令行和 MCP 服务器中使用，并输出 JSON。" }
+    ]
+  },
+  "roadmap": {
+    "kicker": "路线图",
+    "title": "EmuLabZip 的下一步",
+    "lead": "六个阶段已经完成，接下来的四个阶段将通向稳定的 1.0。",
+    "phases": [
+      { "state": "done", "version": "v0.1 – v0.3", "title": "观察", "text": "设备、日志、性能、内存、存储和网络代理。" },
+      { "state": "done", "version": "v0.4", "title": "追踪", "text": "Perfetto、simpleperf 和 Instruments，支持火焰图和 SQL。" },
+      { "state": "done", "version": "v0.5", "title": "崩溃与自动化", "text": "崩溃、设备控制、MCP 服务器和插件。" },
+      { "state": "done", "version": "v0.6", "title": "进阶工具", "text": "模拟响应、断点、WebSocket、HTTP/3、布局、无障碍、会话和 CI。" },
+      { "state": "next", "version": "v0.7", "title": "性能与质量", "text": "应用启动耗时、能耗、泄漏检测，以及 CI 中的性能预算。" },
+      { "state": "later", "version": "v0.8", "title": "深入框架内部", "text": "Flutter、React Native、Compose 和 SwiftUI；gRPC 和 GraphQL。" },
+      { "state": "later", "version": "v0.9", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 连接的 Android、Wear OS、电视和 Apple 各平台。" },
+      { "state": "later", "version": "v1.0", "title": "团队与生态", "text": "可分享的报告、规则库、VS Code 扩展和稳定性承诺。" }
+    ]
+  },
+  "faq": {
+    "kicker": "常见问题",
+    "title": "常见问题解答",
+    "items": [
+      { "q": "EmuLabZip 是什么？", "a": "EmuLabZip 是免费开源的桌面应用和命令行工具，用来检查、监控和调试运行在 Android 模拟器和 iOS 模拟器中的应用：日志、网络流量、性能、内存、存储、崩溃、布局和无障碍。" },
+      { "q": "EmuLabZip 免费吗？", "a": "免费。EmuLabZip 以 MIT 许可证开源，不需要账号，没有付费计划，也没有遥测。" },
+      { "q": "支持哪些操作系统？", "a": "macOS、Windows 和 Linux。iOS 模拟器需要装有 Xcode 的 Mac，因为 Apple 只在 Mac 上提供它。Android 模拟器在三个系统上都能用。" },
+      { "q": "需要在模拟器里安装什么吗？", "a": "不需要。EmuLabZip 使用各平台的公开工具（ADB 和 simctl），所以设备上和你的应用里都不会安装任何东西。" },
+      { "q": "能看到我的应用的 HTTPS 流量吗？", "a": "可以。当模拟器信任 EmuLabZip 证书后（应用会替你安装），内置代理就能解密 HTTPS。固定了证书的应用会原样放行。" },
+      { "q": "能配合 AI 助手使用吗？", "a": "可以。EmuLabZip 内置 MCP 服务器，因此 Claude 等助手可以读取日志和崩溃、截屏、审计无障碍并控制设备。" },
+      { "q": "能用在 CI 里吗？", "a": "可以。emulabzip ci 命令会围绕你的测试命令录制会话、保留它的退出码，并能在应用崩溃或屏幕有无障碍问题时让运行失败。" },
+      { "q": "支持真机吗？", "a": "暂时不支持。目前支持 Android 模拟器和 iOS 模拟器，真机 iPhone 和 Wi-Fi 连接的 Android 计划在 v0.9 提供。" }
+    ]
+  },
+  "final": {
+    "title": "一分钟开始调试你的模拟器",
+    "text": "下载应用，启动模拟器，它会自动出现。",
+    "download": "下载最新版本",
+    "star": "在 GitHub 上点个星"
+  },
+  "author": {
+    "title": "由 Luis Peixoto 开发",
+    "role": "软件工程师",
+    "text": "EmuLabZip 由 <strong>Luis Peixoto</strong> 创建并维护。他是使用 React Native 和 Flutter 的移动应用软件工程师，为了调试模拟器而打造了自己想要的实验室。"
+  },
+  "footer": {
+    "tagline": "检查、监控并调试运行在 Android 模拟器和 iOS 模拟器中的应用。",
+    "project": "项目",
+    "releases": "版本发布",
+    "changelog": "更新日志",
+    "issues": "反馈问题",
+    "docs": "文档",
+    "start": "快速开始",
+    "cli": "命令行",
+    "roadmap": "路线图",
+    "license": "基于 MIT 许可证发布。"
+  },
+  "hint": {
+    "text": "本页也提供简体中文版本。",
+    "go": "阅读中文版",
+    "close": "关闭"
+  }
+}
