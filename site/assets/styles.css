@@ -17,7 +17,7 @@
   --line: rgb(255 255 255 / 0.1);
   --fg: #eef0ff;
   --muted: #a4a9c6;
-  --faint: #6f7596;
+  --faint: #8e94b8;
   --violet: #8b6dff;
   --indigo: #5b5bf0;
   --cyan: #22d3ee;
@@ -58,6 +58,7 @@ code, pre { font-family: var(--mono); }
 .ico { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; }
 .skip:focus { top: 12px; }
 
