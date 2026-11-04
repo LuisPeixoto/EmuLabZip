@@ -6,6 +6,11 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- A website at https://emulabzip.luispeixoto.dev, in English, Spanish, Portuguese and Chinese, built from `site/` and
+  published with GitHub Pages. It scores 100 in Lighthouse (performance, accessibility, best practices and SEO).
+
 ### Documentation
 
 - The roadmap lists Phases 7 to 10, up to 1.0: performance and quality, the inside of frameworks, more devices and
