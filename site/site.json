@@ -1,0 +1,19 @@
+{
+  "url": "https://emulabzip.luispeixoto.dev",
+  "name": "EmuLabZip",
+  "version": "0.6.0",
+  "repo": "https://github.com/LuisPeixoto/EmuLabZip",
+  "releases": "https://github.com/LuisPeixoto/EmuLabZip/releases/latest",
+  "author": {
+    "name": "Luis Peixoto",
+    "github": "https://github.com/LuisPeixoto",
+    "web": "https://luispeixoto.dev"
+  },
+  "locales": [
+    { "code": "en", "path": "", "lang": "en", "hreflang": "en", "label": "English", "og": "en_US" },
+    { "code": "es", "path": "es/", "lang": "es", "hreflang": "es", "label": "Español", "og": "es_ES" },
+    { "code": "pt", "path": "pt/", "lang": "pt-BR", "hreflang": "pt-BR", "label": "Português", "og": "pt_BR" },
+    { "code": "zh", "path": "zh/", "lang": "zh-Hans", "hreflang": "zh-Hans", "label": "中文", "og": "zh_CN" }
+  ],
+  "verification": { "google": "", "bing": "" }
+}
