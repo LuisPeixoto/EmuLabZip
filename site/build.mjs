@@ -52,40 +52,41 @@ function lookup(scopes, path) {
  *                                {{@index}} is the position from 1, {{this}} the item itself.
  */
 function render(template, scopes) {
-  const each = /\{\{#each ([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/;
   let out = template;
-  // Resolve the innermost loops first: they cannot contain another one.
+  // Loops are resolved from the outermost in; a body is rendered again for each item, which resolves its own loops.
   for (;;) {
-    const m = innermostEach(out);
+    const m = outermostEach(out);
     if (!m) break;
     const list = lookup(scopes, m.path);
     const body = list
       .map((item, i) => {
-        const scope = typeof item === "object" ? { ...item, "@index": i + 1, "@first": i === 0 } : { this: item, "@index": i + 1 };
+        const scope = typeof item === "object" ? { ...item, "@index": i + 1 } : { this: item, "@index": i + 1 };
         return render(m.body, [scope, ...scopes]);
       })
       .join("");
     out = out.slice(0, m.start) + body + out.slice(m.end);
   }
-  void each;
   return out
     .replace(/\{\{\{([\w.@]+)\}\}\}/g, (_, p) => String(lookup(scopes, p)))
     .replace(/\{\{([\w.@]+)\}\}/g, (_, p) => escapeHtml(lookup(scopes, p)));
 }
 
-function innermostEach(text) {
+/** The first {{#each}} with the {{/each}} that closes it, counting the loops inside. */
+function outermostEach(text) {
   const open = /\{\{#each ([\w.]+)\}\}/g;
-  let last = null;
-  let m;
-  while ((m = open.exec(text))) {
-    const close = text.indexOf("{{/each}}", m.index);
-    const nextOpen = text.indexOf("{{#each ", m.index + 1);
-    if (close !== -1 && (nextOpen === -1 || close < nextOpen)) {
-      last = { path: m[1], start: m.index, end: close + "{{/each}}".length, body: text.slice(m.index + m[0].length, close) };
-      break;
+  const m = open.exec(text);
+  if (!m) return null;
+  let depth = 1;
+  const tokens = /\{\{#each [\w.]+\}\}|\{\{\/each\}\}/g;
+  tokens.lastIndex = m.index + m[0].length;
+  let t;
+  while ((t = tokens.exec(text))) {
+    depth += t[0].startsWith("{{#each") ? 1 : -1;
+    if (depth === 0) {
+      return { path: m[1], start: m.index, end: t.index + t[0].length, body: text.slice(m.index + m[0].length, t.index) };
     }
   }
-  return last;
+  throw new Error(`{{#each ${m[1]}}} is never closed`);
 }
 
 const hash = (buf) => createHash("sha256").update(buf).digest("hex").slice(0, 10);
@@ -240,8 +241,19 @@ for (const l of site.locales) {
     lang: o.lang,
     current: o.code === l.code ? ' aria-current="true"' : "",
   }));
+  // What the language hint says, in each language, for a visitor whose browser speaks it.
+  const hints = Object.fromEntries(
+    site.locales
+      .filter((o) => o.code !== l.code)
+      .map((o) => [o.code, { text: strings[o.code].hint.text, go: strings[o.code].hint.go, close: strings[o.code].hint.close, href: `/${o.path}` }]),
+  );
   const scope = {
     ...t,
+    nav: { ...t.nav, current: l.label },
+    showcase: {
+      ...t.showcase,
+      tabs: t.showcase.tabs.map((tab) => ({ ...tab, src: asset(`img/${tab.shot}.webp`), srcSm: asset(`img/${tab.shot}-sm.webp`) })),
+    },
     site: { ...site, version: site.version },
     page: {
       lang: l.lang,
@@ -252,6 +264,7 @@ for (const l of site.locales) {
       ogAlt,
       verify,
       jsonld: jsonLd(l, t),
+      hints: JSON.stringify(hints),
       og_image: `${site.url}${asset(`img/og-${l.code}.png`)}`,
       css: asset("styles.css"),
       js: asset("main.js"),
@@ -338,8 +351,8 @@ if (checkMode) {
     for (const id of new Set(ids.filter((v, i) => ids.indexOf(v) !== i))) at(`duplicate id ${id}`);
     for (const a of html.match(/<a\b[^>]*>/g) || []) if (!/\shref="/.test(a)) at(`an <a> has no href: ${a}`);
     if (/\sstyle="/.test(html)) at("inline style attributes are not allowed");
-    // (JSON closes objects with "}}", so the structured data is left out of this test.)
-    if (/\{\{|\}\}/.test(html.replace(/<script[\s\S]*?<\/script>/g, ""))) at("an unresolved placeholder is left");
+    // (JSON closes objects with "}}", so the structured data and the hint data are left out of this test.)
+    if (/\{\{|\}\}/.test(html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/data-hints="[^"]*"/g, ""))) at("an unresolved placeholder is left");
     // Targets of #links exist.
     for (const m of html.matchAll(/href="#([^"]+)"/g)) if (!ids.includes(m[1])) at(`link to #${m[1]} has no target`);
     // 4. JSON-LD parses.
