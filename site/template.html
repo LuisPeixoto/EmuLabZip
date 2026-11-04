@@ -59,12 +59,12 @@
     </nav>
     <div class="tools">
       <details class="lang">
-        <summary aria-label="{{nav.language}}"><svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg><span>{{nav.current}}</span></summary>
+        <summary><svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg><span class="sr">{{nav.language}}:</span><span>{{nav.current}}</span></summary>
         <ul>
           {{#each switcher}}<li><a href="{{href}}" hreflang="{{hreflang}}" lang="{{lang}}"{{{current}}}>{{label}}</a></li>{{/each}}
         </ul>
       </details>
-      <a class="btn ghost sm" href="{{site.repo}}" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-github"/></svg><span>{{nav.github}}</span></a>
+      <a class="btn ghost sm" href="{{site.repo}}" rel="noopener" aria-label="{{nav.github}}"><svg class="ico" aria-hidden="true"><use href="#i-github"/></svg><span>{{nav.github}}</span></a>
     </div>
   </div>
 </header>
