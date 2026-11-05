@@ -1,0 +1,50 @@
+Process:         Crashy [19344]
+Path:            /Users/me/Library/Developer/CoreSimulator/Devices/F8CE84C1-04D1-4E33-B52B-02B59E8A09C5/data/Containers/Bundle/Application/E8ED5D5C-3E6E-4402-A2B6-EF6978011B74/Crashy.app/Crashy
+Load Address:    0x102631000
+Identifier:      dev.emulabzip.crashy
+Version:         1.0 (1)
+Code Type:       X86-64
+Platform:        iOS Simulator
+Parent Process:  launchd_sim [19085]
+Target Type:     corpse
+
+Date/Time:       2026-11-05 19:15:06.803 -0300
+Launch Time:     2026-11-05 19:14:49.454 -0300
+OS Version:      macOS 26.2 (25C56)
+Report Version:  7
+Analysis Tool:   /Library/Developer/CoreSimulator/Volumes/iOS_23C54/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.2.simruntime/Contents/Resources/RuntimeRoot/usr/bin/leaks
+Analysis Tool Version:  iOS Simulator 26.2 (23C54)
+
+Physical footprint:         7776K
+Physical footprint (peak):  7924K
+Idle exit:                  untracked
+----
+
+leaks Report Version: 4.0
+Process 19344: 13672 nodes malloced for 1571 KB
+Process 19344: 16 leaks for 37120 total leaked bytes.
+
+    16 (36.2K) << TOTAL >>
+
+      8 (18.1K) ROOT CYCLE: <CycleNode 0x6000002412a0> [32]
+         2 (4.53K) __strong other --> ROOT CYCLE: <CycleNode 0x6000002412c0> [32]
+            __strong other --> CYCLE BACK TO <CycleNode 0x6000002412a0> [32]
+            1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103815000> [4608]
+         5 (13.6K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103818000> [4608]
+            4 (9.06K) <CycleNode 0x600000240100> [32]
+               2 (4.53K) __strong other --> <CycleNode 0x600000240fa0> [32]
+                  1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103824200> [4608]
+               1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103825400> [4608]
+
+      4 (9.06K) ROOT CYCLE: <CycleNode 0x600000241060> [32]
+         2 (4.53K) __strong other --> ROOT CYCLE: <CycleNode 0x600000241100> [32]
+            __strong other --> CYCLE BACK TO <CycleNode 0x600000241060> [32]
+            1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103828a00> [4608]
+         1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103829c00> [4608]
+
+      4 (9.06K) ROOT CYCLE: <CycleNode 0x600000241320> [32]
+         2 (4.53K) __strong other --> ROOT CYCLE: <CycleNode 0x600000241340> [32]
+            __strong other --> CYCLE BACK TO <CycleNode 0x600000241320> [32]
+            1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103821e00> [4608]
+         1 (4.50K) __strong payload --> <Swift._ContiguousArrayStorage<Swift.UInt8> 0x103823000> [4608]
+
