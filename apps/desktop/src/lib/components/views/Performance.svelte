@@ -6,6 +6,8 @@
   import Icon from "../Icon.svelte";
   import LineChart from "../charts/LineChart.svelte";
   import StatTile from "../charts/StatTile.svelte";
+  import StartupCard from "../perf/StartupCard.svelte";
+  import EnergyCard from "../perf/EnergyCard.svelte";
 
   const intervals = [
     { ms: 500, label: "0.5 s" },
@@ -142,6 +144,11 @@
           </p>
         </section>
       {/if}
+    </div>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <StartupCard />
+      <EnergyCard />
     </div>
   </div>
 </div>

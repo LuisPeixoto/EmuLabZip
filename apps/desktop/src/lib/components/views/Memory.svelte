@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { api, errorText, type CategoryDelta, type MemoryReport } from "../../api";
+  import { api, errorText, type CategoryDelta, type HeapAnalysis as Heap, type MemoryReport } from "../../api";
   import { app } from "../../stores/app.svelte";
   import { kb } from "../../format";
   import Icon from "../Icon.svelte";
+  import HeapAnalysis from "../perf/HeapAnalysis.svelte";
 
   interface Snapshot {
     id: number;
@@ -17,6 +18,9 @@
   let dumping = $state(false);
   let error = $state<string | null>(null);
   let deltas = $state<CategoryDelta[]>([]);
+  let heap = $state<{ path: string; analysis: Heap } | null>(null);
+  let analyzing = $state(false);
+  let lastDump = $state<string | null>(null);
   let nextId = 1;
 
   const current = $derived(snapshots.find((s) => s.id === selected) ?? null);
@@ -33,6 +37,8 @@
       snapshots = [];
       selected = baseline = null;
       error = null;
+      heap = null;
+      lastDump = null;
     }
   });
 
@@ -65,7 +71,28 @@
     dumping = true;
     const path = await app.attempt(() => api.saveHeapDump(app.target!, app.selectedApp!.id));
     dumping = false;
-    if (path) app.toast(`Saved to ${path}`, "ok");
+    if (path) {
+      app.toast(`Saved to ${path}`, "ok");
+      if (!ios) lastDump = path;
+    }
+  }
+
+  async function analyze(path: string | null) {
+    if (!path) return;
+    analyzing = true;
+    error = null;
+    try {
+      heap = { path, analysis: await api.heapAnalyze(path) };
+      lastDump = path;
+    } catch (e) {
+      error = errorText(e);
+    } finally {
+      analyzing = false;
+    }
+  }
+
+  async function openDump() {
+    await analyze(await app.attempt(() => api.pickHeapDump()));
   }
 
   const time = (d: Date) => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -94,6 +121,20 @@
         <Icon name={dumping ? "refresh" : "download"} size={13} class={dumping ? "animate-spin" : ""} />
         {dumping ? "Capturing…" : ios ? "Memory graph…" : "Heap dump…"}
       </button>
+      {#if !ios}
+        <button
+          onclick={() => (lastDump ? analyze(lastDump) : openDump())}
+          disabled={analyzing}
+          title={lastDump ? "Look for leaked Activities and Fragments in the dump you just saved" : "Open an .hprof and look for leaks"}
+          class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40"
+        >
+          <Icon name={analyzing ? "refresh" : "search"} size={13} class={analyzing ? "animate-spin" : ""} />
+          {analyzing ? "Analyzing…" : lastDump ? "Find leaks" : "Open dump…"}
+        </button>
+        {#if lastDump}
+          <button onclick={openDump} disabled={analyzing} class="h-8 rounded-lg px-2 text-[12px] text-faint hover:text-fg disabled:opacity-40">Other file…</button>
+        {/if}
+      {/if}
       <button
         onclick={snapshot}
         disabled={!app.selectedApp || busy}
@@ -107,6 +148,10 @@
       <div class="mb-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-[12.5px] text-err">
         <Icon name="alert" size={14} />{error}
       </div>
+    {/if}
+
+    {#if heap}
+      <div class="mb-5"><HeapAnalysis analysis={heap.analysis} path={heap.path} /></div>
     {/if}
 
     {#if !snapshots.length}

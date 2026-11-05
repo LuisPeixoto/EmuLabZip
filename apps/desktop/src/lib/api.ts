@@ -109,6 +109,29 @@ export interface MemoryReport {
   details: [string, string][];
 }
 
+export type StartKind = "cold" | "warm" | "hot";
+export interface StartupRun { kind: StartKind; totalMs: number; waitMs: number | null; launchState: string | null }
+export interface StartupReport {
+  app: string; kind: StartKind; runs: StartupRun[]; medianMs: number; minMs: number; maxMs: number; p90Ms: number;
+}
+export interface EnergyReport {
+  app: string; seconds: number; estimatedMah: number | null;
+  components: { name: string; mah: number }[]; cpuMs: number;
+  wakelocks: { tag: string; ms: number; count: number }[];
+  alarms: number; jobs: number; networkRxBytes: number; networkTxBytes: number; notes: string[];
+}
+export interface HeapStep { class: string; field: string | null }
+export interface HeapLeak {
+  kind: string; class: string; id: string; reason: string; confidence: "certain" | "possible";
+  retainedBytes: number; root: string; path: HeapStep[];
+}
+export interface HeapAnalysis {
+  summary: { objects: number; reachableObjects: number; shallowBytes: number; truncated: boolean; heaps: string[] };
+  leaks: HeapLeak[];
+  dominators: { class: string; id: string; shallowBytes: number; retainedBytes: number }[];
+  classes: { name: string; count: number; shallowBytes: number }[];
+}
+
 export interface CategoryDelta {
   name: string;
   beforeKb: number;
@@ -794,6 +817,12 @@ export const api = {
   memoryReport: (target: Target, app: string) => invoke<MemoryReport>("memory_report", { target, app }),
   memoryDiff: (before: MemoryReport, after: MemoryReport) => invoke<CategoryDelta[]>("memory_diff", { before, after }),
   saveHeapDump: (target: Target, pkg: string) => invoke<string | null>("save_heap_dump", { target, package: pkg }),
+  startupMeasure: (target: Target, app: string, kind: StartKind, runs: number) =>
+    invoke<StartupReport>("startup_measure", { target, app, kind, runs }),
+  energyBegin: (target: Target, app: string) => invoke<void>("energy_begin", { target, app }),
+  energyEnd: (target: Target, app: string, seconds: number) => invoke<EnergyReport>("energy_end", { target, app, seconds }),
+  pickHeapDump: () => invoke<string | null>("pick_heap_dump"),
+  heapAnalyze: (path: string, allHeaps = false) => invoke<HeapAnalysis>("heap_analyze", { path, allHeaps }),
   storageRoots: (target: Target, app: string) => invoke<StorageRoot[]>("storage_roots", { target, app }),
   listFiles: (target: Target, app: string, root: string, path: string) =>
     invoke<FileEntry[]>("list_files", { target, app, root, path }),

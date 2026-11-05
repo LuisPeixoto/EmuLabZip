@@ -24,6 +24,7 @@ base64.workspace = true
 emulabzip-android.workspace = true
 emulabzip-apple.workspace = true
 emulabzip-core.workspace = true
+emulabzip-heap.workspace = true
 emulabzip-net.workspace = true
 emulabzip-plugin.workspace = true
 emulabzip-session.workspace = true
