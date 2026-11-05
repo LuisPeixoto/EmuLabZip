@@ -17,7 +17,7 @@
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "Open source · MIT · v0.6",
+    "eyebrow": "Open source · MIT · v0.7",
     "titleLead": "The debugging lab for your",
     "titleAccent": "Android emulator and iOS simulator",
     "lead": "<strong>EmuLabZip</strong> brings logs, network traffic, performance, memory, storage, crashes and accessibility of your <strong>Android emulators and iOS simulators</strong> into one fast, native app. Nothing to install on the device.",
@@ -52,7 +52,10 @@
       { "icon": "controls", "title": "Device controls", "text": "Change location, dark mode, the status bar, battery, permissions, notifications and links, each with a way back." },
       { "icon": "layout", "title": "Layout and accessibility", "text": "See every view of a screen and audit labels, touch targets and contrast, on Android and the iOS Simulator." },
       { "icon": "sessions", "title": "Sessions and CI", "text": "Record a whole run into one file, and let emulabzip ci record around your test command in GitHub Actions." },
-      { "icon": "compare", "title": "Compare devices", "text": "Two emulators side by side: both screens, CPU and memory charts and every fact that differs." }
+      { "icon": "compare", "title": "Compare devices", "text": "Two emulators side by side: both screens, CPU and memory charts and every fact that differs." },
+      { "icon": "memory", "title": "Leak finder", "text": "Open a heap dump and see the destroyed Activities and Fragments still alive, the path that keeps each one, and what keeps the most memory." },
+      { "icon": "performance", "title": "Start time and energy", "text": "Cold, warm and hot start times with the median of several runs, and the energy an app used while you used it." },
+      { "icon": "sessions", "title": "Budgets and baselines", "text": "Write limits in emulabzip.toml and fail a CI run that breaks them, or that got slower than the last good run." }
     ]
   },
   "showcase": {
@@ -122,14 +125,14 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Where EmuLabZip is going",
-    "lead": "Six phases are done. The next four lead to a stable 1.0.",
+    "lead": "Seven phases are done. The next three lead to a stable 1.0.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observe", "text": "Devices, logs, performance, memory, storage and the network proxy." },
       { "state": "done", "version": "v0.4", "title": "Tracing", "text": "Perfetto, simpleperf and Instruments, with flame graphs and SQL." },
       { "state": "done", "version": "v0.5", "title": "Crashes and automation", "text": "Crashes, device controls, an MCP server and plugins." },
       { "state": "done", "version": "v0.6", "title": "Power tools", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, accessibility, sessions and CI." },
-      { "state": "next", "version": "v0.7", "title": "Performance and quality", "text": "App start time, energy, leak finder and performance budgets in CI." },
-      { "state": "later", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
+      { "state": "done", "version": "v0.7", "title": "Performance and quality", "text": "App start time, energy, leak finder and performance budgets in CI." },
+      { "state": "next", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
       { "state": "later", "version": "v0.9", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
       { "state": "later", "version": "v1.0", "title": "Team and ecosystem", "text": "Shareable reports, rule libraries, a VS Code extension and a stable promise." }
     ]
