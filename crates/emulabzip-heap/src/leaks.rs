@@ -140,7 +140,15 @@ fn path_to(heap: &Heap, reach: &Reach, leaked: u32, roots: &HashMap<u32, RootKin
         chain.push(cur);
     }
     chain.reverse();
-    let root = roots.get(&chain[0]).map(|k| k.label()).unwrap_or("root").to_string();
+    // A class that is not a root of its own was reached through its class loader. What matters is the static
+    // field of the last class on the way, so the path starts there.
+    let mut root = roots.get(&chain[0]).map(|k| k.label()).unwrap_or("root").to_string();
+    if let Some(i) = chain.iter().rposition(|&o| heap.objects[o as usize].kind == Kind::Class)
+        && i > 0
+    {
+        chain.drain(..i);
+        root = "static field".to_string();
+    }
     let steps = chain
         .iter()
         .enumerate()
