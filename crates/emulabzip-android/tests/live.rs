@@ -432,3 +432,54 @@ async fn reads_the_layout_and_audits_it() {
     assert!(!audit.contrast_skipped);
     assert!(audit.checked as usize >= snapshot.root.count());
 }
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn measures_start_times_of_the_three_kinds() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let mut medians = Vec::new();
+    for kind in [emulabzip_core::StartKind::Cold, emulabzip_core::StartKind::Warm, emulabzip_core::StartKind::Hot] {
+        let report = backend.startup(&id, "com.android.settings", kind, 3).await.unwrap();
+        println!(
+            "{:?}: median {} ms, runs {:?}",
+            kind,
+            report.median_ms,
+            report.runs.iter().map(|r| r.total_ms).collect::<Vec<_>>()
+        );
+        assert_eq!(report.runs.len(), 3);
+        assert!(report.median_ms > 0 && report.min_ms <= report.median_ms && report.median_ms <= report.max_ms);
+        // The system itself says what kind of start it was.
+        let want = kind.label().to_ascii_uppercase();
+        assert!(report.runs.iter().all(|r| r.launch_state.as_deref() == Some(want.as_str())), "{:?}", report.runs);
+        medians.push(report.median_ms);
+    }
+    assert!(medians[0] > medians[2], "a cold start ({} ms) is slower than a hot one ({} ms)", medians[0], medians[2]);
+}
+
+#[tokio::test]
+#[ignore = "needs a running emulator"]
+async fn measures_energy_and_puts_the_battery_back() {
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let adb = emulabzip_adb::AdbClient::new();
+    let before = adb.shell(&id, "dumpsys battery").await.unwrap();
+    let powered = |text: &str| text.lines().find(|l| l.trim().starts_with("AC powered:")).map(|l| l.trim().to_string());
+
+    backend.energy_begin(&id).await.unwrap();
+    // Some work for an app to be charged with.
+    for url in ["https://example.com/", "https://www.wikipedia.org/"] {
+        adb.shell(&id, &format!("am start -a android.intent.action.VIEW -p com.android.chrome -d {url}"))
+            .await
+            .unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+    }
+    let report = backend.energy_end(&id, "com.android.chrome", 12).await.unwrap();
+    println!("{report:#?}");
+    assert!(report.cpu_ms > 0, "{report:?}");
+    // The estimate itself can be missing when the app used almost nothing; the CPU time is always there.
+    assert!(report.estimated_mah.is_some() || report.notes.iter().any(|n| n.contains("no estimate")), "{report:?}");
+
+    let after = adb.shell(&id, "dumpsys battery").await.unwrap();
+    assert_eq!(powered(&before), powered(&after), "the battery is back as it was");
+}

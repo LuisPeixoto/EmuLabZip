@@ -1,0 +1,7 @@
+Starting: Intent { cmp=dev.emulabzip.leaky/.MainActivity }
+Status: ok
+LaunchState: WARM
+Activity: dev.emulabzip.leaky/.MainActivity
+TotalTime: 561
+WaitTime: 583
+Complete
