@@ -9,6 +9,7 @@ pub mod backend;
 pub mod cert;
 pub mod controls;
 pub mod crashes;
+pub mod energy;
 pub mod heapdump;
 pub mod info;
 pub mod layout;
@@ -17,6 +18,7 @@ pub mod meminfo;
 pub mod network;
 pub mod perf;
 pub mod props;
+pub mod startup;
 pub mod storage;
 pub mod trace;
 
