@@ -105,6 +105,9 @@ enum Command {
         app: String,
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Look for leaks in the dump right away
+        #[arg(long)]
+        analyze: bool,
     },
     /// List an app's files
     Files {
@@ -155,6 +158,34 @@ enum Command {
         #[arg(long, requires = "http3")]
         show_h3: bool,
     },
+    /// Time how long an app takes to open: cold, warm or hot, several times, with the median
+    Startup {
+        /// Package name or bundle id
+        app: String,
+        /// cold (the process is stopped first), warm (back button) or hot (home button; on iOS, another app in front)
+        #[arg(short, long, default_value = "cold", value_parser = cmd::startup::parse_kind)]
+        kind: emulabzip_core::StartKind,
+        /// How many times to open it (1 to 50)
+        #[arg(short, long, default_value_t = 5)]
+        runs: u32,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Measure the energy an app uses over some seconds, while you use it
+    Energy {
+        /// Package name or bundle id
+        app: String,
+        /// How long to measure, in seconds (Ctrl+C reads what there is)
+        #[arg(short, long, default_value_t = 30)]
+        seconds: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Look inside heap dumps for leaks
+    Heap {
+        #[command(subcommand)]
+        action: HeapAction,
+    },
     /// Show the views on the screen, with their names and sizes
     Layout {
         /// Print the whole tree as JSON
@@ -202,6 +233,15 @@ enum Command {
         /// Also write the report, in Markdown, to this file
         #[arg(long, value_name = "FILE")]
         summary: Option<PathBuf>,
+        /// Limits to hold the run to (default: ./emulabzip.toml, when there is one)
+        #[arg(long, value_name = "FILE")]
+        config: Option<PathBuf>,
+        /// An earlier session to compare with
+        #[arg(long, value_name = "FILE")]
+        baseline: Option<PathBuf>,
+        /// Fail when a number got worse than the baseline by more than the tolerance
+        #[arg(long)]
+        fail_on_regression: bool,
         /// The command to run
         #[arg(last = true, required = true, value_name = "COMMAND")]
         command: Vec<String>,
@@ -308,7 +348,35 @@ impl From<Preset> for PerfettoPreset {
 }
 
 #[derive(Subcommand)]
+enum HeapAction {
+    /// Find leaked Activities and Fragments in a .hprof (Android), or leaked objects in a .memgraph (iOS, on a Mac)
+    Analyze {
+        file: PathBuf,
+        #[arg(long)]
+        json: bool,
+        /// How many of the biggest objects and classes to list
+        #[arg(long, default_value_t = 10)]
+        top: usize,
+        /// Look in every heap, not only the app's
+        #[arg(long)]
+        all_heaps: bool,
+    },
+}
+
+#[derive(Subcommand)]
 enum SessionAction {
+    /// Show what got better or worse between two sessions
+    Compare {
+        /// The earlier session
+        baseline: PathBuf,
+        /// The session to judge
+        run: PathBuf,
+        /// How much worse a number can get before it counts, in percent
+        #[arg(long, default_value_t = 10.0)]
+        tolerance: f64,
+        #[arg(long)]
+        json: bool,
+    },
     /// Follow a device until Ctrl+C, and write what happened to a .ezsession file
     Record {
         #[arg(short, long, value_name = "FILE")]
@@ -673,7 +741,7 @@ async fn run() -> ExitCode {
         Command::Screenshot { output } => cmd::screenshot::run(&lab, device, output).await,
         Command::Perf { app, interval, json } => cmd::perf::run(&lab, device, app, interval, json).await,
         Command::Mem { app, json } => cmd::mem::run(&lab, device, &app, json).await,
-        Command::Heapdump { app, output } => cmd::mem::heap_dump(&lab, device, &app, output).await,
+        Command::Heapdump { app, output, analyze } => cmd::mem::heap_dump(&lab, device, &app, output, analyze).await,
         Command::Files { app, path, root, json } => {
             cmd::files::list(&lab, device, &app, root.as_deref(), &path, json).await
         }
@@ -688,6 +756,11 @@ async fn run() -> ExitCode {
                 cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json, rules, http3, show_h3 };
             cmd::net::run(&lab, args).await
         }
+        Command::Startup { app, kind, runs, json } => cmd::startup::startup(&lab, device, &app, kind, runs, json).await,
+        Command::Energy { app, seconds, json } => cmd::startup::energy(&lab, device, &app, seconds, json).await,
+        Command::Heap { action: HeapAction::Analyze { file, json, top, all_heaps } } => {
+            cmd::heap::analyze(&file, json, top, all_heaps).await
+        }
         Command::Layout { json, png, depth } => cmd::layout::layout(&lab, device, json, png, depth).await,
         Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
         Command::Session { action: SessionAction::Record { output, app, network, port, screens, duration } } => {
@@ -697,8 +770,35 @@ async fn run() -> ExitCode {
         Command::Session { action: SessionAction::Show { file, json, markdown } } => {
             cmd::session::show(&file, json, markdown)
         }
-        Command::Ci { output, app, network, port, screens, fail_on_crash, summary, command } => {
-            let args = cmd::ci::Args { out: output, app, network, port, screens, fail_on_crash, summary, command };
+        Command::Session { action: SessionAction::Compare { baseline, run, tolerance, json } } => {
+            cmd::session::compare(&baseline, &run, tolerance, json)
+        }
+        Command::Ci {
+            output,
+            app,
+            network,
+            port,
+            screens,
+            fail_on_crash,
+            summary,
+            config,
+            baseline,
+            fail_on_regression,
+            command,
+        } => {
+            let args = cmd::ci::Args {
+                out: output,
+                app,
+                network,
+                port,
+                screens,
+                fail_on_crash,
+                summary,
+                config,
+                baseline,
+                fail_on_regression,
+                command,
+            };
             cmd::ci::run(&lab, device, args).await
         }
         Command::Compare { a, b, all, json } => cmd::compare::run(&lab, &a, &b, all, json).await,
