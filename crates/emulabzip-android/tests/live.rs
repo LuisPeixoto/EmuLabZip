@@ -466,7 +466,7 @@ async fn measures_energy_and_puts_the_battery_back() {
     let before = adb.shell(&id, "dumpsys battery").await.unwrap();
     let powered = |text: &str| text.lines().find(|l| l.trim().starts_with("AC powered:")).map(|l| l.trim().to_string());
 
-    backend.energy_begin(&id).await.unwrap();
+    backend.energy_begin(&id, "com.android.chrome").await.unwrap();
     // Some work for an app to be charged with.
     for url in ["https://example.com/", "https://www.wikipedia.org/"] {
         adb.shell(&id, &format!("am start -a android.intent.action.VIEW -p com.android.chrome -d {url}"))

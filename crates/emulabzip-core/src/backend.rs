@@ -83,8 +83,8 @@ pub trait Backend: Send + Sync {
         Err(Error::Unsupported("Start time"))
     }
 
-    /// Starts counting the energy an app uses. It is paired with [`Backend::energy_end`].
-    async fn energy_begin(&self, _id: &str) -> Result<()> {
+    /// Starts counting the energy `app` uses. It is paired with [`Backend::energy_end`].
+    async fn energy_begin(&self, _id: &str, _app: &str) -> Result<()> {
         Err(Error::Unsupported("Energy"))
     }
 
@@ -283,8 +283,11 @@ impl Lab {
         self.backend(target.platform)?.startup(&target.id, app, kind, runs).await
     }
 
-    pub async fn energy_begin(&self, target: &Target) -> Result<()> {
-        self.backend(target.platform)?.energy_begin(&target.id).await
+    pub async fn energy_begin(&self, target: &Target, app: &str) -> Result<()> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.energy_begin(&target.id, app).await
     }
 
     pub async fn energy_end(&self, target: &Target, app: &str, seconds: u64) -> Result<EnergyReport> {
