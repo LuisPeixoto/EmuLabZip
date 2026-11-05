@@ -1,0 +1,174 @@
+//! The project's `emulabzip.toml`: limits a run has to stay under, and how to measure the start time.
+
+use std::path::Path;
+
+use emulabzip_core::{Error, Result, StartKind};
+use serde::Deserialize;
+
+/// The file name looked for in the project folder.
+pub const FILE_NAME: &str = "emulabzip.toml";
+
+/// Limits. Each one is optional: a run is only held to the limits that are written down.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Budget {
+    /// The median start time, in milliseconds. Needs `[startup]`.
+    pub start_time_ms: Option<u64>,
+    pub memory_peak_mb: Option<f64>,
+    /// The average share of the processor the app used.
+    pub cpu_avg_percent: Option<f64>,
+    /// The highest share of janky frames in any sample.
+    pub janky_frames_percent: Option<f64>,
+    pub requests: Option<u64>,
+    pub failed_requests: Option<u64>,
+    pub log_errors: Option<u64>,
+    pub crashes: Option<u64>,
+}
+
+/// Measure how long the app takes to open before the command runs.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StartupConfig {
+    #[serde(default = "default_runs")]
+    pub runs: u32,
+    #[serde(default = "default_kind")]
+    pub kind: String,
+}
+
+fn default_runs() -> u32 {
+    5
+}
+
+fn default_kind() -> String {
+    "cold".into()
+}
+
+impl StartupConfig {
+    pub fn kind(&self) -> Result<StartKind> {
+        StartKind::parse(&self.kind).ok_or_else(|| Error::invalid("start kind (cold, warm or hot)", &self.kind))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Baseline {
+    /// How much worse than the baseline a number can be before it counts as a regression.
+    #[serde(default = "default_tolerance")]
+    pub tolerance_percent: f64,
+}
+
+fn default_tolerance() -> f64 {
+    10.0
+}
+
+impl Default for Baseline {
+    fn default() -> Self {
+        Baseline { tolerance_percent: default_tolerance() }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    #[serde(default)]
+    pub budget: Budget,
+    pub startup: Option<StartupConfig>,
+    #[serde(default)]
+    pub baseline: Baseline,
+}
+
+impl Config {
+    /// Reads the text of an `emulabzip.toml`. A key that is not known is an error, so a typo does not
+    /// quietly leave a limit unchecked.
+    pub fn parse(text: &str) -> Result<Config> {
+        let config: Config = toml::from_str(text).map_err(|e| Error::parse(FILE_NAME, e.message().to_string()))?;
+        if let Some(s) = &config.startup {
+            s.kind()?;
+            if s.runs == 0 || s.runs > emulabzip_core::startup::MAX_RUNS {
+                return Err(Error::invalid("[startup] runs (1 to 50)", s.runs.to_string()));
+            }
+        }
+        if !(0.0..=1000.0).contains(&config.baseline.tolerance_percent) {
+            return Err(Error::invalid(
+                "[baseline] tolerance_percent (0 to 1000)",
+                config.baseline.tolerance_percent.to_string(),
+            ));
+        }
+        Ok(config)
+    }
+
+    pub fn load(path: &Path) -> Result<Config> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| Error::failed(format!("could not read {}: {e}", path.display())))?;
+        Config::parse(&text).map_err(|e| Error::failed(format!("{}: {e}", path.display())))
+    }
+
+    /// The file in `dir`, when there is one.
+    pub fn find(dir: &Path) -> Option<std::path::PathBuf> {
+        let path = dir.join(FILE_NAME);
+        path.is_file().then_some(path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FULL: &str = r#"
+        [budget]
+        start_time_ms = 800
+        memory_peak_mb = 300.5
+        cpu_avg_percent = 40
+        janky_frames_percent = 5
+        requests = 200
+        failed_requests = 0
+        log_errors = 10
+        crashes = 0
+        [startup]
+        runs = 7
+        kind = "warm"
+        [baseline]
+        tolerance_percent = 15
+    "#;
+
+    #[test]
+    fn reads_every_key() {
+        let c = Config::parse(FULL).unwrap();
+        assert_eq!(
+            (c.budget.start_time_ms, c.budget.memory_peak_mb, c.budget.crashes),
+            (Some(800), Some(300.5), Some(0))
+        );
+        assert_eq!(c.startup.as_ref().map(|s| (s.runs, s.kind().unwrap())), Some((7, StartKind::Warm)));
+        assert_eq!(c.baseline.tolerance_percent, 15.0);
+    }
+
+    #[test]
+    fn an_empty_file_sets_no_limits() {
+        let c = Config::parse("").unwrap();
+        assert_eq!(c, Config::default());
+        assert_eq!(c.baseline.tolerance_percent, 10.0);
+    }
+
+    #[test]
+    fn a_misspelled_key_is_an_error_not_an_unchecked_limit() {
+        for text in ["[budget]\nmemory_peak = 300", "[budgets]\ncrashes = 0", "[startup]\nrun = 3", "unknown = 1"] {
+            assert!(Config::parse(text).is_err(), "{text}");
+        }
+    }
+
+    #[test]
+    fn values_are_checked() {
+        assert!(Config::parse("[startup]\nruns = 0").is_err());
+        assert!(Config::parse("[startup]\nruns = 51").is_err());
+        assert!(Config::parse("[startup]\nkind = \"lukewarm\"").is_err());
+        assert!(Config::parse("[budget]\ncrashes = -1").is_err());
+        assert!(Config::parse("[baseline]\ntolerance_percent = -5").is_err());
+        assert!(Config::parse("[budget]\nrequests = \"many\"").is_err());
+    }
+
+    #[test]
+    fn startup_has_sensible_defaults() {
+        let s = Config::parse("[startup]").unwrap().startup.unwrap();
+        assert_eq!((s.runs, s.kind().unwrap()), (5, StartKind::Cold));
+    }
+}
