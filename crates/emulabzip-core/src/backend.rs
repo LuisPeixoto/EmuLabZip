@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::control::{Control, ControlInfo};
 use crate::crash::{CrashReport, CrashSummary};
 use crate::device::{App, Device, InfoSection, Platform, Target};
+use crate::energy::EnergyReport;
 use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
 use crate::layout::LayoutSnapshot;
@@ -16,6 +17,7 @@ use crate::log::LogEntry;
 use crate::memory::{HeapDump, MemoryReport};
 use crate::network::{CaInstall, NetworkStatus};
 use crate::perf::{PerfOptions, PerfSample};
+use crate::startup::{StartKind, StartupReport};
 use crate::stream::Stream;
 use crate::trace::{TraceFile, TraceRequest};
 
@@ -74,6 +76,21 @@ pub trait Backend: Send + Sync {
     /// A heap snapshot of a running app (`.hprof` on Android, `.memgraph` on iOS).
     async fn heap_dump(&self, _id: &str, _app: &str) -> Result<HeapDump> {
         Err(Error::Unsupported("Heap dumps"))
+    }
+
+    /// Opens an app `runs` times and times each opening. See [`StartKind`] for what the three kinds mean.
+    async fn startup(&self, _id: &str, _app: &str, _kind: StartKind, _runs: u32) -> Result<StartupReport> {
+        Err(Error::Unsupported("Start time"))
+    }
+
+    /// Starts counting the energy an app uses. It is paired with [`Backend::energy_end`].
+    async fn energy_begin(&self, _id: &str) -> Result<()> {
+        Err(Error::Unsupported("Energy"))
+    }
+
+    /// Stops counting, puts the device back as it was, and reports what `app` used since `energy_begin`.
+    async fn energy_end(&self, _id: &str, _app: &str, _seconds: u64) -> Result<EnergyReport> {
+        Err(Error::Unsupported("Energy"))
     }
 
     /// The places where an app keeps files.
@@ -254,6 +271,27 @@ impl Lab {
 
     pub async fn heap_dump(&self, target: &Target, app: &str) -> Result<HeapDump> {
         self.backend(target.platform)?.heap_dump(&target.id, app).await
+    }
+
+    pub async fn startup(&self, target: &Target, app: &str, kind: StartKind, runs: u32) -> Result<StartupReport> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        if runs == 0 || runs > crate::startup::MAX_RUNS {
+            return Err(Error::invalid("number of runs (1 to 50)", runs.to_string()));
+        }
+        self.backend(target.platform)?.startup(&target.id, app, kind, runs).await
+    }
+
+    pub async fn energy_begin(&self, target: &Target) -> Result<()> {
+        self.backend(target.platform)?.energy_begin(&target.id).await
+    }
+
+    pub async fn energy_end(&self, target: &Target, app: &str, seconds: u64) -> Result<EnergyReport> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.energy_end(&target.id, app, seconds).await
     }
 
     pub async fn storage_roots(&self, target: &Target, app: &str) -> Result<Vec<StorageRoot>> {
