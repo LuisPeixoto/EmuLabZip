@@ -13,6 +13,7 @@ pub mod backend;
 pub mod controls;
 pub mod crashes;
 pub mod devices;
+pub mod energy;
 pub mod info;
 pub mod layout;
 pub mod leaks;
@@ -21,6 +22,7 @@ pub mod network;
 pub mod oslog;
 pub mod perf;
 pub mod simctl;
+pub mod startup;
 pub mod storage;
 pub mod trace;
 
