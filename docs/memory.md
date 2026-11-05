@@ -30,10 +30,16 @@ A category that keeps growing across repeated actions is a good place to look fo
 
 On Android the dump is written to `/data/local/tmp`, copied to your computer and removed from the device.
 
+EmuLabZip can also read the dump itself: **Find leaks** (or **Open dump…** for a file on disk) lists destroyed Activities
+and removed Fragments that are still alive, the path that keeps each one, and the objects that keep the most memory
+alive. See [Finding leaks](leaks.md).
+
 ## From the command line
 
 ```bash
 emulabzip mem com.example.app
 emulabzip mem com.example.app --json
 emulabzip heapdump com.example.app -o before-login.hprof
+emulabzip heapdump com.example.app --analyze
+emulabzip heap analyze before-login.hprof
 ```
