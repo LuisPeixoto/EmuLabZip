@@ -5,7 +5,8 @@
 #   ANDROID=emulator-5554 SIMULATOR=<udid> tools/live-tests.sh
 #
 # Set ANDROID, SIMULATOR or both. Install the crash apps first and let them fail once
-# (see tools/crash-app/README.md and tools/crash-app-ios/README.md).
+# (see tools/crash-app/README.md and tools/crash-app-ios/README.md), and the leak app on Android
+# (tools/leak-app/README.md).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,6 +22,8 @@ if [[ -n "${ANDROID:-}" ]]; then
   cargo test -p emulabzip-android --test live -- --ignored --test-threads=1
   cargo test -p emulabzip-cli --test mcp_live -- --ignored --test-threads=1
   cargo test -p emulabzip-cli --test live_session -- --ignored --test-threads=1
+  # Start time, the leak finder and budgets. The leak app: tools/leak-app/install.sh
+  cargo test -p emulabzip-cli --test live_phase7 -- --ignored --test-threads=1
   # Chrome has to be past its first run: write its command line, and dismiss the notification prompt once.
   # They also need the internet (example.com, cloudflare-quic.com).
   cargo test -p emulabzip-cli --test live_net -- --ignored --test-threads=1
