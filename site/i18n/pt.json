@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código aberto · MIT · v0.6",
+    "eyebrow": "Código aberto · MIT · v0.7",
     "titleLead": "O laboratório de depuração do seu",
     "titleAccent": "emulador Android e simulador iOS",
     "lead": "O <strong>EmuLabZip</strong> reúne logs, tráfego de rede, desempenho, memória, armazenamento, crashes e acessibilidade dos seus <strong>emuladores Android e simuladores iOS</strong> em um único app nativo e rápido. Nada para instalar no dispositivo.",
@@ -52,7 +52,10 @@
       { "icon": "controls", "title": "Controles do dispositivo", "text": "Mude localização, modo escuro, barra de status, bateria, permissões, notificações e links, sempre com um jeito de voltar." },
       { "icon": "layout", "title": "Layout e acessibilidade", "text": "Veja cada view de uma tela e audite rótulos, áreas de toque e contraste, no Android e no simulador do iOS." },
       { "icon": "sessions", "title": "Sessões e CI", "text": "Grave uma execução inteira em um arquivo e deixe o emulabzip ci gravar em volta dos seus testes no GitHub Actions." },
-      { "icon": "compare", "title": "Comparar dispositivos", "text": "Dois emuladores lado a lado: as duas telas, gráficos de CPU e memória e cada informação que difere." }
+      { "icon": "compare", "title": "Comparar dispositivos", "text": "Dois emuladores lado a lado: as duas telas, gráficos de CPU e memória e cada informação que difere." },
+      { "icon": "memory", "title": "Detector de vazamentos", "text": "Abra um heap dump e veja as Activities e Fragments destruídos que continuam vivos, o caminho que segura cada um e o que mantém mais memória." },
+      { "icon": "performance", "title": "Abertura e energia", "text": "Aberturas a frio, morna e quente com a mediana de várias execuções, e a energia que um app usou enquanto você o usava." },
+      { "icon": "sessions", "title": "Orçamentos e linhas de base", "text": "Escreva limites no emulabzip.toml e faça falhar uma execução de CI que os quebre ou que ficou mais lenta que a última boa." }
     ]
   },
   "showcase": {
@@ -122,14 +125,14 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Para onde o EmuLabZip está indo",
-    "lead": "Seis fases já foram concluídas. As quatro próximas levam a uma versão 1.0 estável.",
+    "lead": "Sete fases já foram concluídas. As três próximas levam a uma versão 1.0 estável.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
       { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
       { "state": "done", "version": "v0.5", "title": "Crashes e automação", "text": "Crashes, controles do dispositivo, um servidor MCP e plugins." },
       { "state": "done", "version": "v0.6", "title": "Ferramentas avançadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, acessibilidade, sessões e CI." },
-      { "state": "next", "version": "v0.7", "title": "Desempenho e qualidade", "text": "Tempo de abertura, energia, detector de vazamentos e orçamentos de desempenho no CI." },
-      { "state": "later", "version": "v0.8", "title": "Por dentro dos frameworks", "text": "Flutter, React Native, Compose e SwiftUI; gRPC e GraphQL." },
+      { "state": "done", "version": "v0.7", "title": "Desempenho e qualidade", "text": "Tempo de abertura, energia, detector de vazamentos e orçamentos de desempenho no CI." },
+      { "state": "next", "version": "v0.8", "title": "Por dentro dos frameworks", "text": "Flutter, React Native, Compose e SwiftUI; gRPC e GraphQL." },
       { "state": "later", "version": "v0.9", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas da Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios compartilháveis, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
     ]
