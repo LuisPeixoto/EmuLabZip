@@ -34,12 +34,16 @@ pub async fn run(lab: &Lab, device: Option<&str>, app: &str, json: bool) -> Resu
     Ok(())
 }
 
-pub async fn heap_dump(lab: &Lab, device: Option<&str>, app: &str, out: Option<PathBuf>) -> Result<()> {
+pub async fn heap_dump(lab: &Lab, device: Option<&str>, app: &str, out: Option<PathBuf>, analyze: bool) -> Result<()> {
     let device = lab.resolve(device).await?;
     eprintln!("{}", output::dim(&format!("Capturing the heap of {app}…")));
     let dump = lab.heap_dump(&device.target(), app).await?;
     let path = out.unwrap_or_else(|| PathBuf::from(&dump.file_name));
     tokio::fs::write(&path, &dump.bytes).await.with_context(|| format!("could not write {}", path.display()))?;
     println!("Saved {} ({:.1} MB)", path.display(), dump.bytes.len() as f64 / 1_048_576.0);
+    if analyze {
+        println!();
+        super::heap::analyze(&path, false, 10, false).await?;
+    }
     Ok(())
 }
