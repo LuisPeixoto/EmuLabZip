@@ -267,3 +267,26 @@ async fn reads_the_layout_and_audits_it() {
     }
     assert!(!audit.contrast_skipped);
 }
+
+/// Needs the crash app installed (`tools/crash-app-ios/install.sh`) on the booted simulator.
+#[cfg(target_os = "macos")]
+#[tokio::test]
+#[ignore = "needs a booted iOS simulator with the crash app installed"]
+async fn finds_the_retain_cycles_of_the_leaking_app() {
+    let backend = AppleBackend::new();
+    let id = backend.devices().await.unwrap().first().expect("a booted simulator").id.clone();
+    let launched = std::process::Command::new("xcrun")
+        .args(["simctl", "launch", "--terminate-running-process", &id, "dev.emulabzip.crashy", "--leak"])
+        .output()
+        .unwrap();
+    assert!(launched.status.success(), "{}", String::from_utf8_lossy(&launched.stderr));
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+    let pid = emulabzip_apple::perf::app_pid(&id, "dev.emulabzip.crashy").await.expect("the app is running");
+    let report = emulabzip_apple::leaks::of_process(pid).await.unwrap();
+    println!("{report:#?}");
+    assert!(report.leaks >= 10, "{} leaks", report.leaks);
+    assert!(report.groups.iter().any(|g| g.kind == "cycle" && g.class == "CycleNode"), "{:?}", report.groups);
+
+    let _ = std::process::Command::new("xcrun").args(["simctl", "terminate", &id, "dev.emulabzip.crashy"]).status();
+}
