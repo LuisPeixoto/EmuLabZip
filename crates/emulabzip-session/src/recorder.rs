@@ -7,13 +7,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use emulabzip_core::{Device, Error, Lab, LogOptions, PerfOptions, Result, Target};
+use emulabzip_core::{Device, Error, Lab, LogOptions, PerfOptions, Result, StartupReport, Target};
 use emulabzip_net::{FlowStore, to_har};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 use crate::format::{
-    CRASHES, DeviceMeta, JsonlWriter, LOGS, META, Meta, NETWORK, PERF, SCREENS, VERSION, bad, now_ms, pack, work_dir,
+    CRASHES, DeviceMeta, JsonlWriter, LOGS, META, Meta, NETWORK, PERF, SCREENS, STARTUP, VERSION, bad, now_ms, pack,
+    work_dir,
 };
 
 /// How often the device is asked for new crashes.
@@ -32,11 +33,20 @@ pub struct Options {
     pub max_log_lines: u64,
     /// The requests to save as a HAR file at the end. The caller runs the proxy that fills it.
     pub flows: Option<Arc<FlowStore>>,
+    /// How long the app took to open, measured before the run, to keep with it.
+    pub startup: Option<StartupReport>,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { app: None, screens_every: None, perf_interval_ms: 1000, max_log_lines: 500_000, flows: None }
+        Options {
+            app: None,
+            screens_every: None,
+            perf_interval_ms: 1000,
+            max_log_lines: 500_000,
+            flows: None,
+            startup: None,
+        }
     }
 }
 
@@ -67,6 +77,7 @@ pub struct Recorder {
     tasks: Vec<JoinHandle<()>>,
     counters: Arc<Counters>,
     flows: Option<Arc<FlowStore>>,
+    startup: Option<StartupReport>,
     /// Ids of crashes seen while recording.
     new_crashes: Arc<std::sync::Mutex<Vec<String>>>,
 }
@@ -139,7 +150,17 @@ impl Recorder {
             tasks.push(tokio::spawn(follow_screens(lab, target, every, dir.join(SCREENS), rx, counters.clone())));
         }
 
-        Ok(Recorder { dir, out, meta, stop, tasks, counters, flows: options.flows, new_crashes })
+        Ok(Recorder {
+            dir,
+            out,
+            meta,
+            stop,
+            tasks,
+            counters,
+            flows: options.flows,
+            startup: options.startup,
+            new_crashes,
+        })
     }
 
     pub fn stats(&self) -> Stats {
@@ -169,6 +190,12 @@ impl Recorder {
             fs::write(
                 self.dir.join(NETWORK),
                 serde_json::to_vec_pretty(&har).map_err(|e| bad("the requests", e.to_string()))?,
+            )?;
+        }
+        if let Some(startup) = &self.startup {
+            fs::write(
+                self.dir.join(STARTUP),
+                serde_json::to_vec_pretty(startup).map_err(|e| bad("the start time", e.to_string()))?,
             )?;
         }
         self.meta.ended_ms = Some(now_ms());

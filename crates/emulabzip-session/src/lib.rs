@@ -8,11 +8,17 @@
 //! * [`Session`] reads one back, from the folder or the file.
 //! * [`summarize`] turns it into numbers and a readable report.
 
+pub mod baseline;
+pub mod budget;
+pub mod config;
 pub mod format;
 pub mod reader;
 pub mod recorder;
 pub mod summary;
 
+pub use baseline::{Change, compare};
+pub use budget::{Violation, check};
+pub use config::Config;
 pub use format::{DeviceMeta, EXTENSION, Meta, VERSION};
 pub use reader::Session;
 pub use recorder::{Options, Recorder, Stats};

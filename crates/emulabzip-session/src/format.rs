@@ -18,6 +18,8 @@ pub const PERF: &str = "perf.jsonl";
 pub const NETWORK: &str = "network.har";
 pub const CRASHES: &str = "crashes";
 pub const SCREENS: &str = "screens";
+/// The start time measured before the run, when there was one.
+pub const STARTUP: &str = "startup.json";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

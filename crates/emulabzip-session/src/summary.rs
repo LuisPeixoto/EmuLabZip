@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use emulabzip_core::{LogLevel, Platform};
+use emulabzip_core::{LogLevel, Platform, StartupReport};
 use serde::Serialize;
 
 use crate::format::DeviceMeta;
@@ -76,6 +76,8 @@ pub struct Summary {
     pub crashes: Vec<CrashLine>,
     pub network: Option<NetworkStats>,
     pub perf: Option<PerfStats>,
+    /// How long the app took to open, when it was measured.
+    pub startup: Option<StartupReport>,
     pub screens: usize,
 }
 
@@ -174,6 +176,7 @@ pub fn summarize(session: &Session) -> Summary {
             .collect(),
         network: session.har.as_ref().and_then(network),
         perf,
+        startup: session.startup.clone(),
         screens: session.screens.len(),
     }
 }
@@ -218,6 +221,14 @@ pub fn markdown(s: &Summary) -> String {
     out.push_str(&format!("| Log errors | {} |\n| Log warnings | {} |\n", s.logs.errors, s.logs.warnings));
     if let Some(n) = &s.network {
         out.push_str(&format!("| Requests | {} ({} failed) |\n", n.requests, n.failed));
+    }
+    if let Some(st) = &s.startup {
+        out.push_str(&format!(
+            "| Start time | {} ms ({} of {} runs) |\n",
+            st.median_ms,
+            st.kind.label(),
+            st.runs.len()
+        ));
     }
     if let Some(p) = &s.perf {
         if let (Some(avg), Some(peak)) = (p.cpu_avg, p.cpu_peak) {
