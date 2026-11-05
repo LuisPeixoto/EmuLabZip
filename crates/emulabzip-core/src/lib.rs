@@ -33,7 +33,7 @@ pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
 pub use layout::{Bounds, LayoutSnapshot, Screen, UiNode};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
-pub use memory::{CategoryDelta, HeapDump, MemoryCategory, MemoryReport};
+pub use memory::{CategoryDelta, HeapDump, LeakGroup, MemoryCategory, MemoryReport, NativeLeaks};
 pub use network::{ANDROID_SECURITY_CONFIG, CaInstall, CaKind, NetworkStatus};
 pub use paths::data_dir;
 pub use perf::{PerfOptions, PerfSample};

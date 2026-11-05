@@ -63,6 +63,34 @@ pub fn diff(before: &MemoryReport, after: &MemoryReport) -> Vec<CategoryDelta> {
     out
 }
 
+/// A group of objects that nothing can free, as the macOS `leaks` tool reports them for an iOS Simulator app.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeakGroup {
+    /// `cycle` when the objects hold each other, `leak` when something simply lost them.
+    pub kind: String,
+    pub class: String,
+    pub address: String,
+    /// Objects in the group, the first one included.
+    pub count: u64,
+    /// Bytes in the group, as `leaks` rounds them (`18.1K`).
+    pub size: String,
+    /// The references inside the group, as `leaks` prints them, to show how the objects hold each other.
+    pub detail: Vec<String>,
+}
+
+/// The leaks found in an iOS Simulator app or in a `.memgraph` file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeLeaks {
+    pub process: String,
+    pub leaks: u64,
+    pub leaked_bytes: u64,
+    /// Everything `malloc` handed out, for scale.
+    pub malloced_nodes: u64,
+    pub groups: Vec<LeakGroup>,
+}
+
 /// A heap snapshot file produced on the device or the host.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HeapDump {

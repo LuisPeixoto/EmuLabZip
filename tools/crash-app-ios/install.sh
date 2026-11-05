@@ -30,6 +30,7 @@ cat <<MSG
   xcrun simctl launch $device $bundle --crash        # fatalError, three frames deep
   xcrun simctl launch $device $bundle --abort        # abort()
   xcrun simctl launch $device $bundle --exception    # an uncaught NSException
+  xcrun simctl launch $device $bundle --leak         # five retain cycles, then keeps running
 
 Remove it with: xcrun simctl uninstall $device $bundle
 MSG
