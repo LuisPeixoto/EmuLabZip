@@ -82,7 +82,23 @@ A memory breakdown: PSS by category on Android, footprint by VM region on iOS. S
 
 ### `emulabzip heapdump <app>`
 
-Saves an `.hprof` heap dump (Android, debuggable apps) or a `.memgraph` memory graph (iOS). `-o` picks the file.
+Saves an `.hprof` heap dump (Android, debuggable apps) or a `.memgraph` memory graph (iOS). `-o` picks the file. With
+`--analyze` it also looks for leaks, see [Finding leaks](leaks.md).
+
+### `emulabzip heap analyze <file>`
+
+Looks for leaks in an `.hprof` (any platform) or a `.memgraph` (on a Mac). `--json`; `--top <n>` sets how many objects and
+classes to list; `--all-heaps` looks beyond the app's own heap. See [Finding leaks](leaks.md).
+
+### `emulabzip startup <app>`
+
+Times how long the app takes to open. `-k, --kind cold|warm|hot` (default `cold`), `-r, --runs <n>` (1 to 50, default 5),
+`--json`. See [App start time](startup.md).
+
+### `emulabzip energy <app>`
+
+Measures the energy the app uses while you use it. `-s, --seconds <n>` (default 30; <kbd>Ctrl+C</kbd> reads what there is),
+`--json`. See [Energy](energy.md).
 
 ### `emulabzip files <app> [path]`
 
