@@ -8,6 +8,21 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ### Added
 
+- **App start time**: cold, warm and hot starts, repeated N times with the median, fastest, slowest and 90th percentile.
+  Android uses `am start -W`; the iOS Simulator reads when SpringBoard asks for the app and when its scene is active.
+  `emulabzip startup`, Performance → Start time, and the `measure_startup` tool.
+- **Energy per app**: Android's `dumpsys batterystats` for the app (estimate, parts, wake locks, alarms, jobs, network;
+  the battery is always put back); processor time and the Mac's thermal state on the simulator. `emulabzip energy`,
+  Performance → Energy, and `measure_energy`.
+- **Leak finder** for `.hprof` heap dumps, in a new `emulabzip-heap` crate with no dependencies: retained sizes,
+  dominators, a class histogram and destroyed Activities and removed Fragments that are still alive, with the path from a
+  GC root. `emulabzip heap analyze`, `emulabzip heapdump --analyze`, Memory → Find leaks, and `analyze_heap`. A `.memgraph`
+  is read with the Mac's `leaks` tool.
+- **Budgets and baselines**: `emulabzip.toml` limits that `emulabzip ci` holds a run to, and `--baseline` with
+  `--fail-on-regression` to say what got worse than the last good session. `emulabzip session compare` does the same for
+  two sessions. Sessions record the start time in an optional `startup.json`.
+- `tools/leak-app` (Android) and `--leak` in `tools/crash-app-ios`, to try the leak finder.
+
 - A website at https://emulabzip.luispeixoto.dev, in English, Spanish, Portuguese and Chinese, built from `site/` and
   published with GitHub Pages. It scores 100 in Lighthouse (performance, accessibility, best practices and SEO).
 
