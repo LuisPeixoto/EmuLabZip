@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use emulabzip_core::Lab;
-use emulabzip_session::{Options, Recorder, Session, markdown, summarize};
+use emulabzip_session::{Config, Options, Recorder, Session, baseline, budget, markdown, summarize};
 use tokio::process::Command;
 
 use super::session::Network;
@@ -31,7 +31,36 @@ pub struct Args {
     pub screens: Option<u64>,
     pub fail_on_crash: bool,
     pub summary: Option<PathBuf>,
+    /// The `emulabzip.toml` to hold the run to. `./emulabzip.toml` is used when there is one.
+    pub config: Option<PathBuf>,
+    /// An earlier session to compare with.
+    pub baseline: Option<PathBuf>,
+    pub fail_on_regression: bool,
     pub command: Vec<String>,
+}
+
+/// The settings of the project, and the session to compare with: both read before any device is touched.
+fn settings(args: &Args) -> Result<(Config, Option<emulabzip_session::Summary>)> {
+    let config = match &args.config {
+        Some(path) => Config::load(path)?,
+        None => match Config::find(&std::env::current_dir()?) {
+            Some(path) => Config::load(&path)?,
+            None => Config::default(),
+        },
+    };
+    if config.startup.is_some() && args.app.is_none() {
+        bail!("emulabzip.toml asks for the start time to be measured, which needs the app: pass --app");
+    }
+    if args.fail_on_regression && args.baseline.is_none() {
+        bail!("--fail-on-regression needs --baseline <earlier.ezsession> to compare with");
+    }
+    let baseline = match &args.baseline {
+        Some(path) => Some(summarize(
+            &Session::open(path).with_context(|| format!("could not read the baseline {}", path.display()))?,
+        )),
+        None => None,
+    };
+    Ok((config, baseline))
 }
 
 pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
@@ -43,12 +72,27 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
     if args.out.exists() {
         bail!("{} exists already. Pick another name, or delete it.", args.out.display());
     }
+    let (config, baseline_summary) = settings(&args)?;
     let device = lab.resolve(device).await?;
+    // The start time is measured first, so the openings are not part of the recording.
+    let startup = match (&config.startup, &args.app) {
+        (Some(s), Some(app)) => {
+            eprintln!(
+                "{}",
+                output::dim(&format!("Measuring the start time of {app} ({} runs, {})…", s.runs, s.kind.as_str()))
+            );
+            let report = lab.startup(&device.target(), app, s.kind()?, s.runs).await?;
+            super::startup::print_startup(&report);
+            Some(report)
+        }
+        _ => None,
+    };
     let network = if args.network { Some(Network::start(lab, &device, args.port).await?) } else { None };
     let options = Options {
         app: args.app.clone(),
         screens_every: args.screens.map(Duration::from_secs),
         flows: network.as_ref().map(|n| n.store.clone()),
+        startup,
         ..Default::default()
     };
     let recorder = match Recorder::start(lab.clone(), &device, args.out.clone(), options).await {
@@ -87,7 +131,16 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
 
     let session = Session::open(&path)?;
     let summary = summarize(&session);
-    let report = markdown(&summary);
+    let violations = budget::check(&summary, &config.budget);
+    let tolerance = config.baseline.tolerance_percent;
+    let changes = baseline_summary.as_ref().map(|b| baseline::compare(b, &summary, tolerance)).unwrap_or_default();
+    let regressions = baseline::regressions(&changes).len();
+    let report = format!(
+        "{}{}{}",
+        markdown(&summary),
+        budget::markdown(&violations, budget::count(&config.budget)),
+        baseline::markdown(&changes, tolerance)
+    );
     let mut notes = Vec::new();
     if let Some(file) = &args.summary {
         std::fs::write(file, &report).with_context(|| format!("could not write {}", file.display()))?;
@@ -115,6 +168,32 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         eprintln!("error: {} crash(es) happened during the run, so it fails (--fail-on-crash).", crashed.len());
         for c in &summary.crashes {
             eprintln!("  {}: {}", c.kind, c.title);
+        }
+        return Err(Exit(1).into());
+    }
+    if !violations.is_empty() {
+        eprintln!("error: {} limit(s) of emulabzip.toml were broken:", violations.len());
+        for v in &violations {
+            eprintln!(
+                "  {}: allowed {}, was {}",
+                budget::label(&v.metric),
+                budget::number(v.limit, &v.unit),
+                budget::number(v.actual, &v.unit)
+            );
+        }
+        return Err(Exit(1).into());
+    }
+    if args.fail_on_regression && regressions > 0 {
+        eprintln!(
+            "error: {regressions} number(s) got worse than the baseline by more than {tolerance:.0}% (--fail-on-regression):"
+        );
+        for c in baseline::regressions(&changes) {
+            eprintln!(
+                "  {}: {} before, {} now",
+                budget::label(&c.metric),
+                budget::number(c.before, &c.unit),
+                budget::number(c.after, &c.unit)
+            );
         }
         return Err(Exit(1).into());
     }
