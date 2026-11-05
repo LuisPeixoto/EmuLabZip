@@ -58,6 +58,9 @@ request, record a whole run and compare two devices. It ships as a native deskto
 - **Live performance.** CPU, memory, frame rate, janky frames and battery for the app you pick, charted as it runs.
 - **Find what grew.** Memory snapshots with a diff by category, and heap dumps (`.hprof`) or memory graphs
   (`.memgraph`) one click away.
+- **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
+  the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
+  slower.
 - **Look inside the sandbox.** Browse an app's files and open SQLite databases, SharedPreferences, property lists,
   JSON and images in place, with read-only SQL queries.
 - **See the traffic.** A built-in proxy decrypts your app's HTTPS and lists every request with its headers, decoded
@@ -151,6 +154,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | Frame rate, janky frames and battery charts | ✅ | — |
 | Memory breakdown, snapshots and diffs | ✅ | ✅ |
 | Heap dumps (`.hprof`) and memory graphs (`.memgraph`) | ✅ | ✅ |
+| Leak finder for heap dumps | ✅ | ✅ (retain cycles, on a Mac) |
+| App start time (cold, warm, hot) | ✅ | ✅ (cold, hot) |
+| Energy per app | ✅ (estimate) | CPU time only |
+| Budgets and baselines in CI | ✅ | ✅ |
 | File browser with SQLite, preferences and property list viewers | ✅ | ✅ |
 | Network inspector: decrypted HTTP(S), HAR export | ✅ | ✅ |
 | Perfetto system traces with summary and SQL | ✅ | — |
@@ -225,6 +232,10 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Logs](docs/logs.md) | Filters, regular expressions, pausing and export |
 | [Performance](docs/performance.md) | What each chart measures and where the numbers come from |
 | [Memory](docs/memory.md) | Snapshots, diffs, heap dumps and memory graphs |
+| [Finding leaks](docs/leaks.md) | The leak finder for heap dumps, and how to read its paths |
+| [App start time](docs/startup.md) | Cold, warm and hot starts, and what is measured |
+| [Energy](docs/energy.md) | What an app used over a stretch of time |
+| [Budgets and baselines](docs/budgets.md) | `emulabzip.toml`, limits and comparing with the last good run |
 | [Storage](docs/storage.md) | Storage roots, viewers and read-only SQL |
 | [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
 | [Traces](docs/traces.md) | Perfetto, simpleperf and Instruments recordings, flame graphs, SQL |
