@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código abierto · MIT · v0.6",
+    "eyebrow": "Código abierto · MIT · v0.7",
     "titleLead": "El laboratorio de depuración para tu",
     "titleAccent": "emulador Android y simulador iOS",
     "lead": "<strong>EmuLabZip</strong> reúne logs, tráfico de red, rendimiento, memoria, almacenamiento, fallos y accesibilidad de tus <strong>emuladores Android y simuladores iOS</strong> en una sola app nativa y rápida. No hay nada que instalar en el dispositivo.",
@@ -52,7 +52,10 @@
       { "icon": "controls", "title": "Controles del dispositivo", "text": "Cambia la ubicación, el modo oscuro, la barra de estado, la batería, los permisos, las notificaciones y los enlaces, siempre con vuelta atrás." },
       { "icon": "layout", "title": "Diseño y accesibilidad", "text": "Mira cada vista de una pantalla y audita etiquetas, áreas táctiles y contraste en Android y en el simulador de iOS." },
       { "icon": "sessions", "title": "Sesiones y CI", "text": "Graba una ejecución completa en un archivo y deja que emulabzip ci grabe alrededor de tus tests en GitHub Actions." },
-      { "icon": "compare", "title": "Comparar dispositivos", "text": "Dos emuladores lado a lado: ambas pantallas, gráficas de CPU y memoria y cada dato que difiere." }
+      { "icon": "compare", "title": "Comparar dispositivos", "text": "Dos emuladores lado a lado: ambas pantallas, gráficas de CPU y memoria y cada dato que difiere." },
+      { "icon": "memory", "title": "Detector de fugas", "text": "Abre un volcado de memoria y mira las Activities y Fragments destruidos que siguen vivos, el camino que mantiene cada uno y qué retiene más memoria." },
+      { "icon": "performance", "title": "Arranque y energía", "text": "Arranques en frío, templado y caliente con la mediana de varias ejecuciones, y la energía que una app usó mientras la usabas." },
+      { "icon": "sessions", "title": "Presupuestos y líneas base", "text": "Escribe límites en emulabzip.toml y haz fallar una ejecución de CI que los rompa o que sea más lenta que la última buena." }
     ]
   },
   "showcase": {
@@ -122,14 +125,14 @@
   "roadmap": {
     "kicker": "Hoja de ruta",
     "title": "Hacia dónde va EmuLabZip",
-    "lead": "Seis fases ya están hechas. Las cuatro siguientes llevan a una versión 1.0 estable.",
+    "lead": "Siete fases ya están hechas. Las tres siguientes llevan a una versión 1.0 estable.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, rendimiento, memoria, almacenamiento y el proxy de red." },
       { "state": "done", "version": "v0.4", "title": "Trazas", "text": "Perfetto, simpleperf e Instruments, con flame graphs y SQL." },
       { "state": "done", "version": "v0.5", "title": "Fallos y automatización", "text": "Fallos, controles del dispositivo, un servidor MCP y plugins." },
       { "state": "done", "version": "v0.6", "title": "Herramientas avanzadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, diseño, accesibilidad, sesiones y CI." },
-      { "state": "next", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
-      { "state": "later", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
+      { "state": "done", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
+      { "state": "next", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
       { "state": "later", "version": "v0.9", "title": "Dispositivos y plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV y plataformas de Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipo y ecosistema", "text": "Informes para compartir, bibliotecas de reglas, una extensión de VS Code y una promesa de estabilidad." }
     ]
