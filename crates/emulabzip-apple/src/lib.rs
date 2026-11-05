@@ -15,6 +15,7 @@ pub mod crashes;
 pub mod devices;
 pub mod info;
 pub mod layout;
+pub mod leaks;
 pub mod memory;
 pub mod network;
 pub mod oslog;
