@@ -56,7 +56,7 @@ targets, contrast) on Android and the iOS Simulator · **sessions** recorded to 
 records around a test run · **comparing two devices**. See [Mocks](mocks.md), [WebSockets](websockets.md),
 [Capture import](pcap.md), [Layout](layout.md), [Sessions](sessions.md), [CI mode](ci.md) and [Compare](compare.md).
 
-## Phase 7: Performance and quality (v0.7)
+## Phase 7: Performance and quality (v0.7) ✅
 
 **App start time**, cold, warm and hot: `am start -W` and the `Displayed` lines on Android, `simctl launch` with the
 unified log's launch signposts on iOS, repeated N times with the median shown · **energy** per app: `dumpsys
