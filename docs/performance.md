@@ -36,6 +36,10 @@ The app's process id is looked up on every sample: when the app restarts, the ch
 
 Sampling stops when you leave the tool, so it never runs in the background.
 
+Below the charts are two cards that measure something on request: **Start time** ([guide](startup.md)) and **Energy**
+([guide](energy.md)). Both change the device while they run (the app is stopped and opened; the battery is unplugged in the
+battery service's eyes), and put it back.
+
 ## From the command line
 
 ```bash
