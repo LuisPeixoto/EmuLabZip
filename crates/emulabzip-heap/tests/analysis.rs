@@ -171,3 +171,27 @@ fn a_very_deep_chain_is_walked_without_recursion() {
     assert_eq!(a.dominators[0].retained_bytes, n * 12);
     assert!(started.elapsed() < std::time::Duration::from_secs(20), "{:?}", started.elapsed());
 }
+
+#[test]
+fn a_path_through_a_class_loader_starts_at_the_static_field() {
+    // thread -> class loader -> Holder (not a root of its own) -> sInstance -> the destroyed activity
+    let (thread, loader) = (40, 41);
+    let mut b = Builder::new();
+    b.class(OBJECT, "java.lang.Object", 0, &[], &[], true)
+        .class(ACTIVITY, "android.app.Activity", OBJECT, &[("mDestroyed", 4), ("mFinished", 4)], &[], true)
+        .class(MAIN, "com.example.MainActivity", ACTIVITY, &[], &[], true)
+        .class(thread, "java.lang.Thread", OBJECT, &[("contextClassLoader", 2)], &[], true)
+        .class(loader, "dalvik.system.PathClassLoader", OBJECT, &[("classes", 2)], &[], true)
+        .class(HOLDER, "com.example.Holder", OBJECT, &[], &[("sInstance", 100)], false)
+        .instance(100, MAIN, &[Value::Bool(true), Value::Bool(true)])
+        .object_array(300, OBJECT, &[HOLDER])
+        .instance(201, loader, &[Value::Ref(300)])
+        .instance(200, thread, &[Value::Ref(201)])
+        .root(0x08, 200);
+    let a = analyze(&b.finish(), &Options::default()).unwrap();
+    assert_eq!(a.leaks.len(), 1, "{:?}", a.leaks);
+    assert_eq!(a.leaks[0].root, "static field");
+    let path: Vec<(&str, Option<&str>)> =
+        a.leaks[0].path.iter().map(|s| (s.class.as_str(), s.field.as_deref())).collect();
+    assert_eq!(path, [("class com.example.Holder", Some("sInstance")), ("com.example.MainActivity", None)]);
+}
