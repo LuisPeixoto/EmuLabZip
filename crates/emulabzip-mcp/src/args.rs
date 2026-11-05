@@ -50,6 +50,35 @@ pub struct App {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct Startup {
+    pub device: Option<String>,
+    /// The app: a package name or bundle id.
+    pub app: String,
+    /// "cold" (default: the process is stopped first), "warm" (screen closed with back, process kept; Android only) or "hot" (app sent to the background).
+    pub kind: Option<String>,
+    /// How many times to open the app, 1 to 20 (default 3).
+    pub runs: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Energy {
+    pub device: Option<String>,
+    /// The app: a package name or bundle id.
+    pub app: String,
+    /// How long to measure, 1 to 120 seconds (default 20). The app should be in use meanwhile.
+    pub seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Heap {
+    pub device: Option<String>,
+    /// The app: a package name. It must be debuggable (Android).
+    pub app: String,
+    /// Look in every heap, not only the app's (default false).
+    pub all_heaps: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Files {
     pub device: Option<String>,
     pub app: String,
