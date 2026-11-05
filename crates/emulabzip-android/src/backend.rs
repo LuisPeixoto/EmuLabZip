@@ -127,7 +127,7 @@ impl Backend for AndroidBackend {
         startup::measure(&self.adb, id, app, kind, runs).await
     }
 
-    async fn energy_begin(&self, id: &str) -> Result<()> {
+    async fn energy_begin(&self, id: &str, _app: &str) -> Result<()> {
         energy::begin(&self.adb, id).await
     }
 

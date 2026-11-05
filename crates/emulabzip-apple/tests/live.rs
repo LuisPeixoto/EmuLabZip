@@ -290,3 +290,44 @@ async fn finds_the_retain_cycles_of_the_leaking_app() {
 
     let _ = std::process::Command::new("xcrun").args(["simctl", "terminate", &id, "dev.emulabzip.crashy"]).status();
 }
+
+/// Needs the crash app installed (`tools/crash-app-ios/install.sh`) on the booted simulator.
+#[cfg(target_os = "macos")]
+#[tokio::test]
+#[ignore = "needs a booted iOS simulator with the crash app installed"]
+async fn measures_cold_and_hot_starts() {
+    let backend = AppleBackend::new();
+    let id = backend.devices().await.unwrap().first().expect("a booted simulator").id.clone();
+    for kind in [emulabzip_core::StartKind::Cold, emulabzip_core::StartKind::Hot] {
+        let report = backend.startup(&id, "dev.emulabzip.crashy", kind, 3).await.unwrap();
+        println!(
+            "{:?}: median {} ms, runs {:?}",
+            kind,
+            report.median_ms,
+            report.runs.iter().map(|r| r.total_ms).collect::<Vec<_>>()
+        );
+        assert_eq!(report.runs.len(), 3);
+        assert!(report.median_ms > 50 && report.median_ms < 10_000, "{}", report.median_ms);
+    }
+    let warm = backend.startup(&id, "dev.emulabzip.crashy", emulabzip_core::StartKind::Warm, 1).await.unwrap_err();
+    assert!(matches!(warm, emulabzip_core::Error::Unsupported(_)));
+}
+
+#[cfg(target_os = "macos")]
+#[tokio::test]
+#[ignore = "needs a booted iOS simulator with the crash app installed"]
+async fn reports_the_cpu_time_an_app_used() {
+    let backend = AppleBackend::new();
+    let id = backend.devices().await.unwrap().first().expect("a booted simulator").id.clone();
+    let _ = std::process::Command::new("xcrun")
+        .args(["simctl", "launch", "--terminate-running-process", &id, "dev.emulabzip.crashy", "--leak"])
+        .output();
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    backend.energy_begin(&id, "dev.emulabzip.crashy").await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    let report = backend.energy_end(&id, "dev.emulabzip.crashy", 3).await.unwrap();
+    println!("{report:#?}");
+    assert_eq!(report.estimated_mah, None, "the simulator has no power model");
+    assert!(report.notes.iter().any(|n| n.contains("no battery")));
+    assert!(backend.energy_end(&id, "dev.emulabzip.crashy", 3).await.is_err(), "a measurement is read once");
+}

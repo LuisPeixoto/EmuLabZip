@@ -1,0 +1,11 @@
+getpwuid_r did not find a match for uid N
+Filtering the log data using "composedMessage CONTAINS "dev.emulabzip.crashy" OR processImagePath ENDSWITH "Crashy""
+Timestamp               Ty Process[PID:TID]
+    environment =     {
+2026-11-05 19:23:59.290 Df SpringBoard[19092:366de] [com.apple.FrontBoard:Common] [FBSystemService][0x36de] Received request to open "dev.emulabzip.crashy" from CoreSimulatorBr:19123.
+2026-11-05 19:23:59.415 Df SpringBoard[19092:3351a] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:dev.emulabzip.crashy-default][1] Scene activated.
+2026-11-05 19:23:59.418 Df SpringBoard[19092:3351a] [com.apple.UIKit:SceneDeactivation] [sceneID:dev.emulabzip.crashy-default] Setting deactivation reasons to: 'systemAnimation' for reason: scene settings update - settings are eligible for deactivation reasons
+2026-11-05 19:23:59.672 Df SpringBoard[19092:3351a] [com.apple.UIKit:SceneDeactivation] [sceneID:dev.emulabzip.crashy-default] Setting deactivation reasons to: '(none)' for reason: updateAllScenesForBand - Assertion removed.
+# a hot start of the same app
+2026-11-05 19:30:54.203 Df SpringBoard[21021:38d72] [com.apple.FrontBoard:Common] [FBSystemService][0xa337] Received request to open "dev.emulabzip.crashy" from CoreSimulatorBr:21052.
+2026-11-05 19:30:54.706 Df SpringBoard[21021:38178] [com.apple.UIKit:SceneDeactivation] [sceneID:dev.emulabzip.crashy-default] Setting deactivation reasons to: '(none)' for reason: updateAllScenesForBand - Assertion removed.

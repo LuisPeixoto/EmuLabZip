@@ -17,6 +17,8 @@ use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, stora
 pub struct AppleBackend {
     /// Where the Mac's proxy settings are saved while the simulator's traffic is captured.
     state_dir: std::path::PathBuf,
+    /// Energy measurements in progress, by simulator.
+    energy: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<String, crate::energy::Began>>>,
 }
 
 impl Default for AppleBackend {
@@ -27,12 +29,12 @@ impl Default for AppleBackend {
 
 impl AppleBackend {
     pub fn new() -> Self {
-        AppleBackend { state_dir: emulabzip_core::data_dir() }
+        AppleBackend { state_dir: emulabzip_core::data_dir(), energy: Default::default() }
     }
 
     /// Keeps the saved proxy settings in `dir` instead of the default folder. Used by tests.
     pub fn with_state_dir(dir: impl Into<std::path::PathBuf>) -> Self {
-        AppleBackend { state_dir: dir.into() }
+        AppleBackend { state_dir: dir.into(), energy: Default::default() }
     }
 
     /// Puts the Mac's proxy back the way it was if EmuLabZip left it pointing at itself, for
@@ -106,6 +108,32 @@ impl Backend for AppleBackend {
             xcode: xcode.and_then(|x| x.lines().next().map(str::to_string)),
         };
         Ok(info::build_sections(&sim, &extras))
+    }
+
+    async fn startup(
+        &self,
+        id: &str,
+        app: &str,
+        kind: emulabzip_core::StartKind,
+        runs: u32,
+    ) -> Result<emulabzip_core::StartupReport> {
+        crate::startup::measure(id, app, kind, runs).await
+    }
+
+    async fn energy_begin(&self, id: &str, app: &str) -> Result<()> {
+        let began = crate::energy::begin(id, app).await?;
+        self.energy.lock().unwrap_or_else(|e| e.into_inner()).insert(id.to_string(), began);
+        Ok(())
+    }
+
+    async fn energy_end(&self, id: &str, app: &str, _seconds: u64) -> Result<emulabzip_core::EnergyReport> {
+        let began = self
+            .energy
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(id)
+            .ok_or_else(|| Error::failed("no energy measurement was started for this simulator"))?;
+        crate::energy::end(began, app).await
     }
 
     async fn layout(&self, id: &str) -> Result<emulabzip_core::LayoutSnapshot> {
