@@ -111,6 +111,40 @@ pub async fn record(lab: &Lab, device: Option<&str>, args: RecordArgs) -> Result
     Ok(())
 }
 
+/// What got better or worse between two sessions.
+pub fn compare(baseline: &Path, run: &Path, tolerance: f64, json: bool) -> Result<()> {
+    let (a, b) = (summarize(&Session::open(baseline)?), summarize(&Session::open(run)?));
+    let changes = emulabzip_session::baseline::compare(&a, &b, tolerance);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&changes)?);
+    } else if changes.is_empty() {
+        println!("These two sessions have no number in common to compare.");
+    } else {
+        for c in &changes {
+            let mark = if c.regression {
+                "worse "
+            } else if c.after < c.before {
+                "better"
+            } else {
+                "same  "
+            };
+            let pct = c.percent.map(|p| format!("{p:+.0}%")).unwrap_or_else(|| "new".into());
+            println!(
+                "{mark}  {:<20} {:>12} → {:<12} {}",
+                emulabzip_session::budget::label(&c.metric),
+                emulabzip_session::budget::number(c.before, &c.unit),
+                emulabzip_session::budget::number(c.after, &c.unit),
+                output::dim(&pct)
+            );
+        }
+        eprintln!("{}", output::dim(&format!("A number counts as worse when it grew by more than {tolerance:.0}%.")));
+    }
+    if changes.iter().any(|c| c.regression) {
+        return Err(super::ci::Exit(1).into());
+    }
+    Ok(())
+}
+
 pub fn show(path: &Path, json: bool, as_markdown: bool) -> Result<()> {
     let session = Session::open(path)?;
     let summary = summarize(&session);
