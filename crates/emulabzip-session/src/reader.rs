@@ -4,10 +4,10 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use emulabzip_core::{CrashReport, Error, LogEntry, PerfSample, Result};
+use emulabzip_core::{CrashReport, Error, LogEntry, PerfSample, Result, StartupReport};
 use serde::de::DeserializeOwned;
 
-use crate::format::{CRASHES, LOGS, META, Meta, NETWORK, PERF, SCREENS, VERSION, bad};
+use crate::format::{CRASHES, LOGS, META, Meta, NETWORK, PERF, SCREENS, STARTUP, VERSION, bad};
 
 /// The biggest single file read from a session. A bigger one is not a session of ours.
 const MAX_FILE: u64 = 512 * 1024 * 1024;
@@ -26,6 +26,8 @@ pub struct Session {
     pub crashes: Vec<CrashReport>,
     /// The names of the screenshots, in order.
     pub screens: Vec<String>,
+    /// How long the app took to open, when that was measured before the run.
+    pub startup: Option<StartupReport>,
     /// The recording was cut short: it was read from a folder, or never got an end time.
     pub partial: bool,
     source: Source,
@@ -81,6 +83,7 @@ impl Session {
             har: None,
             crashes: Vec::new(),
             screens: Vec::new(),
+            startup: None,
             partial: partial_dir,
             source,
         };
@@ -101,6 +104,9 @@ impl Session {
         }
         if let Some(b) = session.read(NETWORK)? {
             session.har = serde_json::from_slice(&b).ok();
+        }
+        if let Some(b) = session.read(STARTUP)? {
+            session.startup = serde_json::from_slice(&b).ok();
         }
         for name in session.names(CRASHES) {
             if let Some(b) = session.read(&format!("{CRASHES}/{name}"))?

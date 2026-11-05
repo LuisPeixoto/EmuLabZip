@@ -287,3 +287,26 @@ fn a_half_written_last_line_is_skipped() {
     assert_eq!(session.logs.len(), 1);
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[tokio::test]
+async fn the_start_time_measured_before_a_run_travels_with_the_session() {
+    use emulabzip_core::{StartKind, StartupReport, StartupRun};
+    let dir = scratch("startup");
+    let out = dir.join("run.ezsession");
+    let runs = [610, 590, 700]
+        .map(|total_ms| StartupRun { total_ms, wait_ms: None, launch_state: Some("COLD".into()) })
+        .to_vec();
+    let options =
+        Options { startup: StartupReport::new("com.example.app", StartKind::Cold, runs), ..Default::default() };
+    let recorder = Recorder::start(lab(), &device(), out.clone(), options).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    recorder.finish().await.unwrap();
+
+    let session = Session::open(&out).unwrap();
+    let start = session.startup.as_ref().expect("start time");
+    assert_eq!((start.median_ms, start.runs.len()), (610, 3));
+    let summary = summarize(&session);
+    assert_eq!(summary.startup.as_ref().map(|s| s.median_ms), Some(610));
+    assert!(markdown(&summary).contains("| Start time | 610 ms (cold of 3 runs) |"), "{}", markdown(&summary));
+    std::fs::remove_dir_all(dir).ok();
+}
