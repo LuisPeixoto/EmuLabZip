@@ -18,8 +18,11 @@ one-line result.
 | `--screens N` | A screenshot every N seconds |
 | `--fail-on-crash` | Fail the run (exit 1) when the app crashed while it ran, even if the command passed |
 | `--summary FILE` | Also write the report, in Markdown, to this file |
+| `--config FILE` | Limits to hold the run to (default: `./emulabzip.toml`, when there is one). See [Budgets](budgets.md) |
+| `--baseline FILE` | An earlier session to compare with |
+| `--fail-on-regression` | Fail when a number got worse than the baseline by more than the tolerance |
 
-The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, it is 1; if you press Ctrl+C,
+The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, a [budget](budgets.md) is broken or a regression was asked to fail the run, it is 1; if you press Ctrl+C,
 130. When the `GITHUB_STEP_SUMMARY` environment variable is set (GitHub Actions), the Markdown report is appended to it
 and shows on the run's page without extra steps.
 
