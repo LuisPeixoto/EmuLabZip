@@ -1,7 +1,8 @@
 import Foundation
 import UIKit
 
-// Fails on purpose, chosen by a launch argument: --crash, --abort or --exception.
+// Fails on purpose, chosen by a launch argument: --crash, --abort or --exception. With --leak it leaks memory
+// instead (retain cycles that nothing can free) and keeps running, so the leaks tool has a process to look at.
 
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -23,9 +24,27 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                 abort()
             } else if arguments.contains("--exception") {
                 NSException(name: .invalidArgumentException, reason: "EmuLabZip test exception", userInfo: nil).raise()
+            } else if arguments.contains("--leak") {
+                makeLeaks(count: 5)
             }
         }
         return true
+    }
+}
+
+/// Two objects that hold each other: once the function returns nothing refers to them, and nothing frees them.
+final class CycleNode {
+    var other: CycleNode?
+    let payload = [UInt8](repeating: 7, count: 4096)
+}
+
+@inline(never)
+func makeLeaks(count: Int) {
+    for _ in 0..<count {
+        let a = CycleNode()
+        let b = CycleNode()
+        a.other = b
+        b.other = a
     }
 }
 
