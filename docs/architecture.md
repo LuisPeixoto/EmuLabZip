@@ -35,7 +35,8 @@ app and the CLI) use them the same way.
 | `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
 | `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding (and HTTP/3 to servers through `quinn` and `h3`), rules that mock, delay, block or hold requests, a WebSocket frame parser, a reader for packet captures, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
 | `emulabzip-trace` | Making sense of recordings: the flame graph model, parsers for simpleperf reports and `xctrace` exports, Perfetto configurations, the trace processor (download, SQL, summaries), the one-shot server for the Perfetto UI, and the library of recordings. No platform code. |
-| `emulabzip-session` | Sessions: the `.ezsession` format, a recorder that follows a device through `Lab`, a reader that also opens the folder of a killed recording, and the summary. |
+| `emulabzip-heap` | Reading `.hprof` heap dumps and finding leaks: a two-pass parser, the object graph, dominators and retained sizes, and the leak rules. No platform code and no dependencies, so it also runs on a dump from a file. |
+| `emulabzip-session` | Sessions: the `.ezsession` format, a recorder that follows a device through `Lab`, a reader that also opens the folder of a killed recording, the summary, the `emulabzip.toml` budgets and the comparison with a baseline. |
 | `emulabzip-mcp` | The MCP server: tools over `Lab`, served on standard input and output with `rmcp`. |
 | `emulabzip-plugin` | Plugins: manifests, the approval step, the JSON-lines protocol and the runner. No platform code. |
 | `emulabzip-cli` | The `emulabzip` command. |
