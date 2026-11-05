@@ -92,7 +92,7 @@
   }
 
   async function openDump() {
-    await analyze(await app.attempt(() => api.pickHeapDump()));
+    await analyze((await app.attempt(() => api.pickHeapDump())) ?? null);
   }
 
   const time = (d: Date) => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
