@@ -45,17 +45,17 @@
 
 <header class="top" id="top">
   <div class="wrap bar">
-    <a class="brand" href="{{page.home}}" aria-label="EmuLabZip">
-      <img src="{{img.logo_svg}}" alt="" width="32" height="32">
+    <a class="brand" href="{{page.home}}">
+      <img src="{{img.logo_svg}}" alt="EmuLabZip logo" width="32" height="32">
       <span>EmuLabZip</span>
     </a>
     <nav class="links" aria-label="{{nav.label}}">
-      <a href="#features">{{nav.features}}</a>
-      <a href="#showcase">{{nav.showcase}}</a>
-      <a href="#cli">{{nav.cli}}</a>
-      <a href="#ai">{{nav.ai}}</a>
-      <a href="#roadmap">{{nav.roadmap}}</a>
-      <a href="#faq">{{nav.faq}}</a>
+      <a href="{{page.home}}#features">{{nav.features}}</a>
+      <a href="{{page.home}}#showcase">{{nav.showcase}}</a>
+      <a href="{{page.home}}#cli">{{nav.cli}}</a>
+      <a href="{{page.home}}#ai">{{nav.ai}}</a>
+      <a href="{{page.home}}#roadmap">{{nav.roadmap}}</a>
+      <a href="{{page.home}}#faq">{{nav.faq}}</a>
     </nav>
     <div class="tools">
       <details class="lang">
@@ -250,7 +250,7 @@
   <div class="wrap narrow author">
     <h2 id="h-author">{{author.title}}</h2>
     <p>{{{author.text}}}</p>
-    <p class="who"><a href="{{site.author.github}}" rel="noopener me">GitHub</a> · <a href="{{site.author.web}}" rel="noopener me">luispeixoto.dev</a></p>
+    <p class="who"><a href="{{site.author.github}}" rel="noopener me">github.com/LuisPeixoto</a></p>
   </div>
 </section>
 
@@ -259,8 +259,16 @@
 <footer class="foot">
   <div class="wrap foot-in">
     <div class="foot-brand">
-      <a class="brand" href="{{page.home}}" aria-label="EmuLabZip"><img src="{{img.logo_svg}}" alt="" width="32" height="32" loading="lazy"><span>EmuLabZip</span></a>
+      <a class="brand" href="{{page.home}}"><img src="{{img.logo_svg}}" alt="EmuLabZip logo" width="32" height="32" loading="lazy"><span>EmuLabZip</span></a>
       <p>{{footer.tagline}}</p>
+      <ul class="foot-links">
+        <li><a href="{{page.home}}#features">{{nav.features}}</a></li>
+        <li><a href="{{page.home}}#showcase">{{nav.showcase}}</a></li>
+        <li><a href="{{page.home}}#cli">{{nav.cli}}</a></li>
+        <li><a href="{{page.home}}#ai">{{nav.ai}}</a></li>
+        <li><a href="{{page.home}}#roadmap">{{nav.roadmap}}</a></li>
+        <li><a href="{{page.home}}#faq">{{nav.faq}}</a></li>
+      </ul>
     </div>
     <nav aria-label="{{footer.project}}">
       <h2>{{footer.project}}</h2>
@@ -288,7 +296,7 @@
     </nav>
   </div>
   <div class="wrap legal">
-    <p>© 2026 <a href="{{site.author.web}}" rel="noopener me">Luis Peixoto</a> · {{footer.license}}</p>
+    <p>© 2026 <a href="{{site.author.github}}" rel="noopener me">Luis Peixoto</a> · {{footer.license}}</p>
   </div>
 </footer>
 

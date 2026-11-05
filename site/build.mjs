@@ -102,12 +102,70 @@ function minifyCss(css) {
 }
 
 function minifyJs(js) {
-  // Only whole-line comments and indentation: strings and regular expressions are left alone.
-  return js
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith("//"))
-    .join("\n");
+  try {
+    const out = tokenMinify(js);
+    new Function(out); // refuses to ship what does not parse
+    return out;
+  } catch (e) {
+    console.warn(`JS minifier fell back to comment stripping: ${e.message}`);
+    return js
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("//"))
+      .join("\n");
+  }
+}
+
+/** Removes comments and whitespace, leaving strings, template literals and regular expressions as they are. */
+function tokenMinify(src) {
+  const isWord = (c) => /[\w$]/.test(c || "");
+  const regexAfter = /[(,=:[!&|?{};+\-*%<>~^]/;
+  let out = "";
+  let pendingSpace = false;
+  let i = 0;
+  const emit = (text) => {
+    // A space survives only between two characters that would otherwise fuse.
+    if (pendingSpace && out && (isWord(out.at(-1)) && isWord(text[0]) || (/[+\-]/.test(out.at(-1)) && out.at(-1) === text[0]))) out += " ";
+    pendingSpace = false;
+    out += text;
+  };
+  while (i < src.length) {
+    const c = src[i];
+    if (/\s/.test(c)) {
+      pendingSpace = true;
+      i++;
+    } else if (c === "/" && src[i + 1] === "/") {
+      while (i < src.length && src[i] !== "\n") i++;
+    } else if (c === "/" && src[i + 1] === "*") {
+      i = src.indexOf("*/", i + 2) + 2;
+      pendingSpace = true;
+    } else if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== c) j += src[j] === "\\" ? 2 : 1;
+      if (c === "`" && src.slice(i, j).includes("${")) throw new Error("template expressions are not handled");
+      emit(src.slice(i, j + 1));
+      i = j + 1;
+    } else if (c === "/" && (!out || regexAfter.test(out.at(-1)))) {
+      let j = i + 1;
+      let inClass = false;
+      while (j < src.length && (src[j] !== "/" || inClass)) {
+        if (src[j] === "\\") j++;
+        else if (src[j] === "[") inClass = true;
+        else if (src[j] === "]") inClass = false;
+        j++;
+      }
+      j++;
+      while (/[a-z]/.test(src[j] || "")) j++;
+      emit(src.slice(i, j));
+      i = j;
+    } else {
+      let j = i + 1;
+      if (isWord(c)) while (isWord(src[j])) j++;
+      emit(src.slice(i, j));
+      i = j;
+    }
+  }
+  return out;
 }
 
 function minifyHtml(html) {
@@ -222,8 +280,8 @@ function jsonLd(l, t) {
       "@type": "Person",
       "@id": `${site.url}/#author`,
       name: site.author.name,
-      url: site.author.web,
-      sameAs: [site.author.github, site.author.web],
+      url: site.author.github,
+      sameAs: [site.author.github],
       jobTitle: t.author.role,
     },
     {
