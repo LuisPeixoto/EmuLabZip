@@ -49,6 +49,8 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
 - Data stays on your machine. EmuLabZip has no telemetry and makes no network connections of its own, except the
   one-time, opt-in download of the trace processor.
 - Files are only written to disk after an explicit user action (export, pull, screenshot, heap dump, recording).
+- A heap dump holds everything the app had in memory: tokens, personal data, what was on screen. `emulabzip heap analyze`
+  reads it on your computer and sends nothing anywhere, but keep the file as private as the app's data.
 - The Perfetto trace processor is the one thing EmuLabZip downloads, after you agree: from the official Perfetto
   release, checked against a SHA-256 pinned in the source, and discarded on a mismatch. It runs with the trace you
   open, bound to `127.0.0.1`.
