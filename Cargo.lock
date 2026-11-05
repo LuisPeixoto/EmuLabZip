@@ -1220,6 +1220,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulabzip-heap"
+version = "0.6.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "emulabzip-mcp"
 version = "0.6.0"
 dependencies = [
