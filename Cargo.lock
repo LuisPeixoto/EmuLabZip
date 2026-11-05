@@ -1235,6 +1235,7 @@ version = "0.6.0"
 dependencies = [
  "base64 0.22.1",
  "emulabzip-core",
+ "emulabzip-heap",
  "emulabzip-plugin",
  "emulabzip-session",
  "emulabzip-trace",

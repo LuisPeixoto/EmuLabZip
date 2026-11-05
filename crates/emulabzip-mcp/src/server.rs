@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use base64::Engine;
 use emulabzip_core::{
-    Appearance, Control, Device, Grant, Lab, LogFilter, LogLevel, LogOptions, PerfOptions, PerfettoPreset, StatusBar,
-    Target, TraceFormat, TraceRequest,
+    Appearance, Control, Device, Grant, Lab, LogFilter, LogLevel, LogOptions, PerfOptions, PerfettoPreset, StartKind,
+    StatusBar, Target, TraceFormat, TraceRequest,
 };
 use emulabzip_plugin as plugin;
 use emulabzip_trace::flame::hotspots;
@@ -225,6 +225,63 @@ impl EmuLabServer {
         reply(
             async { json(&self.lab.memory(&self.target(&a.device).await?, &a.app).await.map_err(|e| e.to_string())?) }
                 .await,
+        )
+    }
+
+    #[tool(
+        description = "Time how long an app takes to open (cold, warm or hot), several times. Returns the median and every run. It stops and opens the app on the device."
+    )]
+    async fn measure_startup(&self, Parameters(a): Parameters<args::Startup>) -> CallToolResult {
+        reply(
+            async {
+                let kind = match a.kind.as_deref() {
+                    None => StartKind::Cold,
+                    Some(k) => StartKind::parse(k).ok_or("kind is cold, warm or hot")?,
+                };
+                let runs = a.runs.unwrap_or(3).clamp(1, 20);
+                let target = self.target(&a.device).await?;
+                json(&self.lab.startup(&target, &a.app, kind, runs).await.map_err(|e| e.to_string())?)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Measure the energy an app uses over a few seconds (at most 120). Android reports the system's estimate, wake locks, jobs and network; iOS reports CPU time. Use the app meanwhile."
+    )]
+    async fn measure_energy(&self, Parameters(a): Parameters<args::Energy>) -> CallToolResult {
+        reply(
+            async {
+                let seconds = a.seconds.unwrap_or(20).clamp(1, 120);
+                let target = self.target(&a.device).await?;
+                self.lab.energy_begin(&target, &a.app).await.map_err(|e| e.to_string())?;
+                tokio::time::sleep(Duration::from_secs(seconds)).await;
+                json(&self.lab.energy_end(&target, &a.app, seconds).await.map_err(|e| e.to_string())?)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Take a heap dump of a debuggable Android app and look for leaks: destroyed Activities and removed Fragments still alive, each with the path from a GC root that keeps it, plus the objects that keep the most memory alive."
+    )]
+    async fn analyze_heap(&self, Parameters(a): Parameters<args::Heap>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                let dump = self.lab.heap_dump(&target, &a.app).await.map_err(|e| e.to_string())?;
+                if !dump.file_name.ends_with(".hprof") {
+                    return Err("only Android .hprof dumps can be analyzed here; open a .memgraph in Xcode".to_string());
+                }
+                let options = emulabzip_heap::Options { top: 10, all_heaps: a.all_heaps.unwrap_or(false) };
+                let bytes = dump.bytes;
+                let analysis = tokio::task::spawn_blocking(move || emulabzip_heap::analyze(&bytes, &options))
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .map_err(|e| e.to_string())?;
+                json(&analysis)
+            }
+            .await,
         )
     }
 
