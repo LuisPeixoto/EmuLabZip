@@ -6,6 +6,10 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-05
+
+Phase 7: performance and quality.
+
 ### Added
 
 - **App start time**: cold, warm and hot starts, repeated N times with the median, fastest, slowest and 90th percentile.
@@ -186,7 +190,9 @@ Phase 1: connect and observe.
 - Documentation: getting started, Android, iOS Simulator, logs, CLI, architecture, troubleshooting, distribution, the
   roadmap and a write-up of how Instruments and the Android Studio profilers collect their data.
 
-[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.2.0...v0.3.0
