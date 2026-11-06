@@ -12,6 +12,7 @@ use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::energy::EnergyReport;
 use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
+use crate::frameworks::Framework;
 use crate::layout::LayoutSnapshot;
 use crate::log::LogEntry;
 use crate::memory::{HeapDump, MemoryReport};
@@ -96,6 +97,11 @@ pub trait Backend: Send + Sync {
     /// Opens an app `runs` times and times each opening. See [`StartKind`] for what the three kinds mean.
     async fn startup(&self, _id: &str, _app: &str, _kind: StartKind, _runs: u32) -> Result<StartupReport> {
         Err(Error::Unsupported("Start time"))
+    }
+
+    /// The UI frameworks `app` is built with, found from its files.
+    async fn frameworks(&self, _id: &str, _app: &str) -> Result<Vec<Framework>> {
+        Err(Error::Unsupported("Framework detection"))
     }
 
     /// The log messages from the last few minutes that contain `needle`, oldest first. Frameworks announce where
@@ -307,6 +313,13 @@ impl Lab {
             return Err(Error::invalid("number of runs (1 to 50)", runs.to_string()));
         }
         self.backend(target.platform)?.startup(&target.id, app, kind, runs).await
+    }
+
+    pub async fn frameworks(&self, target: &Target, app: &str) -> Result<Vec<Framework>> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.frameworks(&target.id, app).await
     }
 
     pub async fn recent_logs(&self, target: &Target, needle: &str) -> Result<Vec<LogEntry>> {

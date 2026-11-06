@@ -1,0 +1,6 @@
+APK /data/app/~~e==/com.example.plain-f==/base.apk
+Archive:  /data/app/~~e==/com.example.plain-f==/base.apk
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     4400  2009-01-01 00:00   AndroidManifest.xml
+   900000  2009-01-01 00:00   classes.dex

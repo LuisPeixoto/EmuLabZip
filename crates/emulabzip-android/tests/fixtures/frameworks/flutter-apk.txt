@@ -1,0 +1,10 @@
+APK /data/app/~~x==/dev.emulabzip.flutterdemo-y==/base.apk
+Archive:  /data/app/~~x==/dev.emulabzip.flutterdemo-y==/base.apk
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     5612  2009-01-01 00:00   AndroidManifest.xml
+  9843872  2009-01-01 00:00   lib/arm64-v8a/libflutter.so
+   421992  2009-01-01 00:00   lib/arm64-v8a/libapp.so
+    18320  2009-01-01 00:00   assets/flutter_assets/AssetManifest.json
+  8123456  2009-01-01 00:00   classes.dex
+---------                     -------

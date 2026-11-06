@@ -1,0 +1,8 @@
+APK /data/app/~~c==/dev.emulabzip.compose-d==/base.apk
+Archive:  /data/app/~~c==/dev.emulabzip.compose-d==/base.apk
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       10  2009-01-01 00:00   META-INF/androidx.compose.runtime_runtime.version
+       10  2009-01-01 00:00   META-INF/androidx.compose.ui_ui.version
+     4400  2009-01-01 00:00   AndroidManifest.xml
+  2900000  2009-01-01 00:00   classes.dex

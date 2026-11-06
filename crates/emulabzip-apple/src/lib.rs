@@ -14,6 +14,7 @@ pub mod controls;
 pub mod crashes;
 pub mod devices;
 pub mod energy;
+pub mod frameworks;
 pub mod info;
 pub mod layout;
 pub mod leaks;
