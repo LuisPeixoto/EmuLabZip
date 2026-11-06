@@ -8,6 +8,7 @@
 
 pub mod breakpoints;
 pub mod ca;
+pub mod classify;
 pub mod decode;
 pub mod flow;
 pub mod har;
