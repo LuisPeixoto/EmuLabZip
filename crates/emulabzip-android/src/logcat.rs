@@ -12,16 +12,14 @@ pub fn command(options: LogOptions) -> String {
     format!("logcat -v threadtime -T {tail} {level}")
 }
 
-/// How many of the latest lines a search looks through.
-const RECENT_LINES: u32 = 5_000;
-
 /// The lines of the log so far whose message contains `needle`, oldest first.
 pub async fn recent(
     adb: &emulabzip_adb::AdbClient,
     serial: &str,
     needle: &str,
 ) -> emulabzip_core::Result<Vec<LogEntry>> {
-    let text = adb.shell(serial, &format!("logcat -d -v threadtime -t {RECENT_LINES}")).await?;
+    // The whole buffer: a framework writes its address once at start, and busy apps push it far back.
+    let text = adb.shell(serial, "logcat -d -v threadtime").await?;
     Ok(matching(text.lines(), needle))
 }
 
