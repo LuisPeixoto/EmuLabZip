@@ -16,6 +16,7 @@ pub mod har;
 pub mod http3;
 pub mod io;
 pub mod pcap;
+pub mod protos;
 pub mod proxy;
 pub mod rules;
 pub mod store;
