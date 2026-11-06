@@ -42,6 +42,9 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `memory_report` | Where an app's memory goes |
 | `measure_startup` | The median and every run of cold, warm or hot start times (stops and opens the app) |
 | `measure_energy` | The energy an app uses over a few seconds, at most 120 |
+| `detect_frameworks` | The UI frameworks an app is built with |
+| `flutter_widget_tree`, `flutter_frames`, `flutter_memory` | Inside a running Flutter debug or profile app: its widgets with their source lines, frame times over a few seconds (at most 30), and the Dart heap |
+| `react_tree` | The component tree of a React Native development app, through Metro |
 | `analyze_heap` | Takes a heap dump of an Android app and lists leaked Activities and Fragments with their paths |
 | `list_files`, `read_file` | An app's storage roots, folders and files (text, or base64 for binary; cut at 256 KB) |
 | `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints |
