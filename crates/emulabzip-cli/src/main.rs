@@ -157,6 +157,21 @@ enum Command {
         /// Show apps the servers' HTTP/3 offers instead of hiding them
         #[arg(long, requires = "http3")]
         show_h3: bool,
+        /// Slow the network with a preset: fast-3g, slow-3g, slow-wifi, high-latency, packet-loss or offline
+        #[arg(long, value_name = "PRESET")]
+        conditions: Option<String>,
+        /// Download speed in kilobits per second (changes the preset, or stands alone)
+        #[arg(long, value_name = "KBPS")]
+        down: Option<u32>,
+        /// Upload speed in kilobits per second
+        #[arg(long, value_name = "KBPS")]
+        up: Option<u32>,
+        /// Time added to every answer, in milliseconds
+        #[arg(long, value_name = "MS")]
+        latency: Option<u32>,
+        /// How much of the traffic stalls like a lost packet, in percent
+        #[arg(long, value_name = "PERCENT")]
+        loss: Option<f32>,
     },
     /// Time how long an app takes to open: cold, warm or hot, several times, with the median
     Startup {
@@ -180,6 +195,24 @@ enum Command {
         seconds: u64,
         #[arg(long)]
         json: bool,
+    },
+    /// Show which UI frameworks an app is built with: Flutter, React Native, Compose or SwiftUI
+    Frameworks {
+        /// Package name or bundle id
+        app: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Look inside a Flutter debug or profile app through its Dart VM service
+    Flutter {
+        #[command(subcommand)]
+        action: FlutterAction,
+    },
+    /// Look inside a React Native app through Metro and Hermes
+    #[command(name = "rn", alias = "react-native")]
+    Rn {
+        #[command(subcommand)]
+        action: RnAction,
     },
     /// Look inside heap dumps for leaks
     Heap {
@@ -345,6 +378,81 @@ impl From<Preset> for PerfettoPreset {
             Preset::Custom => PerfettoPreset::Custom,
         }
     }
+}
+
+#[derive(Subcommand)]
+enum FlutterAction {
+    /// The widget tree, as the Flutter inspector shows it
+    Tree {
+        /// Package name or bundle id
+        app: String,
+        /// Where the VM service listens, when it cannot be found in the log: http://127.0.0.1:41233/token=/
+        #[arg(long)]
+        uri: Option<String>,
+        /// How many levels to print
+        #[arg(long, default_value_t = 12)]
+        depth: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Build and raster times of the frames the app draws while you use it
+    Frames {
+        app: String,
+        #[arg(long)]
+        uri: Option<String>,
+        /// How long to record, in seconds
+        #[arg(short, long, default_value_t = 10)]
+        seconds: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// The Dart heap and the classes that use the most of it
+    Memory {
+        app: String,
+        #[arg(long)]
+        uri: Option<String>,
+        /// How many classes to list
+        #[arg(long, default_value_t = 15)]
+        top: usize,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum RnAction {
+    /// The React component tree
+    Tree {
+        /// The app's package name or bundle id, to pick its runtime among Metro's
+        app: String,
+        /// Metro's port on this computer
+        #[arg(long, default_value_t = cmd::frameworks::DEFAULT_METRO)]
+        metro: u16,
+        /// How many levels to print
+        #[arg(long, default_value_t = 14)]
+        depth: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Hermes' heap usage
+    Heap {
+        app: String,
+        #[arg(long, default_value_t = cmd::frameworks::DEFAULT_METRO)]
+        metro: u16,
+        #[arg(long)]
+        json: bool,
+    },
+    /// What the app writes to the JavaScript console
+    Console {
+        app: String,
+        #[arg(long, default_value_t = cmd::frameworks::DEFAULT_METRO)]
+        metro: u16,
+        /// How long to listen, in seconds
+        #[arg(short, long, default_value_t = 10)]
+        seconds: u64,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -751,10 +859,59 @@ async fn run() -> ExitCode {
         Command::Net { action: Some(NetAction::Import { file, har, json, dns }), .. } => {
             cmd::net::import(&file, har, json, dns).await
         }
-        Command::Net { action: None, port, no_connect, har, json, rules, http3, show_h3 } => {
-            let args =
-                cmd::net::NetArgs { device: cli.device.clone(), port, no_connect, har, json, rules, http3, show_h3 };
+        Command::Net {
+            action: None,
+            port,
+            no_connect,
+            har,
+            json,
+            rules,
+            http3,
+            show_h3,
+            conditions,
+            down,
+            up,
+            latency,
+            loss,
+        } => {
+            let conditions = cmd::net::ConditionArgs {
+                preset: conditions,
+                down_kbps: down,
+                up_kbps: up,
+                latency_ms: latency,
+                loss_percent: loss,
+            };
+            let args = cmd::net::NetArgs {
+                device: cli.device.clone(),
+                port,
+                no_connect,
+                har,
+                json,
+                rules,
+                http3,
+                show_h3,
+                conditions,
+            };
             cmd::net::run(&lab, args).await
+        }
+        Command::Frameworks { app, json } => cmd::frameworks::detect(&lab, device, &app, json).await,
+        Command::Flutter { action: FlutterAction::Tree { app, uri, depth, json } } => {
+            cmd::frameworks::flutter_tree(&lab, device, &app, uri.as_deref(), depth, json).await
+        }
+        Command::Flutter { action: FlutterAction::Frames { app, uri, seconds, json } } => {
+            cmd::frameworks::flutter_frames(&lab, device, &app, uri.as_deref(), seconds, json).await
+        }
+        Command::Flutter { action: FlutterAction::Memory { app, uri, top, json } } => {
+            cmd::frameworks::flutter_memory(&lab, device, &app, uri.as_deref(), top, json).await
+        }
+        Command::Rn { action: RnAction::Tree { app, metro, depth, json } } => {
+            cmd::frameworks::rn_tree(&app, metro, depth, json).await
+        }
+        Command::Rn { action: RnAction::Heap { app, metro, json } } => {
+            cmd::frameworks::rn_heap(&app, metro, json).await
+        }
+        Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
+            cmd::frameworks::rn_console(&app, metro, seconds, json).await
         }
         Command::Startup { app, kind, runs, json } => cmd::startup::startup(&lab, device, &app, kind, runs, json).await,
         Command::Energy { app, seconds, json } => cmd::startup::energy(&lab, device, &app, seconds, json).await,
