@@ -107,6 +107,13 @@ The **Proto** column shows what the proxy spoke to the server: `h1`, `h2` or `h3
 - **Rules**: answer a request yourself, slow it down, block it or stop it and edit it. See
   [Mocks and breakpoints](mocks.md).
 - **Import**: open a `.pcap` or `.pcapng` capture as requests. See [Importing a capture](pcap.md).
+- **Send again**: **Resend** sends a request once more as it was; **Edit and resend** lets you change the method,
+  address, headers and body first. The copy is a new line in the list marked `RESEND`. Rules and breakpoints do not
+  apply to it, since you chose to send it. A mocked request, a WebSocket and a request read from a capture cannot be sent
+  again, and neither can one whose body was too big to keep.
+- **GraphQL and gRPC**: operations are named in the list, and bodies are read the way their protocol means. See
+  [GraphQL](graphql.md) and [gRPC and protobuf](grpc.md).
+- **Network conditions**: a slow, laggy, lossy or missing connection. See [Network conditions](network-conditions.md).
 - **HTTP/3**: see below.
 
 ### Apps that pin their certificate
