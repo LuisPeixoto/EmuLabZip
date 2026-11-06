@@ -72,6 +72,21 @@ pub fn flow_line(f: &FlowSummary) -> String {
     };
     let time = f.duration_ms.map(|ms| format!("{ms} ms")).unwrap_or_default();
     let mut line = format!("{status} {kind} {target}  {}  {}", dim(&size(f.response_size)), dim(&time));
+    if let Some(operation) = &f.operation {
+        line.push_str(&format!("  {}", operation.if_supports_color(Stdout, |t| t.bold())));
+    }
+    if let Some(code) = f.grpc_status {
+        let name = emulabzip_net::grpc::status_name(code);
+        let text = format!("grpc {name}");
+        line.push_str(&format!(
+            "  {}",
+            if code == 0 {
+                text.if_supports_color(Stdout, |t| t.green()).to_string()
+            } else {
+                text.if_supports_color(Stdout, |t| t.red()).to_string()
+            }
+        ));
+    }
     if let Some(error) = &f.error {
         line.push_str(&format!("\n    {}", error.if_supports_color(Stdout, |t| t.yellow())));
     }
