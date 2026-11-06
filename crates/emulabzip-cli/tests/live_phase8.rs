@@ -90,3 +90,35 @@ fn flutter_frames_are_timed_while_the_app_is_used() {
     let stats: serde_json::Value = serde_json::from_str(&out).unwrap();
     assert!(stats["frames"].as_u64().unwrap() > 5, "{out}");
 }
+
+#[test]
+#[ignore = "needs a device with tools/rn-app installed, and Metro running (tools/rn-app/install.sh --start)"]
+fn reads_a_react_native_app_through_metro() {
+    adb(&["reverse", "tcp:8081", "tcp:8081"]);
+    adb(&["shell", "am", "start", "-n", "dev.emulabzip.rndemo/.MainActivity"]);
+    std::thread::sleep(std::time::Duration::from_secs(12));
+    let (ok, out, err) = emulabzip(&["frameworks", "dev.emulabzip.rndemo", "--json"]);
+    assert!(ok, "{err}");
+    assert!(out.contains("\"react-native\"") && out.contains("\"hermes\""), "{out}");
+
+    let (ok, tree, err) = bin()
+        .args(["rn", "tree", "dev.emulabzip.rndemo", "--json"])
+        .output()
+        .map(|o| {
+            (
+                o.status.success(),
+                String::from_utf8_lossy(&o.stdout).into_owned(),
+                String::from_utf8_lossy(&o.stderr).into_owned(),
+            )
+        })
+        .unwrap();
+    assert!(ok, "{err}");
+    for component in ["App", "Counter", "Fruit"] {
+        assert!(tree.contains(&format!("\"name\": \"{component}\"")), "{component} is missing from the tree");
+    }
+
+    let heap = bin().args(["rn", "heap", "dev.emulabzip.rndemo", "--json"]).output().unwrap();
+    assert!(heap.status.success(), "{}", String::from_utf8_lossy(&heap.stderr));
+    let heap: serde_json::Value = serde_json::from_slice(&heap.stdout).unwrap();
+    assert!(heap["usedBytes"].as_u64().unwrap() > 100_000);
+}
