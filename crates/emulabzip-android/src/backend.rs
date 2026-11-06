@@ -127,6 +127,10 @@ impl Backend for AndroidBackend {
         startup::measure(&self.adb, id, app, kind, runs).await
     }
 
+    async fn frameworks(&self, id: &str, app: &str) -> Result<Vec<emulabzip_core::Framework>> {
+        crate::frameworks::of_app(&self.adb, id, app).await
+    }
+
     async fn recent_logs(&self, id: &str, needle: &str) -> Result<Vec<LogEntry>> {
         logcat::recent(&self.adb, id, needle).await
     }

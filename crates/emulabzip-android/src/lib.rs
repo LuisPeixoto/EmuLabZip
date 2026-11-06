@@ -10,6 +10,7 @@ pub mod cert;
 pub mod controls;
 pub mod crashes;
 pub mod energy;
+pub mod frameworks;
 pub mod heapdump;
 pub mod info;
 pub mod layout;
