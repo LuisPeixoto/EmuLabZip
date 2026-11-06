@@ -8,6 +8,7 @@
   import CertificateDialog from "../network/CertificateDialog.svelte";
   import FlowDetail from "../network/FlowDetail.svelte";
   import BreakpointDrawer from "../network/BreakpointDrawer.svelte";
+  import ResendDrawer from "../network/ResendDrawer.svelte";
   import RulesDialog from "../network/RulesDialog.svelte";
 
   const ROW = 28;
@@ -111,7 +112,16 @@
   const protocol = (f: FlowSummary) => (f.kind === "http" ? (f.serverProtocol || "") : "");
   const enabledRules = $derived(net.rules.filter((r) => r.enabled).length);
   let menu = $state(false);
+  let conditionsMenu = $state(false);
   let showDns = $state(false);
+  const shaped = $derived(!!net.state?.conditions && (net.state.conditions.offline || net.state.conditions.downKbps != null || net.state.conditions.upKbps != null || net.state.conditions.latencyMs > 0 || net.state.conditions.lossPercent > 0));
+  const grpcNames = ["OK", "CANCELLED", "UNKNOWN", "INVALID_ARGUMENT", "DEADLINE_EXCEEDED", "NOT_FOUND", "ALREADY_EXISTS", "PERMISSION_DENIED", "RESOURCE_EXHAUSTED", "FAILED_PRECONDITION", "ABORTED", "OUT_OF_RANGE", "UNIMPLEMENTED", "INTERNAL", "UNAVAILABLE", "DATA_LOSS", "UNAUTHENTICATED"];
+  // The numbers a custom network is typed as: empty means no limit.
+  let custom = $state({ down: "", up: "", latency: "", loss: "" });
+  function applyCustom() {
+    const n = (v: string) => (v.trim() === "" ? null : Number(v));
+    net.setConditions({ name: null, downKbps: n(custom.down), upKbps: n(custom.up), latencyMs: n(custom.latency) ?? 0, lossPercent: n(custom.loss) ?? 0, offline: false });
+  }
 </script>
 
 <svelte:window {onkeydown} />
@@ -214,7 +224,7 @@
   <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
     <label class="relative flex min-w-[220px] flex-1 items-center">
       <Icon name="search" size={13} class="pointer-events-none absolute left-2.5 text-faint" />
-      <input bind:this={searchEl} bind:value={net.filter.text} spellcheck="false" placeholder="Filter by URL, method or status  (⌘F)" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-3 pl-8 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel" />
+      <input bind:this={searchEl} bind:value={net.filter.text} spellcheck="false" placeholder="Filter by URL, operation, method or status  (⌘F)" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-3 pl-8 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel" />
     </label>
     <div class="flex rounded-lg border border-line bg-panel-2 p-0.5" role="group" aria-label="Status">
       {#each statusChips as c (c.id)}
@@ -232,6 +242,44 @@
     <button onclick={() => net.openRules()} title="Rules: mock, delay, block or hold requests" class="relative flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">
       <Icon name="sliders" size={14} />Rules{#if enabledRules}<span class="mono rounded-full bg-accent px-1.5 text-[10px] font-semibold text-white">{enabledRules}</span>{/if}
     </button>
+    <div class="relative">
+      <button onclick={() => (conditionsMenu = !conditionsMenu)} title="Slow down or cut the network, and .proto files for gRPC" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium hover:bg-hover {shaped ? 'bg-warn/12 text-warn' : 'text-muted hover:text-fg'}">
+        <Icon name="gauge" size={14} />{shaped ? net.state?.conditions.name ?? "Custom network" : "Network"}
+      </button>
+      {#if conditionsMenu}
+        <button class="fixed inset-0 z-30 cursor-default" aria-label="Close" onclick={() => (conditionsMenu = false)}></button>
+        <div class="shadow-pop absolute top-9 right-0 z-40 w-[340px] rounded-xl border border-line bg-elevated p-3">
+          <p class="mb-1.5 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Network conditions</p>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick={() => net.setConditions({ name: null, downKbps: null, upKbps: null, latencyMs: 0, lossPercent: 0, offline: false })} class="h-7 rounded-lg border px-2 text-left text-[12px] {!shaped ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">No limits</button>
+            {#each net.presets as p (p.id)}
+              <button onclick={() => net.setConditions(p.conditions)} class="h-7 rounded-lg border px-2 text-left text-[12px] {net.state?.conditions.name === p.label ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">{p.label}</button>
+            {/each}
+          </div>
+          <div class="mt-2.5 grid grid-cols-4 gap-1.5 text-[11px] text-muted">
+            <label>Down kb/s<input bind:value={custom.down} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
+            <label>Up kb/s<input bind:value={custom.up} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
+            <label>Delay ms<input bind:value={custom.latency} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
+            <label>Loss %<input bind:value={custom.loss} inputmode="decimal" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
+          </div>
+          <button onclick={applyCustom} class="mt-2 h-7 rounded-lg bg-hover px-3 text-[12px] font-medium hover:bg-line">Apply these numbers</button>
+          <p class="mt-2 text-[11px] leading-relaxed text-faint">Applies to everything the device sends through the proxy, also to connections that are open. Loss stalls traffic the way a lost packet would, since a proxy cannot drop packets itself. HTTP/3 does not go through this link.</p>
+
+          <p class="mt-3 mb-1.5 text-[10.5px] font-semibold tracking-wider text-faint uppercase">gRPC and protobuf</p>
+          {#if net.state?.protos}
+            <p class="mono truncate text-[11.5px]" title={net.state.protos.dir}>{net.state.protos.dir}</p>
+            <p class="text-[11.5px] text-muted">{net.state.protos.files} files, {net.state.protos.services} services</p>
+            <div class="mt-1.5 flex gap-1.5">
+              <button onclick={() => net.pickProtos()} class="h-7 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line">Change folder…</button>
+              <button onclick={() => net.clearProtos()} class="h-7 rounded-lg px-2.5 text-[12px] text-muted hover:bg-hover hover:text-fg">Clear</button>
+            </div>
+          {:else}
+            <p class="text-[11.5px] leading-relaxed text-muted">Without your <span class="mono">.proto</span> files, messages are shown with field numbers only.</p>
+            <button onclick={() => net.pickProtos()} class="mt-1.5 h-7 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line">Choose the .proto folder…</button>
+          {/if}
+        </div>
+      {/if}
+    </div>
     <div class="relative">
       <button onclick={() => (menu = !menu)} title="HTTP/3 and other proxy options" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg {net.state?.http3 ? 'text-accent' : ''}">
         <Icon name="zap" size={14} />HTTP/3
@@ -281,7 +329,10 @@
                 <span class="w-[44px] shrink-0"><span class="inline-block min-w-[34px] rounded px-1.5 py-px text-center text-[10.5px] font-semibold {statusTone(f)}">{statusText(f)}</span></span>
                 <span class="w-[58px] shrink-0 font-medium">{kind(f)}{#if f.mocked}<span class="ml-0.5 text-accent" title="Answered by a rule">•</span>{/if}</span>
                 <span class="w-[210px] shrink-0 truncate" title="{f.host}:{f.port}">{f.host}</span>
-                <span class="min-w-0 flex-1 truncate text-muted" title={f.path}>{f.path}</span>
+                <span class="min-w-0 flex-1 truncate text-muted" title={f.path}>
+                  {#if f.operation}<span class="font-semibold text-fg">{f.operation}</span>{" "}{/if}{f.path}
+                  {#if f.grpcStatus != null}<span class="ml-1.5 rounded px-1 py-px text-[10px] font-semibold {f.grpcStatus === 0 ? 'bg-ok/12 text-ok' : 'bg-err/12 text-err'}">{grpcNames[f.grpcStatus] ?? `grpc ${f.grpcStatus}`}</span>{/if}
+                </span>
                 <span class="w-[34px] shrink-0 text-faint {protocol(f) === 'h3' ? 'font-semibold text-accent' : ''}">{protocol(f)}</span>
                 <span class="w-[82px] shrink-0 truncate text-faint">{type(f)}</span>
                 <span class="w-[68px] shrink-0 text-right text-muted">{f.state === "pending" ? "" : bytes(f.responseSize)}</span>
@@ -319,6 +370,7 @@
   </div>
 
   <BreakpointDrawer />
+  <ResendDrawer />
 
   <!-- Detail -->
   {#if net.selectedId != null}
