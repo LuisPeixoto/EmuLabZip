@@ -140,6 +140,51 @@ fn skip_braces(chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>) {
     }
 }
 
+/// A GraphQL request written for people: each operation's query as it was sent, then its variables.
+/// `None` when the request is not GraphQL.
+pub fn graphql_view(method: &str, path_and_query: &str, content_type: Option<&str>, body: &[u8]) -> Option<String> {
+    operation(method, path_and_query, content_type, body)?;
+    let content_type = content_type.unwrap_or("").to_ascii_lowercase();
+    let (_, query) = path_and_query.split_once('?').unwrap_or((path_and_query, ""));
+    let mut operations: Vec<(String, Option<Value>)> = Vec::new();
+    if method.eq_ignore_ascii_case("GET") {
+        operations.push((
+            query_param(query, "query")?,
+            query_param(query, "variables").and_then(|v| serde_json::from_str(&v).ok()),
+        ));
+    } else if content_type.starts_with("application/graphql") {
+        operations.push((String::from_utf8_lossy(body).into_owned(), None));
+    } else {
+        let value: Value = serde_json::from_slice(body).ok()?;
+        let items = match value {
+            Value::Array(items) => items,
+            other => vec![other],
+        };
+        for item in items {
+            let text = item.get("query")?.as_str()?.to_string();
+            operations.push((text, item.get("variables").filter(|v| !v.is_null()).cloned()));
+        }
+    }
+    let many = operations.len() > 1;
+    let mut out = String::new();
+    for (i, (text, variables)) in operations.iter().enumerate() {
+        if many {
+            out.push_str(&format!("# Operation {}\n", i + 1));
+        }
+        out.push_str(text.trim());
+        out.push('\n');
+        if let Some(v) = variables {
+            out.push_str("\n# Variables\n");
+            out.push_str(&serde_json::to_string_pretty(v).unwrap_or_default());
+            out.push('\n');
+        }
+        if many && i + 1 < operations.len() {
+            out.push('\n');
+        }
+    }
+    Some(out)
+}
+
 fn query_param(query: &str, name: &str) -> Option<String> {
     query.split('&').find_map(|pair| {
         let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
@@ -234,6 +279,18 @@ mod tests {
         assert!(post("[]").is_none());
         assert!(operation("POST", "/up", Some("image/png"), b"\x89PNG").is_none());
         assert!(operation("DELETE", "/graphql", Some("application/json"), b"{}").is_none());
+    }
+
+    #[test]
+    fn shows_the_query_and_its_variables() {
+        let body = r#"{"query":"query Q($id: ID!) { user(id: $id) { name } }","variables":{"id":"7"}}"#;
+        let text = graphql_view("POST", "/graphql", Some("application/json"), body.as_bytes()).unwrap();
+        assert!(text.starts_with("query Q($id: ID!) { user(id: $id) { name } }\n"), "{text}");
+        assert!(text.contains("# Variables\n{\n  \"id\": \"7\"\n}"), "{text}");
+        let batch = r#"[{"query":"{a}"},{"query":"{b}","variables":{"x":1}}]"#;
+        let text = graphql_view("POST", "/g", Some("application/json"), batch.as_bytes()).unwrap();
+        assert!(text.contains("# Operation 1") && text.contains("# Operation 2"), "{text}");
+        assert!(graphql_view("POST", "/g", Some("application/json"), b"{}").is_none());
     }
 
     #[test]
