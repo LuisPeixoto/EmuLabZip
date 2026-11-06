@@ -63,6 +63,9 @@ pub struct Flow {
     pub status: Option<u16>,
     pub request_headers: Headers,
     pub response_headers: Headers,
+    /// Headers sent after the body, which gRPC uses for its status.
+    #[serde(default)]
+    pub response_trailers: Headers,
     #[serde(skip)]
     pub request_body: Vec<u8>,
     #[serde(skip)]
@@ -108,6 +111,7 @@ impl Flow {
             status: None,
             request_headers: Vec::new(),
             response_headers: Vec::new(),
+            response_trailers: Vec::new(),
             request_body: Vec::new(),
             response_body: Vec::new(),
             request_size: 0,
@@ -135,6 +139,14 @@ impl Flow {
             .map(|v| v.split(';').next().unwrap_or(v).trim().to_ascii_lowercase())
     }
 
+    /// The gRPC status of a call: the code in the trailers, or in the headers when the server answered with
+    /// nothing else (a "trailers-only" response).
+    pub fn grpc_status(&self) -> Option<u32> {
+        Self::header(&self.response_trailers, "grpc-status")
+            .or_else(|| Self::header(&self.response_headers, "grpc-status"))
+            .and_then(|v| v.trim().parse().ok())
+    }
+
     pub fn summary(&self) -> FlowSummary {
         FlowSummary {
             id: self.id,
@@ -160,6 +172,7 @@ impl Flow {
             message_count: self.messages.len() as u64 + self.messages_dropped,
             source: self.source.clone(),
             operation: self.operation.clone(),
+            grpc_status: self.grpc_status(),
         }
     }
 }
@@ -192,6 +205,8 @@ pub struct FlowSummary {
     pub message_count: u64,
     pub source: Option<String>,
     pub operation: Option<String>,
+    /// The gRPC status code when the flow is a gRPC call that ended: 0 is OK.
+    pub grpc_status: Option<u32>,
 }
 
 pub fn now_ms() -> u64 {
