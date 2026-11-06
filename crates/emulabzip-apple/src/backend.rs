@@ -120,6 +120,10 @@ impl Backend for AppleBackend {
         crate::startup::measure(id, app, kind, runs).await
     }
 
+    async fn frameworks(&self, id: &str, app: &str) -> Result<Vec<emulabzip_core::Framework>> {
+        crate::frameworks::of_app(id, app).await
+    }
+
     async fn recent_logs(&self, id: &str, needle: &str) -> Result<Vec<LogEntry>> {
         oslog::recent(id, needle).await
     }
