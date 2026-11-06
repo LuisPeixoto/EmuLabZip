@@ -144,7 +144,25 @@ impl ProxyHandle {
         self.ctx.breakpoints.clone()
     }
 
+    /// Sends a captured request again, with changes if asked, as a new flow marked `resend`.
+    ///
+    /// The new flow shows up in the store at once and fills in as the answer comes. Rules and
+    /// breakpoints do not apply to it: it is a request someone chose to send.
+    pub async fn replay(&self, id: FlowId, edits: Resend) -> std::result::Result<FlowId, String> {
+        replay(self.ctx.clone(), id, edits).await
+    }
+
     pub fn stop(self) {}
+}
+
+/// What to change when a request is sent again. Anything left out stays as it was.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Resend {
+    pub method: Option<String>,
+    /// A full URL, `https://host[:port]/path?query`.
+    pub url: Option<String>,
+    pub headers: Option<Headers>,
+    pub body: Option<Vec<u8>>,
 }
 
 impl Drop for ProxyHandle {
@@ -717,6 +735,96 @@ impl Body for RequestTap {
     fn size_hint(&self) -> hyper::body::SizeHint {
         self.inner.size_hint()
     }
+}
+
+async fn replay(ctx: Arc<Ctx>, id: FlowId, edits: Resend) -> std::result::Result<FlowId, String> {
+    let original = ctx.store.get(id).ok_or("That request is no longer in the list.")?;
+    if original.kind != FlowKind::Http {
+        return Err("Only HTTP requests can be sent again, not WebSockets or tunnels.".into());
+    }
+    if original.mocked {
+        return Err("A mocked request never went to a server, so there is nothing to send again.".into());
+    }
+    if original.request_truncated && edits.body.is_none() {
+        return Err("The request body was too big to keep, so it cannot be sent again as it was.".into());
+    }
+    if original.source.as_deref() == Some("pcap") {
+        return Err("A request read from a capture file cannot be sent again.".into());
+    }
+
+    let method = edits.method.clone().unwrap_or_else(|| original.method.clone());
+    let method = Method::from_bytes(method.trim().to_ascii_uppercase().as_bytes())
+        .map_err(|_| format!("“{method}” is not an HTTP method."))?;
+    let (scheme, host, port, path) = match &edits.url {
+        None => (original.scheme.clone(), original.host.clone(), original.port, original.path.clone()),
+        Some(url) => {
+            let uri: Uri = url.trim().parse().map_err(|e| format!("The address is not valid: {e}"))?;
+            let scheme = uri.scheme_str().ok_or("The address needs http:// or https://.")?.to_string();
+            if scheme != "http" && scheme != "https" {
+                return Err("Only http:// and https:// addresses can be sent.".into());
+            }
+            let host = uri.host().ok_or("The address has no host.")?.to_string();
+            let port = uri.port_u16().unwrap_or(if scheme == "https" { 443 } else { 80 });
+            let path = uri.path_and_query().map_or("/", |p| p.as_str()).to_string();
+            (scheme, host, port, path)
+        }
+    };
+    let body = Bytes::from(edits.body.clone().unwrap_or_else(|| original.request_body.clone()));
+    let wanted = edits.headers.clone().unwrap_or_else(|| original.request_headers.clone());
+    let mut headers = HeaderMap::new();
+    for (name, value) in &wanted {
+        let (Ok(name), Ok(value)) =
+            (header::HeaderName::from_bytes(name.as_bytes()), header::HeaderValue::from_str(value))
+        else {
+            return Err(format!("The header “{name}: {value}” is not valid."));
+        };
+        if (!is_hop_by_hop(&name) || is_te_trailers(&name, &value))
+            && name != header::HOST
+            && name != header::CONTENT_LENGTH
+        {
+            headers.append(name, value);
+        }
+    }
+    let uri = Uri::builder()
+        .scheme(scheme.as_str())
+        .authority(format!("{host}:{port}"))
+        .path_and_query(path.as_str())
+        .build()
+        .map_err(|e| format!("The address is not valid: {e}"))?;
+
+    let mut flow = Flow::new(FlowKind::Http, method.as_str(), &scheme, &host, port, &path);
+    flow.http_version = "resend".into();
+    flow.source = Some("resend".into());
+    flow.request_headers = header_list(&headers);
+    flow.request_size = body.len() as u64;
+    flow.request_truncated = body.len() > ctx.body_limit;
+    flow.request_body = body[..body.len().min(ctx.body_limit)].to_vec();
+    flow.operation = crate::classify::operation(
+        method.as_str(),
+        &path,
+        Flow::header(&flow.request_headers, "content-type"),
+        &flow.request_body,
+    );
+    let new_id = ctx.store.begin(flow);
+
+    let mut upstream = Request::new(full(body));
+    *upstream.method_mut() = method;
+    *upstream.uri_mut() = uri;
+    *upstream.headers_mut() = headers;
+    let started = Instant::now();
+    tokio::spawn(async move {
+        match ctx.client.request(upstream).await {
+            Ok(res) => {
+                // Nobody is waiting for the answer, so read it to the end for the flow to be complete.
+                let answer = respond(&ctx, new_id, started, http::Version::HTTP_11, res);
+                let _ = answer.into_body().collect().await;
+            }
+            Err(e) => {
+                let _ = fail(&ctx, new_id, StatusCode::BAD_GATEWAY, error_chain(&e));
+            }
+        }
+    });
+    Ok(new_id)
 }
 
 fn protocol_name(version: http::Version) -> &'static str {
