@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código abierto · MIT · v0.7",
+    "eyebrow": "Código abierto · MIT · v0.8",
     "titleLead": "El laboratorio de depuración para tu",
     "titleAccent": "emulador Android y simulador iOS",
     "lead": "<strong>EmuLabZip</strong> reúne logs, tráfico de red, rendimiento, memoria, almacenamiento, fallos y accesibilidad de tus <strong>emuladores Android y simuladores iOS</strong> en una sola app nativa y rápida. No hay nada que instalar en el dispositivo.",
@@ -55,7 +55,10 @@
       { "icon": "compare", "title": "Comparar dispositivos", "text": "Dos emuladores lado a lado: ambas pantallas, gráficas de CPU y memoria y cada dato que difiere." },
       { "icon": "memory", "title": "Detector de fugas", "text": "Abre un volcado de memoria y mira las Activities y Fragments destruidos que siguen vivos, el camino que mantiene cada uno y qué retiene más memoria." },
       { "icon": "performance", "title": "Arranque y energía", "text": "Arranques en frío, templado y caliente con la mediana de varias ejecuciones, y la energía que una app usó mientras la usabas." },
-      { "icon": "sessions", "title": "Presupuestos y líneas base", "text": "Escribe límites en emulabzip.toml y haz fallar una ejecución de CI que los rompa o que sea más lenta que la última buena." }
+      { "icon": "sessions", "title": "Presupuestos y líneas base", "text": "Escribe límites en emulabzip.toml y haz fallar una ejecución de CI que los rompa o que sea más lenta que la última buena." },
+      { "icon": "layout", "title": "Dentro de Flutter y React Native", "text": "El árbol de widgets, los tiempos de fotogramas y la memoria de apps Flutter, y el árbol React y el heap de Hermes de apps React Native, leídos con sus propios depuradores." },
+      { "icon": "network", "title": "GraphQL y gRPC", "text": "Operaciones y llamadas con nombre en la lista, consultas con sus variables, estado y streaming de gRPC, y protobuf leído con o sin tus archivos .proto." },
+      { "icon": "rules", "title": "Reenviar y redes lentas", "text": "Reenvía una petición con cambios, o haz la red lenta, con retraso, con pérdidas o sin conexión para ver cómo responde la app." }
     ]
   },
   "showcase": {
@@ -125,15 +128,15 @@
   "roadmap": {
     "kicker": "Hoja de ruta",
     "title": "Hacia dónde va EmuLabZip",
-    "lead": "Siete fases ya están hechas. Las tres siguientes llevan a una versión 1.0 estable.",
+    "lead": "Ocho fases ya están hechas. Las dos siguientes llevan a una versión 1.0 estable.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, rendimiento, memoria, almacenamiento y el proxy de red." },
       { "state": "done", "version": "v0.4", "title": "Trazas", "text": "Perfetto, simpleperf e Instruments, con flame graphs y SQL." },
       { "state": "done", "version": "v0.5", "title": "Fallos y automatización", "text": "Fallos, controles del dispositivo, un servidor MCP y plugins." },
       { "state": "done", "version": "v0.6", "title": "Herramientas avanzadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, diseño, accesibilidad, sesiones y CI." },
       { "state": "done", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
-      { "state": "next", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
-      { "state": "later", "version": "v0.9", "title": "Dispositivos y plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV y plataformas de Apple." },
+      { "state": "done", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
+      { "state": "next", "version": "v0.9", "title": "Dispositivos y plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV y plataformas de Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipo y ecosistema", "text": "Informes para compartir, bibliotecas de reglas, una extensión de VS Code y una promesa de estabilidad." }
     ]
   },
