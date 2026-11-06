@@ -3,10 +3,8 @@
 use anyhow::{Result, bail};
 use emulabzip_core::control::is_app_id;
 use emulabzip_core::{Framework, Lab, Target};
-use emulabzip_frameworks::flutter::{Flutter, FlutterMemory, FrameStats, VmUri, WidgetNode, find_uri};
-use emulabzip_frameworks::react_native::{
-    ConsoleLine, HermesHeap, METRO_PORT, ReactNative, ReactNode, list_targets, pick,
-};
+use emulabzip_frameworks::flutter::{Flutter, FlutterMemory, FrameStats, VmUri, WidgetNode};
+use emulabzip_frameworks::react_native::{ConsoleLine, HermesHeap, METRO_PORT, ReactNative, ReactNode};
 
 use crate::output;
 
@@ -65,23 +63,7 @@ pub async fn detect(lab: &Lab, device: Option<&str>, app: &str, json: bool) -> R
 async fn flutter_connect(lab: &Lab, device: Option<&str>, uri: Option<VmUri>) -> Result<(Flutter, Target)> {
     let device = lab.resolve(device).await?;
     let target = device.target();
-    let uri = match uri {
-        Some(uri) => uri,
-        None => {
-            let mut messages = Vec::new();
-            for needle in ["Dart VM service", "Observatory listening"] {
-                messages.extend(lab.recent_logs(&target, needle).await?.into_iter().map(|e| e.message));
-            }
-            find_uri(messages.iter().map(String::as_str)).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Could not find where the Dart VM service listens. Is a debug build running? \
-                     Start the app again, or pass its address with --uri"
-                )
-            })?
-        }
-    };
-    let stream = lab.connect_port(&target, uri.port).await?;
-    let flutter = Flutter::connect(stream, &uri).await?;
+    let flutter = emulabzip_frameworks::flutter::connect_app(lab, &target, uri).await?;
     Ok((flutter, target))
 }
 
@@ -228,16 +210,9 @@ pub async fn flutter_memory(
 
 async fn rn_connect(app: &str, metro: u16) -> Result<ReactNative> {
     check_app(app)?;
-    let targets = list_targets(metro).await?;
-    let Some(target) = pick(&targets, app) else {
-        let known: Vec<String> = targets.iter().filter_map(|t| t.app_id.clone()).collect();
-        bail!(
-            "Metro does not list a runtime for {app}. It lists: {}. Open the app on a device that reaches Metro.",
-            if known.is_empty() { "nothing".to_string() } else { known.join(", ") }
-        );
-    };
+    let rn = emulabzip_frameworks::react_native::connect_app(app, metro).await?;
     eprintln!("{}", output::dim("Metro lets one debugger connect at a time: this may close React Native DevTools."));
-    Ok(ReactNative::connect(metro, target).await?)
+    Ok(rn)
 }
 
 fn print_react(node: &ReactNode, depth: usize, max_depth: usize, out: &mut Vec<String>) {

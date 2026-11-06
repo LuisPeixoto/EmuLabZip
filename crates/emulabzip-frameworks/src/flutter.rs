@@ -63,6 +63,31 @@ pub fn find_uri<'a>(messages: impl Iterator<Item = &'a str>) -> Option<VmUri> {
         .last()
 }
 
+/// Connects to the Flutter app on `target`: the address is the one given, or the last one the app wrote in the log.
+pub async fn connect_app(
+    lab: &emulabzip_core::Lab,
+    target: &emulabzip_core::Target,
+    uri: Option<VmUri>,
+) -> Result<Flutter> {
+    let uri = match uri {
+        Some(uri) => uri,
+        None => {
+            let mut messages = Vec::new();
+            for needle in ["Dart VM service", "Observatory listening"] {
+                messages.extend(lab.recent_logs(target, needle).await?.into_iter().map(|e| e.message));
+            }
+            find_uri(messages.iter().map(String::as_str)).ok_or_else(|| {
+                Error::failed(
+                    "Could not find where the Dart VM service listens. Is a debug build running? \
+                     Start the app again, or give its address.",
+                )
+            })?
+        }
+    };
+    let stream = lab.connect_port(target, uri.port).await?;
+    Flutter::connect(stream, &uri).await
+}
+
 /// One widget in the tree.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
