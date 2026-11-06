@@ -852,3 +852,135 @@ async fn names_graphql_and_grpc_operations() {
     let flow = flow_where(&rig.store, "a plain flow", |f| f.request_body == b"x").await;
     assert_eq!(flow.operation, None);
 }
+
+// ---------------------------------------------------------------------------------------------
+// gRPC
+// ---------------------------------------------------------------------------------------------
+
+/// A body fed by a channel, so a test can send a request in pieces.
+struct ChanBody(tokio::sync::mpsc::Receiver<Bytes>);
+
+impl hyper::body::Body for ChanBody {
+    type Data = Bytes;
+    type Error = Infallible;
+
+    fn poll_frame(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Result<hyper::body::Frame<Bytes>, Infallible>>> {
+        self.0.poll_recv(cx).map(|chunk| chunk.map(|c| Ok(hyper::body::Frame::data(c))))
+    }
+}
+
+/// One length-prefixed gRPC message.
+fn grpc_message(payload: &[u8]) -> Vec<u8> {
+    let mut m = vec![0u8];
+    m.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+    m.extend_from_slice(payload);
+    m
+}
+
+/// An HTTP/2 server over TLS that answers `/pkg.Echo/Say` the way gRPC does: the messages it was sent, then
+/// `grpc-status` in trailers. It insists on `te: trailers`.
+async fn start_grpc_upstream() -> Upstream {
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let acceptor = TlsAcceptor::from(ca.server_config("localhost").unwrap());
+    tokio::spawn(async move {
+        loop {
+            let (stream, _) = listener.accept().await.unwrap();
+            let acceptor = acceptor.clone();
+            tokio::spawn(async move {
+                let Ok(tls) = acceptor.accept(stream).await else { return };
+                let service = service_fn(|req: Request<hyper::body::Incoming>| async move {
+                    let te_ok = req.headers().get("te").is_some_and(|v| v == "trailers");
+                    let body = req.into_body().collect().await.unwrap().to_bytes();
+                    let mut trailers = hyper::HeaderMap::new();
+                    trailers.insert("grpc-status", if te_ok { "0" } else { "12" }.parse().unwrap());
+                    trailers.insert("grpc-message", "done".parse().unwrap());
+                    let res = Response::builder()
+                        .header("content-type", "application/grpc")
+                        .body(Full::new(body).with_trailers(async move { Some(Ok::<_, Infallible>(trailers)) }))
+                        .unwrap();
+                    Ok::<_, Infallible>(res)
+                });
+                let _ = hyper::server::conn::http2::Builder::new(TokioExecutor::new())
+                    .serve_connection(TokioIo::new(tls), service)
+                    .await;
+            });
+        }
+    });
+    Upstream { addr, ca_pem: ca.cert_pem().to_string() }
+}
+
+#[tokio::test]
+async fn a_grpc_call_keeps_te_and_records_its_trailers() {
+    let upstream = start_grpc_upstream().await;
+    let rig = start_proxy(vec![upstream.ca_pem.clone()]).await;
+    let authority = format!("localhost:{}", upstream.addr.port());
+    let tunnel = connect_tunnel(rig.proxy.addr(), &authority).await;
+    let io = tls(tunnel, rig.ca.cert_pem(), "localhost", b"h2").await.unwrap();
+
+    let message = grpc_message(b"\x0a\x05hello");
+    let req = Request::post(format!("https://{authority}/pkg.Echo/Say"))
+        .header("content-type", "application/grpc")
+        .header("te", "trailers")
+        .body(Full::new(Bytes::from(message.clone())))
+        .unwrap();
+    let (mut sender, conn) =
+        hyper::client::conn::http2::handshake(TokioExecutor::new(), TokioIo::new(io)).await.unwrap();
+    tokio::spawn(conn);
+    let res = sender.send_request(req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let collected = res.into_body().collect().await.unwrap();
+    let trailers = collected.trailers().cloned().expect("the client sees the trailers");
+    assert_eq!(trailers["grpc-status"], "0", "te: trailers must reach the server");
+    assert_eq!(collected.to_bytes().to_vec(), message);
+
+    let flow = flow_where(&rig.store, "a finished gRPC call", |f| f.state == FlowState::Completed).await;
+    assert_eq!(flow.operation.as_deref(), Some("Echo/Say"));
+    assert_eq!(flow.server_protocol, "h2");
+    assert_eq!(flow.grpc_status(), Some(0));
+    assert!(flow.response_trailers.iter().any(|(k, v)| k == "grpc-message" && v == "done"));
+    assert_eq!(flow.request_body, message);
+    assert_eq!(flow.response_body, message);
+    assert_eq!(rig.store.summaries()[0].grpc_status, Some(0));
+}
+
+#[tokio::test]
+async fn a_grpc_request_is_streamed_and_recorded_piece_by_piece() {
+    let upstream = start_grpc_upstream().await;
+    let rig = start_proxy(vec![upstream.ca_pem.clone()]).await;
+    let authority = format!("localhost:{}", upstream.addr.port());
+    let tunnel = connect_tunnel(rig.proxy.addr(), &authority).await;
+    let io = tls(tunnel, rig.ca.cert_pem(), "localhost", b"h2").await.unwrap();
+
+    let (tx, rx) = tokio::sync::mpsc::channel(4);
+    let req = Request::post(format!("https://{authority}/pkg.Echo/Say"))
+        .header("content-type", "application/grpc")
+        .header("te", "trailers")
+        .body(ChanBody(rx))
+        .unwrap();
+    let (mut sender, conn) =
+        hyper::client::conn::http2::handshake(TokioExecutor::new(), TokioIo::new(io)).await.unwrap();
+    tokio::spawn(conn);
+    let pending = tokio::spawn(async move { sender.send_request(req).await.unwrap() });
+
+    let first = grpc_message(b"one");
+    tx.send(Bytes::from(first.clone())).await.unwrap();
+    // The first message is recorded while the call is still open.
+    let open = flow_where(&rig.store, "the first piece", |f| f.request_body == first).await;
+    assert_eq!(open.state, FlowState::Pending);
+
+    let second = grpc_message(b"two");
+    tx.send(Bytes::from(second.clone())).await.unwrap();
+    drop(tx);
+    let res = pending.await.unwrap();
+    let collected = res.into_body().collect().await.unwrap();
+    assert_eq!(collected.trailers().unwrap()["grpc-status"], "0");
+
+    let done = flow_where(&rig.store, "a finished call", |f| f.state == FlowState::Completed).await;
+    assert_eq!(done.request_body, [first, second].concat());
+    assert_eq!(done.grpc_status(), Some(0));
+}
