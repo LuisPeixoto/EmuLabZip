@@ -211,7 +211,7 @@ pub const TREE_SCRIPT: &str = r#"(function () {
       if (p && typeof p === 'object' && typeof f.type !== 'string') {
         var keys = Object.keys(p);
         for (var i = 0; i < keys.length && i < 12; i++) {
-          if (keys[i] !== 'children') props.push(keys[i] + '=' + short(p[keys[i]]));
+          if (keys[i] !== 'children' && p[keys[i]] !== undefined) props.push(keys[i] + '=' + short(p[keys[i]]));
         }
       }
       out.push({ name: name, host: typeof f.type === 'string', key: f.key == null ? null : String(f.key), props: props, children: kids });
@@ -263,7 +263,25 @@ pub fn parse_console(event: &Value) -> Option<ConsoleLine> {
             None => a.get("description").and_then(Value::as_str).unwrap_or("").to_string(),
         })
         .collect();
-    Some(ConsoleLine { level, text: text.join(" ") })
+    Some(ConsoleLine { level, text: strip_colors(&text.join(" ")) })
+}
+
+/// Removes the color codes (`ESC [ … m`) some messages carry, which a window would show as garbage.
+fn strip_colors(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' && chars.peek() == Some(&'[') {
+            for c in chars.by_ref() {
+                if c.is_ascii_alphabetic() {
+                    break;
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// Connects to the runtime of `app` through Metro on `port`.
@@ -291,7 +309,7 @@ impl ReactNative {
             .await
             .map_err(|e| Error::failed(format!("Could not reach Metro on port {port}: {e}")))?;
         let url = format!("ws://127.0.0.1:{port}{}", target.ws_path);
-        Ok(ReactNative { rpc: Rpc::connect(stream, &url).await? })
+        Ok(ReactNative { rpc: Rpc::connect_as(stream, &url, Some(&format!("http://localhost:{port}"))).await? })
     }
 
     async fn evaluate(&self, expression: &str) -> Result<Value> {
@@ -338,7 +356,10 @@ impl ReactNative {
             .and_then(|s| serde_json::from_str::<Value>(&s).ok())
             .map(|props| {
                 let get = |k: &str| props.get(k).and_then(Value::as_str).unwrap_or("").to_string();
-                format!("{} (bytecode {})", get("OSS Release Version"), get("Bytecode Version"))
+                match get("Bytecode Version").as_str() {
+                    "" => get("OSS Release Version"),
+                    bytecode => format!("{} (bytecode {bytecode})", get("OSS Release Version")),
+                }
             });
         Ok(HermesHeap { used_bytes: n("usedSize"), total_bytes: n("totalSize"), runtime })
     }
@@ -425,6 +446,13 @@ mod tests {
             { "type": "string", "value": "slow" }, { "type": "number", "value": 3 }, { "type": "object", "description": "Object" } ] } });
         assert_eq!(parse_console(&event).unwrap(), ConsoleLine { level: "warn".into(), text: "slow 3 Object".into() });
         assert!(parse_console(&json!({ "method": "Other" })).is_none());
+    }
+
+    #[test]
+    fn color_codes_are_removed_from_console_text() {
+        assert_eq!(strip_colors("\u{1b}[48;2;253;247;231m\u{1b}[30m\u{1b}[1mNOTE: \u{1b}[22mhello"), "NOTE: hello");
+        assert_eq!(strip_colors("plain"), "plain");
+        assert_eq!(strip_colors("cut \u{1b}[3"), "cut ");
     }
 
     #[test]
