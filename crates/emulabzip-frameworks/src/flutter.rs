@@ -237,10 +237,39 @@ pub fn parse_profile(profile: &Value, top: usize) -> Vec<ClassUse> {
     classes
 }
 
+/// Tells the inspector which folder is the app's own code, so it can say which widgets the app made, and reports
+/// whether widgets know where they were created. Without that (an app built without `--track-widget-creation`;
+/// `flutter run` adds it) there are no source locations.
+async fn prepare_inspector(rpc: &Rpc, isolate: &str, details: &Value) -> bool {
+    let tracked = rpc
+        .call("ext.flutter.inspector.isWidgetCreationTracked", json!({ "isolateId": isolate }))
+        .await
+        .ok()
+        .and_then(|v| v.get("result").and_then(Value::as_bool))
+        .unwrap_or(false);
+    if let Some(uri) = details.get("rootLib").and_then(|l| l.get("uri")).and_then(Value::as_str)
+        && let Ok(resolved) =
+            rpc.call("lookupResolvedPackageUris", json!({ "isolateId": isolate, "uris": [uri], "local": true })).await
+        && let Some(file) = resolved.get("uris").and_then(|u| u.get(0)).and_then(Value::as_str)
+        && let Some(root) = file.rfind("/lib/").map(|i| &file[..i])
+    {
+        // macOS reports the same folder as /private/var in one place and /var in another.
+        let plain = root.replacen("/private/var", "/var", 1);
+        let _ = rpc
+            .call(
+                "ext.flutter.inspector.addPubRootDirectories",
+                json!({ "isolateId": isolate, "arg0": root, "arg1": plain }),
+            )
+            .await;
+    }
+    tracked
+}
+
 /// A connection to a Flutter app's VM service.
 pub struct Flutter {
     rpc: Rpc,
     isolate: String,
+    tracked: bool,
 }
 
 impl Flutter {
@@ -263,12 +292,18 @@ impl Flutter {
                 .and_then(Value::as_array)
                 .is_some_and(|e| e.iter().any(|n| n.as_str().is_some_and(|n| n.starts_with("ext.flutter."))));
             if flutter {
-                return Ok(Flutter { rpc, isolate: id.to_string() });
+                let tracked = prepare_inspector(&rpc, id, &details).await;
+                return Ok(Flutter { rpc, isolate: id.to_string(), tracked });
             }
         }
         Err(Error::failed(
             "This VM service has no Flutter app yet. Is it a debug or profile build that has finished starting?",
         ))
+    }
+
+    /// Whether widgets know where in the source they were created. Without it the tree has no file names.
+    pub fn creation_tracked(&self) -> bool {
+        self.tracked
     }
 
     /// The widget tree of the app: the widgets its own code created, as the Flutter inspector shows them.
