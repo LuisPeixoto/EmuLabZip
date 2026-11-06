@@ -104,6 +104,7 @@ fn convert(node: roxmltree::Node) -> UiNode {
         enabled: node.attribute("enabled") != Some("false"),
         checked: flag(node, "checkable").then(|| flag(node, "checked")),
         scrollable: flag(node, "scrollable"),
+        framework: None,
         children: node.children().filter(|c| c.has_tag_name("node")).map(convert).collect(),
     }
 }
@@ -117,6 +118,9 @@ pub fn parse(xml: &str) -> Result<UiNode> {
         return Err(Error::parse("uiautomator layout", "there is no hierarchy element"));
     }
     let mut windows: Vec<UiNode> = hierarchy.children().filter(|c| c.has_tag_name("node")).map(convert).collect();
+    for window in &mut windows {
+        window.mark_hosts();
+    }
     match windows.len() {
         0 => Err(Error::parse("uiautomator layout", "the screen has no views")),
         1 => Ok(windows.remove(0)),
@@ -220,6 +224,7 @@ mod fixture_tests {
 
     /// A real dump of the Settings app on an Android 14 emulator.
     const SETTINGS: &str = include_str!("../tests/fixtures/uiautomator-settings.xml");
+    const COMPOSE: &str = include_str!("../tests/fixtures/uiautomator-compose.xml");
 
     #[test]
     fn reads_a_real_dump_of_the_settings_app() {
@@ -238,5 +243,32 @@ mod fixture_tests {
     fn the_real_dump_is_found_inside_what_uiautomator_prints() {
         let raw = format!("{SETTINGS}UI hierarchy dumped to: /dev/tty");
         assert_eq!(parse(&extract_xml(&raw).unwrap()).unwrap().count(), parse(SETTINGS).unwrap().count());
+    }
+
+    #[test]
+    fn marks_what_compose_draws_in_a_real_dump() {
+        let root = parse(COMPOSE).unwrap();
+        let mut compose = Vec::new();
+        let mut platform = Vec::new();
+        root.walk(&mut |n| {
+            let name = n.resource_id.clone().unwrap_or_else(|| n.short_class().to_string());
+            if n.framework.as_deref() == Some("compose") { compose.push(name) } else { platform.push(name) }
+        });
+        // The tags the app wrote and the views between ComposeView and them are Compose's.
+        for tag in ["title", "counter", "switch", "list", "row-Apples"] {
+            assert!(compose.contains(&tag.to_string()), "{tag} in {compose:?}");
+        }
+        assert!(compose.contains(&"ComposeView".to_string()));
+        // The window around it is the platform's.
+        assert!(platform.contains(&"FrameLayout".to_string()) && platform.contains(&"LinearLayout".to_string()));
+        assert!(!platform.contains(&"title".to_string()));
+    }
+
+    #[test]
+    fn a_dump_without_a_framework_has_no_marks() {
+        let root = parse(SETTINGS).unwrap();
+        let mut any = false;
+        root.walk(&mut |n| any |= n.framework.is_some());
+        assert!(!any);
     }
 }
