@@ -230,6 +230,9 @@ enum Command {
         /// How many levels of the tree to print
         #[arg(long, default_value_t = 12)]
         depth: usize,
+        /// The app on screen. On iOS its frameworks (SwiftUI, Flutter, React Native) decide how the views are marked
+        #[arg(long)]
+        app: Option<String>,
     },
     /// Check the screen for missing labels, small touch targets and low contrast
     A11y {
@@ -918,7 +921,9 @@ async fn run() -> ExitCode {
         Command::Heap { action: HeapAction::Analyze { file, json, top, all_heaps } } => {
             cmd::heap::analyze(&file, json, top, all_heaps).await
         }
-        Command::Layout { json, png, depth } => cmd::layout::layout(&lab, device, json, png, depth).await,
+        Command::Layout { json, png, depth, app } => {
+            cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
+        }
         Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
         Command::Session { action: SessionAction::Record { output, app, network, port, screens, duration } } => {
             let args = cmd::session::RecordArgs { out: output, app, network, port, screens, duration };
