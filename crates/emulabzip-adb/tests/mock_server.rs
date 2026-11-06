@@ -43,6 +43,10 @@ async fn serve(listener: TcpListener) {
                         s.write_all(format!("{:04x}{list}", list.len()).as_bytes()).await.unwrap();
                         return;
                     }
+                    if service == "tcp:8181" {
+                        s.write_all(b"hello from the device").await.unwrap();
+                        return;
+                    }
                     if service == "root:" {
                         s.write_all(b"adbd cannot run as root in production builds\n").await.unwrap();
                         return;
@@ -133,4 +137,13 @@ async fn reports_whether_adbd_can_run_as_root() {
 #[tokio::test]
 async fn removes_one_reverse_forward() {
     client().await.reverse_remove("emulator-5554", "tcp:9998").await.unwrap();
+}
+
+#[tokio::test]
+async fn connects_to_a_device_port_without_forwarding() {
+    let c = client().await;
+    let mut s = c.connect_tcp("emulator-5554", 8181).await.unwrap();
+    let mut got = String::new();
+    s.read_to_string(&mut got).await.unwrap();
+    assert_eq!(got, "hello from the device");
 }
