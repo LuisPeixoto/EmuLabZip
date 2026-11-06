@@ -141,6 +141,14 @@ impl AdbClient {
         Ok(c.into_inner())
     }
 
+    /// Opens a connection to a TCP port the device is listening on and hands back the raw socket. Nothing is
+    /// forwarded on the host, so there is nothing to clean up afterwards.
+    pub async fn connect_tcp(&self, serial: &str, port: u16) -> Result<TcpStream> {
+        let mut c = self.transport(serial).await?;
+        c.request(&format!("tcp:{port}")).await?;
+        Ok(c.into_inner())
+    }
+
     /// Makes `remote` on the device reach `local` on this computer, like `adb reverse`. Both are
     /// socket specs such as `tcp:9090`.
     pub async fn reverse(&self, serial: &str, remote: &str, local: &str) -> Result<()> {

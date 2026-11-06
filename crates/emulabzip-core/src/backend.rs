@@ -21,6 +21,21 @@ use crate::startup::{StartKind, StartupReport};
 use crate::stream::Stream;
 use crate::trace::{TraceFile, TraceRequest};
 
+/// A connection to a port on a device, whatever it is made of.
+pub trait DeviceIo: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send {}
+impl<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send> DeviceIo for T {}
+pub type DeviceStream = Box<dyn DeviceIo>;
+
+/// The longest text `recent_logs` looks for.
+pub const MAX_NEEDLE: usize = 80;
+
+/// Whether `needle` is safe to put in a log search: short, and plain characters.
+pub fn is_log_needle(needle: &str) -> bool {
+    !needle.is_empty()
+        && needle.len() <= MAX_NEEDLE
+        && needle.chars().all(|c| c.is_ascii_alphanumeric() || " ._:/-=".contains(c))
+}
+
 /// How a log stream should start.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +96,17 @@ pub trait Backend: Send + Sync {
     /// Opens an app `runs` times and times each opening. See [`StartKind`] for what the three kinds mean.
     async fn startup(&self, _id: &str, _app: &str, _kind: StartKind, _runs: u32) -> Result<StartupReport> {
         Err(Error::Unsupported("Start time"))
+    }
+
+    /// The log messages from the last few minutes that contain `needle`, oldest first. Frameworks announce where
+    /// their debugger listens in the log, and this is how it is found without following the log.
+    async fn recent_logs(&self, _id: &str, _needle: &str) -> Result<Vec<LogEntry>> {
+        Err(Error::Unsupported("Searching recent logs"))
+    }
+
+    /// Opens a connection to a TCP port the device is listening on (the app's debugger, for example).
+    async fn connect_port(&self, _id: &str, _port: u16) -> Result<DeviceStream> {
+        Err(Error::Unsupported("Connecting to a device port"))
     }
 
     /// Starts counting the energy `app` uses. It is paired with [`Backend::energy_end`].
@@ -283,6 +309,20 @@ impl Lab {
         self.backend(target.platform)?.startup(&target.id, app, kind, runs).await
     }
 
+    pub async fn recent_logs(&self, target: &Target, needle: &str) -> Result<Vec<LogEntry>> {
+        if !is_log_needle(needle) {
+            return Err(Error::invalid("text to look for in the log", needle));
+        }
+        self.backend(target.platform)?.recent_logs(&target.id, needle).await
+    }
+
+    pub async fn connect_port(&self, target: &Target, port: u16) -> Result<DeviceStream> {
+        if port == 0 {
+            return Err(Error::invalid("port", "0"));
+        }
+        self.backend(target.platform)?.connect_port(&target.id, port).await
+    }
+
     pub async fn energy_begin(&self, target: &Target, app: &str) -> Result<()> {
         if !crate::control::is_app_id(app) {
             return Err(Error::invalid("app", app));
@@ -452,6 +492,18 @@ mod tests {
         let err = lab.record_trace(&t, &request, Path::new("/tmp"), rx).await.unwrap_err();
         assert!(matches!(err, Error::Unsupported(_)));
         assert!(lab.trace_templates(&t).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn log_search_and_port_access_are_validated_before_the_backend() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let t = Target { platform: Platform::Android, id: "x".into() };
+        for bad in ["", "a\"b", "x; rm", &"y".repeat(81)] {
+            assert!(matches!(lab.recent_logs(&t, bad).await.unwrap_err(), Error::Invalid { .. }), "{bad}");
+        }
+        assert!(matches!(lab.recent_logs(&t, "Dart VM service").await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(lab.connect_port(&t, 0).await.err().unwrap(), Error::Invalid { .. }));
+        assert!(matches!(lab.connect_port(&t, 8080).await.err().unwrap(), Error::Unsupported(_)));
     }
 
     #[tokio::test]
