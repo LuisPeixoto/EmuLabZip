@@ -60,6 +60,10 @@ pub struct UiNode {
     pub scrollable: bool,
     /// Text can be typed into it.
     pub editable: bool,
+    /// The UI framework that drew this view when it is not the platform's own: `compose`, `flutter`,
+    /// `react-native` or `swiftui`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub framework: Option<String>,
     pub children: Vec<UiNode>,
 }
 
@@ -118,6 +122,48 @@ impl UiNode {
     pub fn count(&self) -> usize {
         1 + self.children.iter().map(UiNode::count).sum::<usize>()
     }
+
+    /// Marks this view and everything under it as drawn by `framework`.
+    pub fn mark_all(&mut self, framework: &str) {
+        self.framework = Some(framework.to_string());
+        for child in &mut self.children {
+            child.mark_all(framework);
+        }
+    }
+
+    /// Marks the views under the host views that frameworks put on screen: Compose's `ComposeView`, Flutter's
+    /// `FlutterView`, React Native's `ReactRootView`. The host view itself is marked too.
+    pub fn mark_hosts(&mut self) {
+        if let Some(framework) = host_framework(&self.class) {
+            self.mark_all(framework);
+            return;
+        }
+        for child in &mut self.children {
+            child.mark_hosts();
+        }
+    }
+}
+
+/// The framework a host view class belongs to.
+pub fn host_framework(class: &str) -> Option<&'static str> {
+    match class {
+        "androidx.compose.ui.platform.ComposeView" | "androidx.compose.ui.platform.AndroidComposeView" => {
+            Some("compose")
+        }
+        "io.flutter.embedding.android.FlutterView"
+        | "io.flutter.embedding.android.FlutterSurfaceView"
+        | "io.flutter.embedding.android.FlutterTextureView"
+        | "io.flutter.embedding.android.FlutterImageView"
+        | "io.flutter.view.FlutterView" => Some("flutter"),
+        "com.facebook.react.ReactRootView" | "com.facebook.react.ReactFragment" => Some("react-native"),
+        _ => None,
+    }
+}
+
+/// Which framework to mark a whole screen with, given the frameworks an app is built with, for platforms (iOS) where
+/// views have no host class to tell them apart. The framework that draws its own UI wins over the platform's.
+pub fn screen_framework(frameworks: &[crate::Framework]) -> Option<&str> {
+    ["flutter", "react-native", "compose", "swiftui"].into_iter().find(|id| frameworks.iter().any(|f| f.id == *id))
 }
 
 /// The screen the layout was read from.
@@ -200,6 +246,55 @@ mod tests {
         root.children.push(row);
         root.children.push(node("ImageView", (900, 100, 100, 100)));
         snapshot(root)
+    }
+
+    #[test]
+    fn views_under_a_framework_host_are_marked() {
+        let mut root = node("FrameLayout", (0, 0, 1080, 2400));
+        let mut host = node("androidx.compose.ui.platform.ComposeView", (0, 0, 1080, 2000));
+        let mut inner = node("View", (0, 0, 500, 500));
+        inner.children.push(node("TextView", (0, 0, 100, 50)));
+        host.children.push(inner);
+        root.children.push(host);
+        root.children.push(node("TextView", (0, 2000, 1080, 100)));
+        let mut flutter = node("io.flutter.embedding.android.FlutterView", (0, 2100, 1080, 300));
+        flutter.children.push(node("View", (0, 2100, 100, 100)));
+        root.children.push(flutter);
+        root.mark_hosts();
+
+        let marks: Vec<(String, Option<String>)> = {
+            let mut v = Vec::new();
+            root.walk(&mut |n| v.push((n.short_class().to_string(), n.framework.clone())));
+            v
+        };
+        let compose = Some("compose".to_string());
+        assert_eq!(marks[0], ("FrameLayout".into(), None));
+        assert_eq!(marks[1], ("ComposeView".into(), compose.clone()));
+        assert_eq!(marks[2], ("View".into(), compose.clone()));
+        assert_eq!(marks[3], ("TextView".into(), compose));
+        assert_eq!(marks[4], ("TextView".into(), None), "a view beside the host is the platform's");
+        assert_eq!(marks[5].1.as_deref(), Some("flutter"));
+        assert_eq!(marks[6].1.as_deref(), Some("flutter"));
+    }
+
+    #[test]
+    fn a_whole_screen_takes_the_framework_that_draws_its_own_ui() {
+        use crate::Framework;
+        let f = |ids: &[&str]| ids.iter().map(|i| Framework::new(i, "")).collect::<Vec<_>>();
+        assert_eq!(screen_framework(&f(&["swiftui"])), Some("swiftui"));
+        assert_eq!(screen_framework(&f(&["swiftui", "flutter"])), Some("flutter"));
+        assert_eq!(screen_framework(&f(&["hermes", "react-native"])), Some("react-native"));
+        assert_eq!(screen_framework(&f(&["hermes"])), None);
+        assert_eq!(screen_framework(&[]), None);
+    }
+
+    #[test]
+    fn the_framework_is_not_written_when_there_is_none() {
+        let json = serde_json::to_string(&node("View", (0, 0, 1, 1))).unwrap();
+        assert!(!json.contains("framework"), "{json}");
+        let mut marked = node("View", (0, 0, 1, 1));
+        marked.mark_all("swiftui");
+        assert!(serde_json::to_string(&marked).unwrap().contains("\"framework\":\"swiftui\""));
     }
 
     #[test]
