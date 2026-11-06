@@ -9,6 +9,7 @@
 pub mod breakpoints;
 pub mod ca;
 pub mod classify;
+pub mod conditions;
 pub mod decode;
 pub mod flow;
 pub mod grpc;
@@ -24,6 +25,7 @@ pub mod ws;
 
 pub use breakpoints::{BreakpointEvent, Breakpoints, Edits, Paused, Phase, Resume};
 pub use ca::{CertificateAuthority, default_dir};
+pub use conditions::{Conditions, PRESETS, Shaper};
 pub use flow::{Flow, FlowId, FlowKind, FlowState, FlowSummary, Headers};
 pub use har::to_har;
 pub use http3::Http3;

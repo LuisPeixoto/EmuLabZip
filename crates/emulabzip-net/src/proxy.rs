@@ -30,6 +30,7 @@ use tokio_rustls::{TlsAcceptor, TlsConnector};
 
 use crate::breakpoints::{Breakpoints, Edits, Hold, Phase, Resume};
 use crate::ca::CertificateAuthority;
+use crate::conditions::{Conditions, Shaped, Shaper};
 use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::http3::{self, Http3};
 use crate::io::{BoxIo, Prefixed};
@@ -59,6 +60,8 @@ pub struct ProxyConfig {
     pub http3: bool,
     /// Remove HTTP/3 from the `Alt-Svc` the device is shown, so apps do not try QUIC around the proxy.
     pub hide_http3: bool,
+    /// A slow, laggy or missing connection to apply from the start. See [`Conditions`].
+    pub conditions: Conditions,
 }
 
 impl Default for ProxyConfig {
@@ -71,6 +74,7 @@ impl Default for ProxyConfig {
             breakpoints: Arc::new(Breakpoints::new()),
             http3: false,
             hide_http3: true,
+            conditions: Conditions::default(),
         }
     }
 }
@@ -88,6 +92,7 @@ struct Ctx {
     rules: Arc<RuleSet>,
     breakpoints: Arc<Breakpoints>,
     http3: Http3,
+    shaper: Arc<Shaper>,
     shutdown: watch::Receiver<bool>,
 }
 
@@ -137,6 +142,19 @@ impl ProxyHandle {
 
     pub fn set_hide_http3(&self, on: bool) {
         self.ctx.http3.set_hide(on);
+    }
+
+    /// The network conditions in force.
+    pub fn conditions(&self) -> Conditions {
+        self.ctx.shaper.get()
+    }
+
+    /// Changes the conditions. They apply to connections that are already open, too. Going offline closes
+    /// them the next time they move a byte.
+    pub fn set_conditions(&self, conditions: Conditions) -> std::result::Result<(), String> {
+        conditions.check()?;
+        self.ctx.shaper.set(conditions);
+        Ok(())
     }
 
     /// Where requests and responses held at breakpoints wait.
@@ -202,6 +220,7 @@ impl Proxy {
             rules: config.rules,
             breakpoints: config.breakpoints,
             http3,
+            shaper: Shaper::new(config.conditions),
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -243,6 +262,7 @@ async fn accept_loop(listener: TcpListener, ctx: Arc<Ctx>) {
     loop {
         tokio::select! {
             accepted = listener.accept() => match accepted {
+                Ok((stream, _)) if ctx.shaper.offline() => drop(stream),
                 Ok((stream, _)) => { tokio::spawn(serve_client(stream, ctx.clone())); }
                 Err(e) => tracing::warn!("accept failed: {e}"),
             },
@@ -254,6 +274,7 @@ async fn accept_loop(listener: TcpListener, ctx: Arc<Ctx>) {
 async fn serve_client(stream: TcpStream, ctx: Arc<Ctx>) {
     let _ = stream.set_nodelay(true);
     let mut shutdown = ctx.shutdown.clone();
+    let stream = Shaped::new(stream, ctx.shaper.clone());
     let service = service_fn(move |req| {
         let ctx = ctx.clone();
         async move { Ok::<_, Infallible>(handle(req, ctx).await) }
