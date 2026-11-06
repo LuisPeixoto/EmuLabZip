@@ -2,6 +2,8 @@ import {
   api,
   errorText,
   type CaInstall,
+  type ConditionPreset,
+  type Conditions,
   type FlowDetail,
   type FlowSummary,
   type Imported,
@@ -9,6 +11,7 @@ import {
   type NetState,
   type NetworkStatus,
   type Paused,
+  type ResendInput,
   type Rule,
 } from "../api";
 import { app } from "./app.svelte";
@@ -59,6 +62,10 @@ class NetStore {
   paused = $state.raw<Paused[]>([]);
   /** What the last imported capture held. */
   imported = $state<Imported | null>(null);
+  /** The presets for a slow or missing network. */
+  presets = $state<ConditionPreset[]>([]);
+  /** A request is being edited to be sent again. */
+  resending = $state<FlowDetail | null>(null);
 
   running = $derived(this.state?.running ?? false);
   methods = $derived([...new Set(this.flows.map((f) => f.method))].filter((m) => m !== "CONNECT").sort());
@@ -70,7 +77,11 @@ class NetStore {
         (tunnels || f.kind !== "tunnel") &&
         (status === "all" || statusClass(f) === status) &&
         (method === "all" || f.method === method) &&
-        (!needle || f.url.toLowerCase().includes(needle) || f.method.toLowerCase() === needle || String(f.status) === needle),
+        (!needle ||
+          f.url.toLowerCase().includes(needle) ||
+          f.method.toLowerCase() === needle ||
+          String(f.status) === needle ||
+          (f.operation ?? "").toLowerCase().includes(needle)),
     );
   });
   /** The device is sending its traffic to our proxy. */
@@ -86,6 +97,7 @@ class NetStore {
       this.state = await api.netState();
       this.#session = await api.netSubscribe((b) => this.#apply(b));
       this.rules = await api.netRulesGet();
+      this.presets = await api.netConditionPresets();
       await api.netBreakpointsSubscribe((e) => {
         if (e.type === "paused") {
           if (!this.paused.some((p) => p.id === e.paused.id)) this.paused = [...this.paused, e.paused];
@@ -273,6 +285,33 @@ class NetStore {
   async setHideHttp3(hide: boolean) {
     const state = await app.attempt(() => api.netSetHideHttp3(hide));
     if (state) this.state = state;
+  }
+
+  /** Applies a slow, laggy or missing network now, also to connections that are open. */
+  async setConditions(conditions: Conditions) {
+    const state = await app.attempt(() => api.netSetConditions(conditions));
+    if (state) this.state = state;
+  }
+
+  async pickProtos() {
+    const state = await app.attempt(() => api.netPickProtos());
+    if (!state) return;
+    this.state = state;
+    if (state.protos) app.toast(`Read ${state.protos.files} .proto files with ${state.protos.services} services`, "ok");
+  }
+
+  async clearProtos() {
+    const state = await app.attempt(() => api.netClearProtos());
+    if (state) this.state = state;
+  }
+
+  /** Sends the selected request again as it was, or opens the editor to change it first. */
+  async resend(id: number, edits: ResendInput = {}) {
+    const newId = await app.attempt(() => api.netResend(id, edits));
+    if (newId != null) {
+      this.resending = null;
+      this.select(newId);
+    }
   }
 
   async importPcap() {
