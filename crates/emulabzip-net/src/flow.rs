@@ -84,6 +84,8 @@ pub struct Flow {
     pub messages_dropped: u64,
     /// Where the flow came from when it was not captured live: `pcap` for an imported file.
     pub source: Option<String>,
+    /// What the request asks for when it is GraphQL or gRPC: an operation or `Service/Method`.
+    pub operation: Option<String>,
 }
 
 impl Flow {
@@ -119,6 +121,7 @@ impl Flow {
             messages: Vec::new(),
             messages_dropped: 0,
             source: None,
+            operation: None,
         }
     }
 
@@ -156,6 +159,7 @@ impl Flow {
             mocked: self.mocked,
             message_count: self.messages.len() as u64 + self.messages_dropped,
             source: self.source.clone(),
+            operation: self.operation.clone(),
         }
     }
 }
@@ -187,6 +191,7 @@ pub struct FlowSummary {
     /// Messages seen on a WebSocket, including any past the limit.
     pub message_count: u64,
     pub source: Option<String>,
+    pub operation: Option<String>,
 }
 
 pub fn now_ms() -> u64 {
