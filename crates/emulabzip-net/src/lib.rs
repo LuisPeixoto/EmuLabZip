@@ -27,6 +27,6 @@ pub use ca::{CertificateAuthority, default_dir};
 pub use flow::{Flow, FlowId, FlowKind, FlowState, FlowSummary, Headers};
 pub use har::to_har;
 pub use http3::Http3;
-pub use proxy::{Proxy, ProxyConfig, ProxyHandle};
+pub use proxy::{Proxy, ProxyConfig, ProxyHandle, Resend};
 pub use rules::{Action, Matcher, Rule, RuleSet};
 pub use store::{FlowEvent, FlowStore};
