@@ -132,6 +132,79 @@ export interface HeapAnalysis {
   classes: { name: string; count: number; shallowBytes: number }[];
 }
 
+export interface Framework {
+  id: string;
+  name: string;
+  version: string | null;
+  evidence: string;
+}
+
+export interface WidgetNode {
+  description: string;
+  widgetType: string | null;
+  file: string | null;
+  line: number | null;
+  local: boolean;
+  children: WidgetNode[];
+}
+
+export interface FlutterTree {
+  root: WidgetNode;
+  count: number;
+  /** Widgets know where in the source they were made. */
+  tracked: boolean;
+}
+
+export interface FrameInfo {
+  number: number;
+  buildUs: number;
+  rasterUs: number;
+  elapsedUs: number;
+}
+
+export interface FrameStats {
+  seconds: number;
+  frames: number;
+  janky: number;
+  jankPercent: number;
+  avgBuildUs: number;
+  avgRasterUs: number;
+  worstUs: number;
+  slowest: FrameInfo[];
+  timeline: FrameInfo[];
+}
+
+export interface FlutterMemory {
+  heapUsed: number;
+  heapCapacity: number;
+  external: number;
+  classes: { name: string; library: string | null; instances: number; bytes: number }[];
+}
+
+export interface ReactNode {
+  name: string;
+  host: boolean;
+  key: string | null;
+  props: string[];
+  children: ReactNode[];
+}
+
+export interface ReactTree {
+  root: ReactNode;
+  count: number;
+}
+
+export interface HermesHeap {
+  usedBytes: number;
+  totalBytes: number;
+  runtime: string | null;
+}
+
+export interface ConsoleLine {
+  level: string;
+  text: string;
+}
+
 export interface CategoryDelta {
   name: string;
   beforeKb: number;
@@ -225,8 +298,12 @@ export interface FlowSummary {
   rule: string | null;
   mocked: boolean;
   messageCount: number;
-  /** "pcap" for flows imported from a capture. */
+  /** "pcap" for flows imported from a capture; "resend" for a request sent again. */
   source: string | null;
+  /** The GraphQL operation or gRPC method the request carries. */
+  operation: string | null;
+  /** The gRPC status code of a call that ended: 0 is OK. */
+  grpcStatus: number | null;
 }
 
 export interface NetBatch {
@@ -242,6 +319,37 @@ export interface NetState {
   connected: string[];
   http3: boolean;
   hideHttp3: boolean;
+  conditions: Conditions;
+  protos: ProtosInfo | null;
+}
+
+export interface Conditions {
+  name: string | null;
+  downKbps: number | null;
+  upKbps: number | null;
+  latencyMs: number;
+  lossPercent: number;
+  offline: boolean;
+}
+
+export interface ConditionPreset {
+  id: string;
+  label: string;
+  conditions: Conditions;
+}
+
+export interface ProtosInfo {
+  dir: string;
+  files: number;
+  services: number;
+}
+
+/** What to change when sending a request again. Left out stays as it was. */
+export interface ResendInput {
+  method?: string;
+  url?: string;
+  headers?: [string, string][];
+  bodyText?: string;
 }
 
 export interface NetworkStatus {
@@ -270,6 +378,8 @@ export interface BodyView {
   image: string | null;
   hex: string | null;
   error: string | null;
+  /** How the body was read when that is more than its type says: GraphQL, gRPC… */
+  label: string | null;
 }
 
 export interface WsMessage {
@@ -287,6 +397,8 @@ export interface Flow extends Omit<FlowSummary, "contentType" | "durationMs" | "
   messagesDropped: number;
   requestHeaders: [string, string][];
   responseHeaders: [string, string][];
+  /** Headers sent after the body: gRPC puts its status here. */
+  responseTrailers: [string, string][];
   requestTruncated: boolean;
   responseTruncated: boolean;
   timing: { ttfbMs: number | null; totalMs: number | null };
@@ -320,6 +432,8 @@ export interface UiNode {
   checked: boolean | null;
   scrollable: boolean;
   editable: boolean;
+  /** The UI framework that drew it, when it is not the platform's own. */
+  framework?: "compose" | "flutter" | "react-native" | "swiftui";
   children: UiNode[];
 }
 
@@ -743,7 +857,7 @@ export const api = {
     channel.onmessage = onBatch;
     return invoke<number>("net_subscribe", { onBatch: channel });
   },
-  layoutRead: (target: Target) => invoke<LayoutResult>("layout_read", { target }),
+  layoutRead: (target: Target, app: string | null = null) => invoke<LayoutResult>("layout_read", { target, app }),
   sessionStatus: () => invoke<RecordingStatus>("session_status"),
   sessionStart: (target: Target, app: string | null, network: boolean, screensEvery: number | null) =>
     invoke<RecordingStatus>("session_start", { target, app, network, screensEvery }),
@@ -767,6 +881,20 @@ export const api = {
   netResumeAll: () => invoke<void>("net_resume_all"),
   netSetHttp3: (enabled: boolean) => invoke<NetState>("net_set_http3", { enabled }),
   netSetHideHttp3: (hide: boolean) => invoke<NetState>("net_set_hide_http3", { hide }),
+  netConditionPresets: () => invoke<ConditionPreset[]>("net_condition_presets"),
+  netSetConditions: (conditions: Conditions) => invoke<NetState>("net_set_conditions", { conditions }),
+  netPickProtos: () => invoke<NetState>("net_pick_protos"),
+  netClearProtos: () => invoke<NetState>("net_clear_protos"),
+  netResend: (id: number, editsInput: ResendInput) => invoke<number>("net_resend", { id, editsInput }),
+  frameworksDetect: (target: Target, app: string) => invoke<Framework[]>("frameworks_detect", { target, app }),
+  flutterTree: (target: Target, vmUri: string | null) => invoke<FlutterTree>("flutter_tree", { target, vmUri }),
+  flutterFrames: (target: Target, vmUri: string | null, seconds: number) =>
+    invoke<FrameStats>("flutter_frames", { target, vmUri, seconds }),
+  flutterMemory: (target: Target, vmUri: string | null) => invoke<FlutterMemory>("flutter_memory", { target, vmUri }),
+  rnTree: (app: string, port: number | null) => invoke<ReactTree>("rn_tree", { app, port }),
+  rnHeap: (app: string, port: number | null) => invoke<HermesHeap>("rn_heap", { app, port }),
+  rnConsole: (app: string, port: number | null, seconds: number) =>
+    invoke<ConsoleLine[]>("rn_console", { app, port, seconds }),
   netImportPcap: () => invoke<Imported | null>("net_import_pcap"),
   crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
   crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
