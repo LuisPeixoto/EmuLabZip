@@ -20,6 +20,49 @@ pub(crate) fn load_ca() -> Result<Arc<CertificateAuthority>> {
     ))
 }
 
+/// The network conditions asked for: a preset, then any number changed by hand.
+pub struct ConditionArgs {
+    pub preset: Option<String>,
+    pub down_kbps: Option<u32>,
+    pub up_kbps: Option<u32>,
+    pub latency_ms: Option<u32>,
+    pub loss_percent: Option<f32>,
+}
+
+impl ConditionArgs {
+    /// `None` when nothing was asked for.
+    pub fn build(&self) -> Result<Option<emulabzip_net::Conditions>> {
+        let asked = self.preset.is_some()
+            || self.down_kbps.is_some()
+            || self.up_kbps.is_some()
+            || self.latency_ms.is_some()
+            || self.loss_percent.is_some();
+        if !asked {
+            return Ok(None);
+        }
+        let mut c = match &self.preset {
+            Some(id) => emulabzip_net::Conditions::preset(id).with_context(|| {
+                let names: Vec<&str> = emulabzip_net::PRESETS.iter().map(|(i, _)| *i).collect();
+                format!("`{id}` is not a preset: use {}", names.join(", "))
+            })?,
+            None => emulabzip_net::Conditions::default(),
+        };
+        if self.down_kbps.is_some()
+            || self.up_kbps.is_some()
+            || self.latency_ms.is_some()
+            || self.loss_percent.is_some()
+        {
+            c.name = None;
+        }
+        c.down_kbps = self.down_kbps.or(c.down_kbps);
+        c.up_kbps = self.up_kbps.or(c.up_kbps);
+        c.latency_ms = self.latency_ms.unwrap_or(c.latency_ms);
+        c.loss_percent = self.loss_percent.unwrap_or(c.loss_percent);
+        c.check().map_err(anyhow::Error::msg)?;
+        Ok(Some(c))
+    }
+}
+
 pub struct NetArgs {
     pub device: Option<String>,
     pub port: u16,
@@ -29,6 +72,7 @@ pub struct NetArgs {
     pub rules: Option<PathBuf>,
     pub http3: bool,
     pub show_h3: bool,
+    pub conditions: ConditionArgs,
 }
 
 /// Reads rules from a JSON file: a list, or an object with a `rules` list. Breakpoints are left
@@ -58,6 +102,8 @@ fn load_rules(path: &std::path::Path) -> Result<(Arc<RuleSet>, Vec<String>)> {
 
 /// Runs the proxy, points the device at it and prints each flow as it finishes, until Ctrl+C.
 pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
+    // Checked before the proxy starts or any device is looked for.
+    let conditions = args.conditions.build()?;
     let ca = load_ca()?;
     let store = FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY);
     let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
@@ -71,6 +117,12 @@ pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
             eprintln!("{}", output::dim(&format!("{} rules from {}.", rules.rules().len(), path.display())));
         }
         config.rules = rules;
+    }
+    if let Some(c) = &conditions {
+        config.conditions = c.clone();
+        if !args.json {
+            eprintln!("{}", output::dim(&format!("Network conditions: {}.", c.summary())));
+        }
     }
     let proxy = Proxy::start(config, ca, store.clone()).await.with_context(|| {
         format!("could not listen on {addr}. Is another EmuLabZip running? Pick a port with --port")
