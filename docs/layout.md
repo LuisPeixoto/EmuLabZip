@@ -29,6 +29,13 @@ declares. Physical devices are not supported.
 `uiautomator` cannot read screens that forbid it (secure windows, some video players); EmuLabZip reports that instead of
 showing an empty tree.
 
+## Compose, Flutter, React Native and SwiftUI
+
+Views drawn by a UI framework carry a mark in the tree (`compose`, `flutter`, `react-native`, `swiftui`) and the inspector
+names the framework. On Android, everything under a `ComposeView`, a `FlutterView` or a React Native root view is marked.
+On iOS, pick the app in the toolbar (or pass `--app <bundle id>` on the command line) and the screen is marked with the
+framework of that app. See [Inside the frameworks](frameworks.md).
+
 ## The audit
 
 The **Accessibility** tab lists findings, most serious first. Click one to see the view and what to do about it.
