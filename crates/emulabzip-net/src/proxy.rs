@@ -512,6 +512,12 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     flow.request_size = body.len() as u64;
     flow.request_truncated = body.len() > ctx.body_limit;
     flow.request_body = body[..body.len().min(ctx.body_limit)].to_vec();
+    flow.operation = crate::classify::operation(
+        parts.method.as_str(),
+        &path,
+        Flow::header(&flow.request_headers, "content-type"),
+        &flow.request_body,
+    );
     let id = ctx.store.begin(flow);
 
     // A rule may answer, delay, fail or hold the request.

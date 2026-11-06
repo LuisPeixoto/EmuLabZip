@@ -827,3 +827,28 @@ async fn live_http3_public_server() {
     let protocols: Vec<_> = flows.iter().map(|f| f.server_protocol.as_str()).collect();
     assert_eq!(protocols.last(), Some(&"h3"), "{protocols:?}");
 }
+
+#[tokio::test]
+async fn names_graphql_and_grpc_operations() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+
+    let graphql = Request::post(format!("http://{}/echo", upstream.addr))
+        .header("content-type", "application/json")
+        .body(Full::new(Bytes::from(r#"{"operationName":"GetUser","query":"query GetUser { me { id } }"}"#)))
+        .unwrap();
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), graphql).await;
+    let flow = flow_where(&rig.store, "a GraphQL flow", |f| f.operation.as_deref() == Some("GetUser")).await;
+    assert_eq!(rig.store.summaries().iter().find(|s| s.id == flow.id).unwrap().operation.as_deref(), Some("GetUser"));
+
+    let grpc = Request::post(format!("http://{}/echo", upstream.addr))
+        .header("content-type", "application/grpc")
+        .body(Full::new(Bytes::from_static(b"\0\0\0\0\0")))
+        .unwrap();
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), grpc).await;
+    // The path here is `/echo`, which has no service, so no name is made up.
+    let plain = Request::post(format!("http://{}/echo", upstream.addr)).body(Full::new(Bytes::from("x"))).unwrap();
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), plain).await;
+    let flow = flow_where(&rig.store, "a plain flow", |f| f.request_body == b"x").await;
+    assert_eq!(flow.operation, None);
+}
