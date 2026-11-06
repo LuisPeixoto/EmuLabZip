@@ -87,7 +87,12 @@
         <span class="mono text-[12px] font-semibold {flow.status >= 400 ? 'text-err' : flow.status >= 300 ? 'text-info' : 'text-ok'}">{flow.status}</span>
       {/if}
       {#if flow.mocked}<span class="rounded-md bg-accent-soft px-1.5 py-px text-[10.5px] font-semibold text-accent" title="Answered by a rule">MOCK</span>{:else if flow.rule}<span class="rounded-md bg-warn/12 px-1.5 py-px text-[10.5px] font-semibold text-warn" title="A rule matched this request">RULE</span>{/if}
-      {#if flow.source}<span class="rounded-md bg-hover px-1.5 py-px text-[10.5px] font-semibold text-muted" title="Imported from a capture file">{flow.source.toUpperCase()}</span>{/if}
+      {#if flow.source}<span class="rounded-md bg-hover px-1.5 py-px text-[10.5px] font-semibold text-muted" title={flow.source === "resend" ? "Sent again from this app" : "Imported from a capture file"}>{flow.source.toUpperCase()}</span>{/if}
+      {#if flow.operation}<span class="mono max-w-[220px] truncate rounded-md bg-hover px-1.5 py-px text-[10.5px] font-semibold" title="The operation this request carries">{flow.operation}</span>{/if}
+      {#if flow.kind === "http" && !flow.source && !flow.mocked}
+        <button onclick={() => net.resend(flow.id)} title="Send this request again as it was" class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="refresh" size={13} />Resend</button>
+        <button onclick={() => (net.resending = d ?? null)} title="Change the request, then send it" class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="sliders" size={13} />Edit and resend</button>
+      {/if}
       {#if flow.kind === "http" && !flow.source}
         <button onclick={mockThis} title="Mock this response" class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="sliders" size={13} />Mock</button>
       {/if}
@@ -123,6 +128,7 @@
         {#if tab === "headers"}
           {@render headers(flow.requestHeaders, "Request")}
           {@render headers(flow.responseHeaders, "Response")}
+          {#if flow.responseTrailers?.length}{@render headers(flow.responseTrailers, "Trailers")}{/if}
         {:else if tab === "messages"}
           <Messages messages={flow.messages} dropped={flow.messagesDropped} />
         {:else if tab === "request"}

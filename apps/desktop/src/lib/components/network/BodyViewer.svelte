@@ -20,6 +20,7 @@
 {:else}
   <div class="flex items-center gap-2 border-b border-line px-4 py-2 text-[11.5px] text-muted">
     <span class="mono">{bytes(body.size)}</span>
+    {#if body.label}<span class="rounded-md bg-accent-soft px-1.5 py-px font-medium text-accent">{body.label}</span>{/if}
     {#if body.encoding}
       <span class="rounded-md bg-hover px-1.5 py-px">{body.encoding}</span>
       <span class="text-faint">→ {bytes(body.decodedSize)} decoded</span>

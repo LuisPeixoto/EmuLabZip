@@ -12,6 +12,7 @@
   import Sessions from "./lib/components/views/Sessions.svelte";
   import Compare from "./lib/components/views/Compare.svelte";
   import Layout from "./lib/components/views/Layout.svelte";
+  import Frameworks from "./lib/components/views/Frameworks.svelte";
   import Controls from "./lib/components/views/Controls.svelte";
   import Crashes from "./lib/components/views/Crashes.svelte";
   import Logs from "./lib/components/views/Logs.svelte";
@@ -108,6 +109,8 @@
         <Compare />
       {:else if app.view === "layout"}
         <Layout />
+      {:else if app.view === "frameworks"}
+        <Frameworks />
       {:else if app.view === "logs"}
         <Logs />
       {:else if app.view === "performance"}

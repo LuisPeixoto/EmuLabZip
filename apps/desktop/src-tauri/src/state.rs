@@ -30,6 +30,10 @@ pub struct NetRuntime {
     pub http3: bool,
     /// Keep HTTP/3 out of what the device is told.
     pub hide_http3: bool,
+    /// A slow, laggy or missing connection, which outlives the proxy like the rules do.
+    pub conditions: emulabzip_net::Conditions,
+    /// The `.proto` files gRPC messages are decoded with.
+    pub protos: Option<emulabzip_net::protos::ProtoSet>,
 }
 
 impl Default for NetRuntime {
@@ -43,6 +47,8 @@ impl Default for NetRuntime {
             breakpoints: Arc::new(Breakpoints::new()),
             http3: false,
             hide_http3: true,
+            conditions: emulabzip_net::Conditions::default(),
+            protos: None,
         }
     }
 }

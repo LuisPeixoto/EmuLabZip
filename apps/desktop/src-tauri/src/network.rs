@@ -12,14 +12,15 @@ use emulabzip_net::pcap::dns::Lookup;
 use emulabzip_net::pcap::{Summary, import};
 use emulabzip_net::store::FlowEvent;
 use emulabzip_net::{
-    BreakpointEvent, CertificateAuthority, Edits, Proxy, ProxyConfig, Resume, Rule, default_dir, to_har,
+    BreakpointEvent, CertificateAuthority, Conditions, Edits, Proxy, ProxyConfig, Resend, Resume, Rule, default_dir,
+    to_har,
 };
 use emulabzip_storage::{FileKind, detect, image_mime};
 use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
-use crate::commands::{CmdResult, ask_open_path, ask_save_path, err};
+use crate::commands::{CmdResult, ask_folder, ask_open_path, ask_save_path, err};
 use crate::files::{HEX_BYTES, MAX_TEXT, hex_dump};
 use crate::state::{AppState, NetRuntime};
 
@@ -39,6 +40,18 @@ pub struct NetState {
     pub http3: bool,
     /// HTTP/3 is removed from what the device is told.
     pub hide_http3: bool,
+    /// The slow, laggy or missing network in force.
+    pub conditions: Conditions,
+    /// The `.proto` folder gRPC messages are decoded with.
+    pub protos: Option<ProtosInfo>,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ProtosInfo {
+    pub dir: String,
+    pub files: usize,
+    pub services: usize,
 }
 
 fn ca(rt: &mut NetRuntime) -> CmdResult<Arc<CertificateAuthority>> {
@@ -59,6 +72,12 @@ fn snapshot(rt: &NetRuntime) -> NetState {
         connected: rt.connected.iter().map(|t| format!("{:?}:{}", t.platform, t.id).to_lowercase()).collect(),
         http3: rt.http3,
         hide_http3: rt.hide_http3,
+        conditions: rt.conditions.clone(),
+        protos: rt.protos.as_ref().map(|p| ProtosInfo {
+            dir: p.dir().display().to_string(),
+            files: p.file_count(),
+            services: p.service_count(),
+        }),
     }
 }
 
@@ -74,6 +93,7 @@ async fn start(state: &AppState, rt: &mut NetRuntime, port: u16) -> CmdResult<()
         breakpoints: rt.breakpoints.clone(),
         http3: rt.http3,
         hide_http3: rt.hide_http3,
+        conditions: rt.conditions.clone(),
         ..Default::default()
     };
     let handle = Proxy::start(config, ca, state.flows.clone())
@@ -241,6 +261,8 @@ pub struct BodyView {
     pub image: Option<String>,
     pub hex: Option<String>,
     pub error: Option<String>,
+    /// How the body was read when that is more than its type says: `GraphQL`, `gRPC · protobuf`…
+    pub label: Option<String>,
 }
 
 fn kind_for(content_type: Option<&str>, bytes: &[u8]) -> FileKind {
@@ -308,11 +330,51 @@ pub struct FlowDetail {
     pub response: Option<BodyView>,
 }
 
+/// A body of a GraphQL or gRPC request, read the way its protocol means it. `request` says which side it is.
+fn protocol_view(flow: &Flow, protos: Option<&emulabzip_net::protos::ProtoSet>, request: bool) -> Option<BodyView> {
+    let (headers, stored, size, truncated) = if request {
+        (&flow.request_headers, &flow.request_body, flow.request_size, flow.request_truncated)
+    } else {
+        (&flow.response_headers, &flow.response_body, flow.response_size, flow.response_truncated)
+    };
+    let request_type = Flow::header(&flow.request_headers, "content-type");
+    let grpc = request_type.is_some_and(|c| c.to_ascii_lowercase().starts_with("application/grpc"));
+    let mut view = BodyView { size, truncated, kind: Some(FileKind::Json), ..Default::default() };
+    if grpc {
+        if stored.is_empty() {
+            return None;
+        }
+        let encoding = Flow::header(headers, "grpc-encoding");
+        let path = flow.path.split('?').next().unwrap_or(&flow.path);
+        let (value, label) = match protos.and_then(|p| p.describe(path, request, stored, encoding)) {
+            Some(v) => (v, "gRPC · protobuf, with your .proto files"),
+            None => (emulabzip_net::grpc::describe(stored, encoding), "gRPC · protobuf, read without a schema"),
+        };
+        view.decoded_size = stored.len() as u64;
+        view.text = Some(serde_json::to_string_pretty(&value).ok()?);
+        view.label = Some(label.into());
+        return Some(view);
+    }
+    if request && let Some(text) = emulabzip_net::classify::graphql_view(&flow.method, &flow.path, request_type, stored)
+    {
+        view.kind = Some(FileKind::Text);
+        view.decoded_size = stored.len() as u64;
+        view.text = Some(text);
+        view.label = Some("GraphQL".into());
+        return Some(view);
+    }
+    None
+}
+
 #[tauri::command]
-pub fn net_flow(state: State<'_, AppState>, id: u64) -> CmdResult<FlowDetail> {
+pub async fn net_flow(state: State<'_, AppState>, id: u64) -> CmdResult<FlowDetail> {
     let flow = state.flows.get(id).ok_or("That request is no longer in the list.")?;
-    let request = body_view(&flow.request_body, flow.request_size, flow.request_truncated, &flow.request_headers);
-    let response = body_view(&flow.response_body, flow.response_size, flow.response_truncated, &flow.response_headers);
+    let protos = state.net.lock().await.protos.clone();
+    let request = protocol_view(&flow, protos.as_ref(), true)
+        .or_else(|| body_view(&flow.request_body, flow.request_size, flow.request_truncated, &flow.request_headers));
+    let response = protocol_view(&flow, protos.as_ref(), false).or_else(|| {
+        body_view(&flow.response_body, flow.response_size, flow.response_truncated, &flow.response_headers)
+    });
     Ok(FlowDetail { flow, request, response })
 }
 
@@ -527,4 +589,84 @@ mod tests {
         let out = dedupe(vec![mk(1, None), mk(2, None), mk(1, Some(200))]);
         assert_eq!(out.iter().map(|f| (f.id, f.status)).collect::<Vec<_>>(), [(1, Some(200)), (2, None)]);
     }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Network conditions, .proto files and sending a request again
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preset {
+    pub id: String,
+    pub label: String,
+    pub conditions: Conditions,
+}
+
+#[tauri::command]
+pub fn net_condition_presets() -> Vec<Preset> {
+    emulabzip_net::PRESETS
+        .iter()
+        .filter_map(|(id, label)| {
+            Some(Preset { id: id.to_string(), label: label.to_string(), conditions: Conditions::preset(id)? })
+        })
+        .collect()
+}
+
+/// Changes how the network behaves, also for connections that are open. Applies to the proxy when it starts, too.
+#[tauri::command]
+pub async fn net_set_conditions(state: State<'_, AppState>, conditions: Conditions) -> CmdResult<NetState> {
+    conditions.check()?;
+    let mut rt = state.net.lock().await;
+    if let Some(proxy) = &rt.proxy {
+        proxy.set_conditions(conditions.clone())?;
+    }
+    rt.conditions = conditions;
+    Ok(snapshot(&rt))
+}
+
+/// Asks for a folder of `.proto` files and reads it. `None` as the folder clears them. Returns the state, or the
+/// state unchanged when the dialog is cancelled.
+#[tauri::command]
+pub async fn net_pick_protos(app: AppHandle, state: State<'_, AppState>) -> CmdResult<NetState> {
+    let Some(dir) = ask_folder(&app).await else {
+        return Ok(snapshot(&*state.net.lock().await));
+    };
+    let loaded =
+        tokio::task::spawn_blocking(move || emulabzip_net::protos::ProtoSet::load(&dir)).await.map_err(err)??;
+    let mut rt = state.net.lock().await;
+    rt.protos = Some(loaded);
+    Ok(snapshot(&rt))
+}
+
+#[tauri::command]
+pub async fn net_clear_protos(state: State<'_, AppState>) -> CmdResult<NetState> {
+    let mut rt = state.net.lock().await;
+    rt.protos = None;
+    Ok(snapshot(&rt))
+}
+
+/// What to change when sending a request again. Fields left out stay as they were.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ResendInput {
+    pub method: Option<String>,
+    pub url: Option<String>,
+    pub headers: Option<Vec<(String, String)>>,
+    pub body_text: Option<String>,
+    pub body_base64: Option<String>,
+}
+
+/// Sends a captured request again, with changes if asked. Returns the id of the new request.
+#[tauri::command]
+pub async fn net_resend(state: State<'_, AppState>, id: u64, edits_input: ResendInput) -> CmdResult<u64> {
+    let body = match (edits_input.body_text, edits_input.body_base64) {
+        (Some(text), _) => Some(text.into_bytes()),
+        (None, Some(b64)) => Some(base64::engine::general_purpose::STANDARD.decode(b64).map_err(err)?),
+        (None, None) => None,
+    };
+    let edits = Resend { method: edits_input.method, url: edits_input.url, headers: edits_input.headers, body };
+    let rt = state.net.lock().await;
+    let proxy = rt.proxy.as_ref().ok_or("The proxy is not running. Start it to send a request again.")?;
+    proxy.replay(id, edits).await
 }

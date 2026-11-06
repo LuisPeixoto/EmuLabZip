@@ -83,7 +83,7 @@ class LayoutStore {
     this.loading = true;
     this.error = null;
     try {
-      const result = await api.layoutRead(target);
+      const result = await api.layoutRead(target, app.appId);
       if (ticket !== this.#ticket) return;
       this.result = result;
       this.selectedId = null;
