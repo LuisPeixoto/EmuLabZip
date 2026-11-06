@@ -46,7 +46,24 @@ impl Rpc {
     where
         S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
-        let (mut ws, _) = tokio::time::timeout(CALL_TIMEOUT, tokio_tungstenite::client_async(url, stream))
+        Rpc::connect_as(stream, url, None).await
+    }
+
+    /// Like [`Rpc::connect`], saying which page the connection comes from. Metro only lets a debugger in whose
+    /// `Origin` is its own address, so a connection without one is refused with 401.
+    pub async fn connect_as<S>(stream: S, url: &str, origin: Option<&str>) -> Result<Rpc>
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+        let mut request =
+            url.into_client_request().map_err(|e| Error::failed(format!("`{url}` is not an address: {e}")))?;
+        if let Some(origin) = origin
+            && let Ok(value) = origin.parse()
+        {
+            request.headers_mut().insert("Origin", value);
+        }
+        let (mut ws, _) = tokio::time::timeout(CALL_TIMEOUT, tokio_tungstenite::client_async(request, stream))
             .await
             .map_err(|_| Error::failed("The debugger did not answer the connection."))?
             .map_err(|e| Error::failed(format!("Could not open the debugger connection: {e}")))?;
