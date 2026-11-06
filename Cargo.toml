@@ -59,6 +59,8 @@ parking_lot = "0.12"
 plist = "1"
 png = "0.18"
 prost = "0.14"
+prost-reflect = { version = "0.16", features = ["serde"] }
+protox = "0.10"
 roxmltree = "0.21"
 httparse = "1"
 rmcp = { version = "3.7", default-features = false, features = ["server", "macros", "schemars", "transport-io"] }
