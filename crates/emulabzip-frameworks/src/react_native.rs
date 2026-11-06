@@ -266,6 +266,19 @@ pub fn parse_console(event: &Value) -> Option<ConsoleLine> {
     Some(ConsoleLine { level, text: text.join(" ") })
 }
 
+/// Connects to the runtime of `app` through Metro on `port`.
+pub async fn connect_app(app: &str, port: u16) -> Result<ReactNative> {
+    let targets = list_targets(port).await?;
+    let Some(target) = pick(&targets, app) else {
+        let known: Vec<String> = targets.iter().filter_map(|t| t.app_id.clone()).collect();
+        return Err(Error::failed(format!(
+            "Metro does not list a runtime for {app}. It lists: {}. Open the app on a device that reaches Metro.",
+            if known.is_empty() { "nothing".to_string() } else { known.join(", ") }
+        )));
+    };
+    ReactNative::connect(port, target).await
+}
+
 /// A connection to a React Native app's JavaScript runtime.
 pub struct ReactNative {
     rpc: Rpc,
