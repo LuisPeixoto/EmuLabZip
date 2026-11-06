@@ -25,7 +25,7 @@ pub mod stream;
 pub mod trace;
 
 pub use a11y::{Audit, Finding, Severity};
-pub use backend::{Backend, Lab, LogOptions};
+pub use backend::{Backend, DeviceIo, DeviceStream, Lab, LogOptions, is_log_needle};
 pub use buffer::RingBuffer;
 pub use compare::{DiffRow, diff};
 pub use control::{Appearance, Control, ControlInfo, Grant, PermissionState, StatusBar};
