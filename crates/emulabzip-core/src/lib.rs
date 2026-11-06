@@ -14,6 +14,7 @@ pub mod device;
 pub mod energy;
 pub mod error;
 pub mod files;
+pub mod frameworks;
 pub mod layout;
 pub mod log;
 pub mod memory;
@@ -34,6 +35,7 @@ pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Ta
 pub use energy::{EnergyComponent, EnergyReport, Wakelock};
 pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
+pub use frameworks::Framework;
 pub use layout::{Bounds, LayoutSnapshot, Screen, UiNode};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
 pub use memory::{CategoryDelta, HeapDump, LeakGroup, MemoryCategory, MemoryReport, NativeLeaks};
