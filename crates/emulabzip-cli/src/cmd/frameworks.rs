@@ -126,6 +126,14 @@ pub async fn flutter_tree(
             "\n{}",
             output::dim(&format!("{} widgets. ● made by the app's own code, ○ by Flutter or a package.", tree.count()))
         );
+        if !flutter.creation_tracked() {
+            println!(
+                "{}",
+                output::dim(
+                    "This build does not record where widgets were created, so there are no file names and the app's own widgets cannot be told apart. Apps started with `flutter run` do; for `flutter build` add --extra-front-end-options=--track-widget-creation."
+                )
+            );
+        }
     }
     Ok(())
 }
