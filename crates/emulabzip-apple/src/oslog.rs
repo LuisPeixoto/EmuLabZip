@@ -35,6 +35,22 @@ pub fn args(udid: &str, options: LogOptions) -> Vec<String> {
     ["spawn", udid, "log", "stream", "--style", "ndjson", "--level", level].map(String::from).to_vec()
 }
 
+/// The arguments for `simctl` that read the last minutes of the unified log for messages that say `needle`.
+pub fn recent_args(udid: &str, needle: &str) -> Vec<String> {
+    let predicate = format!("eventMessage CONTAINS \"{needle}\"");
+    ["spawn", udid, "log", "show", "--last", "10m", "--style", "ndjson", "--info", "--debug", "--predicate"]
+        .map(String::from)
+        .into_iter()
+        .chain([predicate])
+        .collect()
+}
+
+/// The messages of the last few minutes that contain `needle`, oldest first.
+pub async fn recent(udid: &str, needle: &str) -> Result<Vec<LogEntry>> {
+    let text = simctl::run_text(recent_args(udid, needle)).await?;
+    Ok(text.lines().filter_map(parse_line).filter(|e| e.message.contains(needle)).collect())
+}
+
 /// Maps unified logging message types onto the shared levels. `Default` is the level of a plain
 /// `os_log` call and of `print`-style logging, so it is shown as info.
 pub fn level(message_type: &str) -> LogLevel {
@@ -145,5 +161,12 @@ mod tests {
     fn builds_arguments() {
         let a = args("UDID", LogOptions { tail: 0, verbose: false });
         assert_eq!(a.join(" "), "spawn UDID log stream --style ndjson --level info");
+    }
+
+    #[test]
+    fn asks_the_log_for_messages_that_say_the_needle() {
+        let args = recent_args("UDID", "Dart VM service");
+        assert_eq!(&args[..5], ["spawn", "UDID", "log", "show", "--last"]);
+        assert_eq!(args.last().unwrap(), "eventMessage CONTAINS \"Dart VM service\"");
     }
 }

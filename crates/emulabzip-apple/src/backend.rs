@@ -120,6 +120,18 @@ impl Backend for AppleBackend {
         crate::startup::measure(id, app, kind, runs).await
     }
 
+    async fn recent_logs(&self, id: &str, needle: &str) -> Result<Vec<LogEntry>> {
+        oslog::recent(id, needle).await
+    }
+
+    async fn connect_port(&self, _id: &str, port: u16) -> Result<emulabzip_core::DeviceStream> {
+        // A simulator shares this Mac's network, so its apps listen on the Mac's loopback interface.
+        let stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+            .await
+            .map_err(|e| Error::Simctl(format!("Could not connect to port {port} on the simulator: {e}")))?;
+        Ok(Box::new(stream))
+    }
+
     async fn energy_begin(&self, id: &str, app: &str) -> Result<()> {
         let began = crate::energy::begin(id, app).await?;
         self.energy.lock().unwrap_or_else(|e| e.into_inner()).insert(id.to_string(), began);
