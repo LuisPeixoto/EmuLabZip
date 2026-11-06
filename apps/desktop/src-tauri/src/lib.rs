@@ -5,6 +5,7 @@ mod commands;
 mod controls;
 mod crashes;
 mod files;
+mod frameworks;
 mod layout;
 mod network;
 mod plugins;
@@ -93,6 +94,18 @@ pub fn run() {
             network::net_resume_all,
             network::net_set_http3,
             network::net_set_hide_http3,
+            network::net_condition_presets,
+            network::net_set_conditions,
+            network::net_pick_protos,
+            network::net_clear_protos,
+            network::net_resend,
+            frameworks::frameworks_detect,
+            frameworks::flutter_tree,
+            frameworks::flutter_frames,
+            frameworks::flutter_memory,
+            frameworks::rn_tree,
+            frameworks::rn_heap,
+            frameworks::rn_console,
             network::net_import_pcap,
             controls::controls_info,
             controls::control_apply,
