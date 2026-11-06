@@ -3,7 +3,7 @@
 use emulabzip_frameworks::react_native::{ReactNative, list_targets, pick};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{Value, json};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -15,9 +15,27 @@ async fn start_metro(hook: bool) -> u16 {
         loop {
             let (mut stream, _) = listener.accept().await.unwrap();
             tokio::spawn(async move {
+                // A peek can return only the first bytes, so look until the start of the request is there.
                 let mut head = [0u8; 20];
-                let n = stream.peek(&mut head).await.unwrap();
+                let mut n = 0;
+                while n < 14 {
+                    n = stream.peek(&mut head).await.unwrap();
+                    if n == 0 {
+                        return;
+                    }
+                    tokio::task::yield_now().await;
+                }
                 if head[..n].starts_with(b"GET /json/list") {
+                    // Read the whole request before answering: closing a connection with unread data resets it on
+                    // Windows, and the client would lose the answer.
+                    let mut request = Vec::new();
+                    let mut byte = [0u8; 1];
+                    while !request.ends_with(b"\r\n\r\n") {
+                        if stream.read(&mut byte).await.unwrap() == 0 {
+                            break;
+                        }
+                        request.push(byte[0]);
+                    }
                     let body = json!([{ "id": "d1", "title": "Hermes React Native", "appId": "dev.emulabzip.rn",
                         "deviceName": "sdk", "vm": "Hermes",
                         "webSocketDebuggerUrl": format!("ws://localhost:{port}/inspector/debug?device=d&page=1") }])
