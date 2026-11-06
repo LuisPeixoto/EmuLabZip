@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use emulabzip_net::{
-    Action, Breakpoints, CertificateAuthority, Edits, Flow, FlowKind, FlowState, FlowStore, Matcher, Proxy,
+    Action, Breakpoints, CertificateAuthority, Conditions, Edits, Flow, FlowKind, FlowState, FlowStore, Matcher, Proxy,
     ProxyConfig, ProxyHandle, Resend, Resume, Rule, decode::decode, to_har,
 };
 use http_body_util::{BodyExt, Empty, Full};
@@ -38,6 +38,7 @@ async fn upstream_handler(req: Request<hyper::body::Incoming>) -> Result<Respons
     let version = format!("{:?}", req.version());
     let res = match req.uri().path() {
         "/hello" => Response::new(Full::new(Bytes::from("hello"))),
+        "/big" => Response::new(Full::new(Bytes::from(vec![b'x'; 25_000]))),
         "/gzip" => {
             let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
             gz.write_all(JSON.as_bytes()).unwrap();
@@ -1069,4 +1070,60 @@ async fn a_mocked_flow_cannot_be_sent_again() {
     let mocked = flow_where(&rig.store, "the mocked request", |f| f.mocked).await;
     let error = rig.proxy.replay(mocked.id, Resend::default()).await.unwrap_err();
     assert!(error.contains("mocked"), "{error}");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Network conditions
+// ---------------------------------------------------------------------------------------------
+
+#[tokio::test]
+async fn slow_conditions_make_a_download_take_its_time_and_can_be_lifted() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+    let url = format!("http://{}/big", upstream.addr);
+
+    let started = std::time::Instant::now();
+    let (_, _, body) = send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&url)).await;
+    assert_eq!(body.len(), 25_000);
+    let normal = started.elapsed();
+    assert!(normal < Duration::from_millis(500), "{normal:?}");
+
+    // 25,000 bytes at 200 kb/s is a second, and the latency comes on top.
+    rig.proxy.set_conditions(Conditions { down_kbps: Some(200), latency_ms: 100, ..Default::default() }).unwrap();
+    let started = std::time::Instant::now();
+    let (_, _, body) = send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&url)).await;
+    assert_eq!(body.len(), 25_000);
+    let slow = started.elapsed();
+    assert!(slow > Duration::from_millis(900) && slow < Duration::from_millis(2500), "{slow:?}");
+
+    rig.proxy.set_conditions(Conditions::default()).unwrap();
+    let started = std::time::Instant::now();
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&url)).await;
+    assert!(started.elapsed() < Duration::from_millis(500));
+}
+
+#[tokio::test]
+async fn offline_refuses_new_connections_and_cuts_open_ones() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+    let url = format!("http://{}/hello", upstream.addr);
+
+    // A connection that is open before the switch.
+    let open = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (mut sender, conn) = hyper::client::conn::http1::handshake(TokioIo::new(open)).await.unwrap();
+    tokio::spawn(conn);
+
+    rig.proxy.set_conditions(Conditions::preset("offline").unwrap()).unwrap();
+    assert!(sender.send_request(get(&url)).await.is_err(), "the open connection is cut");
+
+    let mut closed = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    closed.write_all(b"GET / HTTP/1.1\r\n\r\n").await.ok();
+    let mut buf = [0u8; 16];
+    let read = tokio::time::timeout(Duration::from_secs(2), closed.read(&mut buf)).await.unwrap();
+    assert!(matches!(read, Ok(0) | Err(_)), "a new connection gets nothing back");
+
+    rig.proxy.set_conditions(Conditions::default()).unwrap();
+    let (status, _, _) = send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&url)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(rig.proxy.set_conditions(Conditions { down_kbps: Some(0), ..Default::default() }).is_err());
 }
