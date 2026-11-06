@@ -25,13 +25,13 @@ if [ "$platform" = android ]; then
   find android -name '*.kt' -o -name AndroidManifest.xml | xargs sed -i.bak 's/dev.emulabzip.flutter_demo/dev.emulabzip.flutterdemo/g'
   find android -name '*.bak' -delete
   echo "› building the debug APK"
-  "$flutter" build apk --debug
+  "$flutter" build apk --debug --extra-front-end-options=--track-widget-creation
   adb ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} install -r build/app/outputs/flutter-apk/app-debug.apk
   id=dev.emulabzip.flutterdemo
 else
   sed -i.bak 's/dev.emulabzip.flutterDemo/dev.emulabzip.flutterdemo/g' ios/Runner.xcodeproj/project.pbxproj && rm -f ios/Runner.xcodeproj/project.pbxproj.bak
   echo "› building for the simulator"
-  "$flutter" build ios --debug --simulator
+  "$flutter" build ios --debug --simulator --extra-front-end-options=--track-widget-creation
   xcrun simctl install "${SIMULATOR:-booted}" build/ios/iphonesimulator/Runner.app
   id=dev.emulabzip.flutterdemo
 fi
