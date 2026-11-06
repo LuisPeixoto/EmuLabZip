@@ -40,7 +40,7 @@ use crate::ws::{Deflate, Direction, FrameParser, MAX_MESSAGES, parse_extensions}
 type BoxErr = Box<dyn std::error::Error + Send + Sync>;
 type RespBody = UnsyncBoxBody<Bytes, BoxErr>;
 type Resp = Response<RespBody>;
-type UpstreamClient = Client<HttpsConnector<HttpConnector>, Full<Bytes>>;
+type UpstreamClient = Client<HttpsConnector<HttpConnector>, RespBody>;
 type Tunnel = TokioIo<hyper::upgrade::Upgraded>;
 
 #[derive(Debug, Clone)]
@@ -166,7 +166,7 @@ impl Proxy {
         let tls = client_tls_config(&config.extra_roots_pem)?;
         let https =
             HttpsConnectorBuilder::new().with_tls_config(tls.clone()).https_or_http().enable_all_versions().build();
-        let client = Client::builder(TokioExecutor::new()).build::<_, Full<Bytes>>(https);
+        let client = Client::builder(TokioExecutor::new()).build::<_, RespBody>(https);
         let http3 = Http3::new(&tls, config.http3, config.hide_http3);
         let mut http1_only = tls;
         http1_only.alpn_protocols = vec![b"http/1.1".to_vec()];
@@ -442,6 +442,19 @@ fn is_hop_by_hop(name: &header::HeaderName) -> bool {
     )
 }
 
+/// gRPC needs `te: trailers` to reach the server, though `te` is otherwise a header of one hop.
+fn is_te_trailers(name: &header::HeaderName, value: &header::HeaderValue) -> bool {
+    name == header::TE && value.to_str().is_ok_and(|v| v.trim().eq_ignore_ascii_case("trailers"))
+}
+
+/// gRPC calls are streamed, since a call can go on for as long as the app likes.
+fn is_grpc(headers: &HeaderMap) -> bool {
+    headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.trim().to_ascii_lowercase().starts_with("application/grpc"))
+}
+
 fn error_chain(e: &dyn std::error::Error) -> String {
     let mut message = e.to_string();
     let mut source = e.source();
@@ -500,6 +513,9 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
 
     let client_version = req.version();
     let (parts, body) = req.into_parts();
+    if is_grpc(&parts.headers) {
+        return forward_grpc(parts, body, ctx, scheme, &host, port, flow, started, client_version).await;
+    }
     let body = match body.collect().await {
         Ok(collected) => collected.to_bytes(),
         Err(e) => {
@@ -568,12 +584,15 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
             Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
         };
     let h3_body = body.clone();
-    let mut upstream = Request::new(Full::new(body));
+    let mut upstream = Request::new(full(body));
     *upstream.method_mut() = parts.method.clone();
     *upstream.uri_mut() = uri;
     for (name, value) in &headers {
         // `Host` and the length come from the address and the body.
-        if !is_hop_by_hop(name) && name != header::HOST && name != header::CONTENT_LENGTH {
+        if (!is_hop_by_hop(name) || is_te_trailers(name, value))
+            && name != header::HOST
+            && name != header::CONTENT_LENGTH
+        {
             upstream.headers_mut().append(name.clone(), value.clone());
         }
     }
@@ -598,6 +617,105 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
         Ok(res) if holds_response => hold_response(&ctx, id, started, client_version, res, &parts.method).await,
         Ok(res) => respond(&ctx, id, started, client_version, res),
         Err(e) => fail(&ctx, id, StatusCode::BAD_GATEWAY, error_chain(&e)),
+    }
+}
+
+/// A gRPC call: the request body goes to the server as it arrives, and is recorded on the way.
+///
+/// Rules still delay, block or answer a call. A breakpoint needs the whole message, so it does not
+/// hold one.
+#[allow(clippy::too_many_arguments)]
+async fn forward_grpc(
+    parts: http::request::Parts,
+    body: Incoming,
+    ctx: Arc<Ctx>,
+    scheme: &str,
+    host: &str,
+    port: u16,
+    mut flow: Flow,
+    started: Instant,
+    client_version: http::Version,
+) -> Resp {
+    let path = flow.path.clone();
+    flow.operation = crate::classify::operation(
+        parts.method.as_str(),
+        &path,
+        Flow::header(&flow.request_headers, "content-type"),
+        &[],
+    );
+    let id = ctx.store.begin(flow);
+    if let Some(rule) = ctx.rules.find(parts.method.as_str(), host, &path) {
+        ctx.store.update(id, |f| f.rule = Some(rule.name.clone()));
+        match &rule.action {
+            Action::Mock { .. } => return mock(&ctx, id, started, client_version, &rule).await,
+            Action::Delay { ms } => tokio::time::sleep(std::time::Duration::from_millis(*ms)).await,
+            Action::Block => {
+                return fail(&ctx, id, StatusCode::BAD_GATEWAY, format!("Blocked by the rule “{}”.", rule.name));
+            }
+            Action::Breakpoint { .. } => {}
+        }
+    }
+    let uri =
+        match Uri::builder().scheme(scheme).authority(format!("{host}:{port}")).path_and_query(path.as_str()).build() {
+            Ok(uri) => uri,
+            Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
+        };
+    let tapped = RequestTap { inner: body, store: ctx.store.clone(), id, limit: ctx.body_limit, size: 0 };
+    let mut upstream = Request::new(tapped.map_err(|e| -> BoxErr { Box::new(e) }).boxed_unsync());
+    *upstream.method_mut() = parts.method.clone();
+    *upstream.uri_mut() = uri;
+    for (name, value) in &parts.headers {
+        if (!is_hop_by_hop(name) || is_te_trailers(name, value)) && name != header::HOST {
+            upstream.headers_mut().append(name.clone(), value.clone());
+        }
+    }
+    match ctx.client.request(upstream).await {
+        Ok(res) => respond(&ctx, id, started, client_version, res),
+        Err(e) => fail(&ctx, id, StatusCode::BAD_GATEWAY, error_chain(&e)),
+    }
+}
+
+/// Passes a request body on and records what goes by.
+struct RequestTap {
+    inner: Incoming,
+    store: Arc<FlowStore>,
+    id: FlowId,
+    limit: usize,
+    size: u64,
+}
+
+impl Body for RequestTap {
+    type Data = Bytes;
+    type Error = hyper::Error;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<std::result::Result<Frame<Bytes>, hyper::Error>>> {
+        let this = &mut *self;
+        let polled = Pin::new(&mut this.inner).poll_frame(cx);
+        if let Poll::Ready(Some(Ok(frame))) = &polled
+            && let Some(data) = frame.data_ref()
+        {
+            this.size += data.len() as u64;
+            let (size, limit) = (this.size, this.limit);
+            let chunk = data.clone();
+            this.store.update(this.id, |f| {
+                let room = limit.saturating_sub(f.request_body.len());
+                f.request_body.extend_from_slice(&chunk[..chunk.len().min(room)]);
+                f.request_size = size;
+                f.request_truncated = size as usize > limit;
+            });
+        }
+        polled
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.inner.is_end_stream()
+    }
+
+    fn size_hint(&self) -> hyper::body::SizeHint {
+        self.inner.size_hint()
     }
 }
 
@@ -828,6 +946,7 @@ fn respond(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, res:
         limit: ctx.body_limit,
         buf: Vec::new(),
         size: 0,
+        trailers: Vec::new(),
         finished: false,
     };
     Response::from_parts(parts, tapped.map_err(|e| -> BoxErr { Box::new(e) }).boxed_unsync())
@@ -843,6 +962,8 @@ struct TapBody {
     limit: usize,
     buf: Vec<u8>,
     size: u64,
+    /// What came after the body, such as gRPC's `grpc-status`.
+    trailers: Headers,
     finished: bool,
 }
 
@@ -853,9 +974,11 @@ impl TapBody {
         }
         let total = self.started.elapsed().as_millis() as u64;
         let (body, size) = (std::mem::take(&mut self.buf), self.size);
+        let trailers = std::mem::take(&mut self.trailers);
         let truncated = size as usize > self.limit;
         self.store.update(self.id, |f| {
             f.response_body = body;
+            f.response_trailers = trailers;
             f.response_size = size;
             f.response_truncated = truncated;
             f.timing.total_ms = Some(total);
@@ -885,6 +1008,9 @@ impl Body for TapBody {
                     this.size += data.len() as u64;
                     let room = this.limit.saturating_sub(this.buf.len());
                     this.buf.extend_from_slice(&data[..data.len().min(room)]);
+                }
+                if let Some(trailers) = frame.trailers_ref() {
+                    this.trailers = header_list(trailers);
                 }
                 Poll::Ready(Some(Ok(frame)))
             }
