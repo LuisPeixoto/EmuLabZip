@@ -1,0 +1,9 @@
+APK /data/app/~~a==/dev.emulabzip.rn-b==/base.apk
+Archive:  /data/app/~~a==/dev.emulabzip.rn-b==/base.apk
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+  1843220  2009-01-01 00:00   assets/index.android.bundle
+  2231000  2009-01-01 00:00   lib/arm64-v8a/libreactnativejni.so
+  3999000  2009-01-01 00:00   lib/arm64-v8a/libhermes.so
+   120000  2009-01-01 00:00   lib/arm64-v8a/libhermes_executor.so
+  1900000  2009-01-01 00:00   classes.dex
