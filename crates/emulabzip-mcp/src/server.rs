@@ -52,6 +52,18 @@ impl EmuLabServer {
         self.device(query).await.map(|(_, t)| t)
     }
 
+    async fn flutter(&self, a: &args::Flutter) -> Result<emulabzip_frameworks::flutter::Flutter, String> {
+        let uri = match &a.uri {
+            None => None,
+            Some(text) => Some(
+                emulabzip_frameworks::flutter::VmUri::parse(text)
+                    .ok_or_else(|| format!("`{text}` is not an address like http://127.0.0.1:41233/token=/"))?,
+            ),
+        };
+        let target = self.target(&a.device).await?;
+        emulabzip_frameworks::flutter::connect_app(&self.lab, &target, uri).await.map_err(|e| e.to_string())
+    }
+
     async fn control(&self, query: &Option<String>, control: Control, done: &str) -> Result<String, String> {
         let (device, target) = self.device(query).await?;
         self.lab.control(&target, &control).await.map_err(|e| e.to_string())?;
@@ -280,6 +292,73 @@ impl EmuLabServer {
                     .map_err(|e| e.to_string())?
                     .map_err(|e| e.to_string())?;
                 json(&analysis)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Which UI frameworks an app is built with, found from its files: Flutter, React Native, Hermes, Jetpack Compose or SwiftUI."
+    )]
+    async fn detect_frameworks(&self, Parameters(a): Parameters<args::App>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                json(&self.lab.frameworks(&target, &a.app).await.map_err(|e| e.to_string())?)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "The widget tree of a running Flutter debug or profile app, with the file and line each widget of the app's own code was made at."
+    )]
+    async fn flutter_widget_tree(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
+        reply(
+            async {
+                let flutter = self.flutter(&a).await?;
+                let root = flutter.widget_tree().await.map_err(|e| e.to_string())?;
+                json(&serde_json::json!({ "creationTracked": flutter.creation_tracked(), "tree": root }))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Build and raster times of the frames a Flutter app draws over a few seconds (at most 30), with the janky ones counted. Nothing is drawn while the app is idle, so use it meanwhile."
+    )]
+    async fn flutter_frames(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
+        reply(
+            async {
+                let seconds = a.seconds.unwrap_or(8).clamp(1, 30);
+                let flutter = self.flutter(&a).await?;
+                let mut stats = flutter.frames(seconds).await.map_err(|e| e.to_string())?;
+                // The list of every frame is for a chart; an assistant needs the summary.
+                stats.timeline.clear();
+                json(&stats)
+            }
+            .await,
+        )
+    }
+
+    #[tool(description = "The Dart heap of a running Flutter app and the classes that use the most memory.")]
+    async fn flutter_memory(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
+        reply(async { json(&self.flutter(&a).await?.memory(15).await.map_err(|e| e.to_string())?) }.await)
+    }
+
+    #[tool(
+        description = "The React component tree of a React Native development app, with props, read through Metro (must be running). Metro allows one debugger at a time, so this can close React Native DevTools."
+    )]
+    async fn react_tree(&self, Parameters(a): Parameters<args::ReactNative>) -> CallToolResult {
+        reply(
+            async {
+                if !emulabzip_core::control::is_app_id(&a.app) {
+                    return Err(format!("`{}` is not a package name or bundle id", a.app));
+                }
+                let port = a.metro_port.unwrap_or(emulabzip_frameworks::react_native::METRO_PORT);
+                let rn =
+                    emulabzip_frameworks::react_native::connect_app(&a.app, port).await.map_err(|e| e.to_string())?;
+                json(&rn.tree().await.map_err(|e| e.to_string())?)
             }
             .await,
         )
