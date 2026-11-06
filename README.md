@@ -58,6 +58,9 @@ request, record a whole run and compare two devices. It ships as a native deskto
 - **Live performance.** CPU, memory, frame rate, janky frames and battery for the app you pick, charted as it runs.
 - **Find what grew.** Memory snapshots with a diff by category, and heap dumps (`.hprof`) or memory graphs
   (`.memgraph`) one click away.
+- **Inside Flutter, React Native, Compose and SwiftUI.** The widget tree, frame times and memory of Flutter apps, the
+  React tree and Hermes heap of React Native apps, Compose and SwiftUI views marked in Layout; GraphQL operations and
+  gRPC calls named and decoded; requests sent again with changes; and a slow, laggy or missing network on demand.
 - **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
   the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
   slower.
@@ -158,6 +161,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | App start time (cold, warm, hot) | ✅ | ✅ (cold, hot) |
 | Energy per app | ✅ (estimate) | CPU time only |
 | Budgets and baselines in CI | ✅ | ✅ |
+| Flutter widget tree, frames and memory | ✅ | ✅ |
+| React Native component tree and Hermes heap | ✅ | — |
+| Compose and SwiftUI views marked in Layout | ✅ | ✅ (needs Accessibility permission) |
+| GraphQL and gRPC decoding, resend, network conditions | ✅ | ✅ |
 | File browser with SQLite, preferences and property list viewers | ✅ | ✅ |
 | Network inspector: decrypted HTTP(S), HAR export | ✅ | ✅ |
 | Perfetto system traces with summary and SQL | ✅ | — |
@@ -231,6 +238,10 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [iOS Simulator](docs/ios-simulator.md) | Requirements, what `simctl` provides, taming the unified log |
 | [Logs](docs/logs.md) | Filters, regular expressions, pausing and export |
 | [Performance](docs/performance.md) | What each chart measures and where the numbers come from |
+| [Inside the frameworks](docs/frameworks.md) | Flutter, React Native, Compose and SwiftUI |
+| [GraphQL](docs/graphql.md) | Operations named in the list, queries and variables |
+| [gRPC and protobuf](docs/grpc.md) | Calls, status, streaming, and messages with or without `.proto` files |
+| [Network conditions](docs/network-conditions.md) | Slow, laggy, lossy and offline networks |
 | [Memory](docs/memory.md) | Snapshots, diffs, heap dumps and memory graphs |
 | [Finding leaks](docs/leaks.md) | The leak finder for heap dumps, and how to read its paths |
 | [App start time](docs/startup.md) | Cold, warm and hot starts, and what is measured |

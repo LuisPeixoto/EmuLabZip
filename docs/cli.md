@@ -127,6 +127,10 @@ device is put back when it stops, also after an error. See [Network](network.md)
 | `--json` | One JSON object per request. |
 | `--rules <file>` | Mock, delay or block requests with the rules in a JSON file. See [Mocks and breakpoints](mocks.md). |
 | `--http3` | Talk HTTP/3 to servers that offer it. `--show-h3` also shows apps the offers. |
+| `--conditions <preset>` | Slow the network: `fast-3g`, `slow-3g`, `slow-wifi`, `high-latency`, `packet-loss` or `offline`. See [Network conditions](network-conditions.md). |
+| `--down <kbps>`, `--up <kbps>`, `--latency <ms>`, `--loss <percent>` | Numbers of your own, or changes to a preset. |
+
+GraphQL operations and gRPC methods and statuses are printed after each request.
 
 `emulabzip net import <file> [--har <file>] [--json] [--dns]` reads a `.pcap` or `.pcapng` capture and prints the
 requests it holds, with the DNS lookups when asked. See [Importing a capture](pcap.md).
@@ -134,8 +138,24 @@ requests it holds, with the DNS lookups when asked. See [Importing a capture](pc
 ### `emulabzip layout` and `emulabzip a11y`
 
 `layout` prints the views on the screen as a tree (`--json` for all of it, `--png <file>` to save the screenshot taken
-with it, `--depth <n>`). `a11y` audits the screen and prints the findings; `--fail-on note|warning|error` exits with 1 when
+with it, `--depth <n>`, `--app <id>` to mark an iOS screen with its app's framework). `a11y` audits the screen and prints the findings; `--fail-on note|warning|error` exits with 1 when
 something at least that serious is found. See [Layout and accessibility](layout.md).
+
+### `emulabzip frameworks <app>`
+
+Lists the UI frameworks the app is built with (Flutter, React Native, Hermes, Jetpack Compose, SwiftUI) and what showed
+it. `--json`. See [Inside the frameworks](frameworks.md).
+
+### `emulabzip flutter tree|frames|memory <app>`
+
+Looks inside a Flutter debug or profile app through its Dart VM service. `--uri <address>` gives where it listens when it
+is not in the log; `tree` has `--depth <n>`, `frames` has `-s, --seconds <n>` (default 10), `memory` has `--top <n>`.
+All accept `--json`.
+
+### `emulabzip rn tree|heap|console <app>`
+
+Looks inside a React Native development app through Metro (`--metro <port>`, default 8081). `tree` has `--depth <n>`,
+`console` has `-s, --seconds <n>`. All accept `--json`. Metro lets one debugger connect at a time.
 
 ### `emulabzip session` and `emulabzip ci`
 

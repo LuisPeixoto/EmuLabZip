@@ -6,6 +6,31 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **Flutter**: a new `emulabzip-frameworks` crate reads the Dart VM service of debug and profile apps: the widget tree
+  (with the file and line of the app's own widgets), the build and raster time of frames, and the Dart heap. The
+  address is found in the log, and the port is reached through the device, with nothing forwarded. `emulabzip
+  flutter`, **Frameworks** in the desktop app, and the `flutter_*` tools.
+- **React Native**: the component tree, Hermes' heap and the console, read through Metro's inspector. `emulabzip rn`,
+  **Frameworks**, and `react_tree`.
+- **Framework detection** from the files of an app: Flutter, React Native, Hermes, Jetpack Compose (with its version)
+  and SwiftUI. `emulabzip frameworks` and `detect_frameworks`.
+- **Compose, Flutter and React Native views are marked in Layout** (and SwiftUI, with `layout --app` or an app picked in
+  the desktop app).
+- **GraphQL and gRPC** in Network: operation names and gRPC methods and status in the list, GraphQL queries with their
+  variables, gRPC calls streamed through the proxy with their trailers, and protobuf read without a schema or with your
+  `.proto` files.
+- **Send again**: Resend and Edit and resend for a captured request.
+- **Network conditions**: Fast and Slow 3G, slow Wi-Fi, high latency, packet loss, offline, or numbers of your own, applied
+  while connections are open. `emulabzip net --conditions`.
+- Demo apps in `tools/` for Compose, Flutter, React Native and SwiftUI.
+- `Lab::recent_logs` and `Lab::connect_port` for tools that need the log of a device or one of its ports.
+
+### Changed
+
+- `te: trailers` is no longer removed from requests, which gRPC needs.
+
 ## [0.7.0] - 2026-11-05
 
 Phase 7: performance and quality.

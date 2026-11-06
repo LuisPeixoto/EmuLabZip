@@ -90,6 +90,28 @@ Simulator.app has to be open on that device, and the program running EmuLabZip h
 Privacy & Security, Accessibility (the app, or your terminal for `emulabzip layout`). Wake the device if it shows a
 black screen.
 
+## Flutter: "Could not find where the Dart VM service listens"
+
+Only debug and profile builds have one, and the app writes its address to the log once, when it starts. Start the app
+again, or give the address from `flutter run`'s output with `--uri`. A release build has no VM service.
+
+## Flutter: the tree has no file names
+
+The app was not built with `--track-widget-creation`. `flutter run` adds it; for `flutter build` add
+`--extra-front-end-options=--track-widget-creation`.
+
+## React Native: "Metro is not running" or "does not list a runtime"
+
+Start Metro (`npx react-native start`) and open the app on a device that reaches it (`adb reverse tcp:8081 tcp:8081` on
+Android). Metro lists a runtime only while the app is connected to it, and lets one debugger in at a time: close React
+Native DevTools and Chrome's inspector, then try again. Release builds have no Metro and no React DevTools hook.
+
+## Network: a Gradle build cannot download its distribution
+
+Not an EmuLabZip matter, but it comes up with the demo apps: some networks let `curl` reach the Gradle servers while
+Java times out. Download the distribution with `curl` and put it where Gradle expects it
+(`~/.gradle/wrapper/dists/<name>/<hash>/`), or build with a Gradle you already have.
+
 ## Layout: Android says uiautomator produced nothing
 
 Some windows forbid it: secure screens, and a few players. Go to another screen and try again. If the device is busy
