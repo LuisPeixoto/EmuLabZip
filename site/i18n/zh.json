@@ -17,7 +17,7 @@
     "language": "语言"
   },
   "hero": {
-    "eyebrow": "开源 · MIT · v0.7",
+    "eyebrow": "开源 · MIT · v0.8",
     "titleLead": "专为你的",
     "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
     "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
@@ -55,7 +55,10 @@
       { "icon": "compare", "title": "设备对比", "text": "两台模拟器并排对比：双屏画面、CPU 和内存图表，以及所有不同之处。" },
       { "icon": "memory", "title": "泄漏检测", "text": "打开堆转储，查看已销毁却仍存活的 Activity 和 Fragment、保持它们存活的引用路径，以及占用内存最多的对象。" },
       { "icon": "performance", "title": "启动耗时与能耗", "text": "冷启动、温启动和热启动的多次运行中位数，以及应用在你使用期间消耗的能量。" },
-      { "icon": "sessions", "title": "预算与基线", "text": "在 emulabzip.toml 中写下限制，让超出限制或比上次良好运行更慢的 CI 运行失败。" }
+      { "icon": "sessions", "title": "预算与基线", "text": "在 emulabzip.toml 中写下限制，让超出限制或比上次良好运行更慢的 CI 运行失败。" },
+      { "icon": "layout", "title": "深入 Flutter 与 React Native", "text": "通过各自的调试器读取 Flutter 应用的组件树、帧耗时和内存，以及 React Native 应用的 React 组件树和 Hermes 堆。" },
+      { "icon": "network", "title": "GraphQL 与 gRPC", "text": "在请求列表中显示操作与调用名称、查询及其变量、gRPC 状态与流式传输，并可使用或不使用 .proto 文件解析 protobuf。" },
+      { "icon": "rules", "title": "重发与慢速网络", "text": "修改后重新发送请求，或让网络变慢、延迟、丢包或断开，看看应用如何应对。" }
     ]
   },
   "showcase": {
@@ -125,15 +128,15 @@
   "roadmap": {
     "kicker": "路线图",
     "title": "EmuLabZip 的下一步",
-    "lead": "七个阶段已经完成，接下来的三个阶段将通向稳定的 1.0。",
+    "lead": "八个阶段已经完成，接下来的两个阶段将通向稳定的 1.0。",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "观察", "text": "设备、日志、性能、内存、存储和网络代理。" },
       { "state": "done", "version": "v0.4", "title": "追踪", "text": "Perfetto、simpleperf 和 Instruments，支持火焰图和 SQL。" },
       { "state": "done", "version": "v0.5", "title": "崩溃与自动化", "text": "崩溃、设备控制、MCP 服务器和插件。" },
       { "state": "done", "version": "v0.6", "title": "进阶工具", "text": "模拟响应、断点、WebSocket、HTTP/3、布局、无障碍、会话和 CI。" },
       { "state": "done", "version": "v0.7", "title": "性能与质量", "text": "应用启动耗时、能耗、泄漏检测，以及 CI 中的性能预算。" },
-      { "state": "next", "version": "v0.8", "title": "深入框架内部", "text": "Flutter、React Native、Compose 和 SwiftUI；gRPC 和 GraphQL。" },
-      { "state": "later", "version": "v0.9", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 连接的 Android、Wear OS、电视和 Apple 各平台。" },
+      { "state": "done", "version": "v0.8", "title": "深入框架内部", "text": "Flutter、React Native、Compose 和 SwiftUI；gRPC 和 GraphQL。" },
+      { "state": "next", "version": "v0.9", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 连接的 Android、Wear OS、电视和 Apple 各平台。" },
       { "state": "later", "version": "v1.0", "title": "团队与生态", "text": "可分享的报告、规则库、VS Code 扩展和稳定性承诺。" }
     ]
   },
