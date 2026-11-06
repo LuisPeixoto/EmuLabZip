@@ -5,6 +5,7 @@ pub mod control;
 pub mod crashes;
 pub mod devices;
 pub mod files;
+pub mod frameworks;
 pub mod heap;
 pub mod info;
 pub mod layout;
