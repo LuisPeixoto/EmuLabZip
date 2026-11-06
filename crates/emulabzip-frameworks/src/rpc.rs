@@ -63,7 +63,9 @@ impl Rpc {
                             None => break,
                         },
                         incoming = ws.next() => match incoming {
-                            Some(Ok(Message::Text(text))) => route(&text, &pending, &events),
+                            Some(Ok(Message::Text(text))) => route(text.as_bytes(), &pending, &events),
+                            // The Dart VM service sends big answers as binary frames that hold JSON text.
+                            Some(Ok(Message::Binary(bytes))) => route(&bytes, &pending, &events),
                             Some(Ok(Message::Ping(p))) => { let _ = ws.send(Message::Pong(p)).await; }
                             Some(Ok(Message::Close(_))) | Some(Err(_)) | None => break,
                             Some(Ok(_)) => {}
@@ -117,8 +119,8 @@ impl Rpc {
 }
 
 /// Sends an answer to the call that waits for it, or an event to whoever listens.
-fn route(text: &str, pending: &Pending, events: &broadcast::Sender<Value>) {
-    let Ok(message) = serde_json::from_str::<Value>(text) else { return };
+fn route(text: &[u8], pending: &Pending, events: &broadcast::Sender<Value>) {
+    let Some(message) = parse(text) else { return };
     let Some(id) = message.get("id").and_then(Value::as_u64) else {
         let _ = events.send(message);
         return;
@@ -130,6 +132,16 @@ fn route(text: &str, pending: &Pending, events: &broadcast::Sender<Value>) {
         None => Ok(message.get("result").cloned().unwrap_or(Value::Null)),
     };
     let _ = tx.send(answer);
+}
+
+/// Reads a message. Debuggers nest JSON deeper than `serde_json` allows by default (a Flutter widget tree is
+/// hundreds of levels), so the depth limit is lifted and the stack grows as needed.
+fn parse(bytes: &[u8]) -> Option<Value> {
+    let mut json = serde_json::Deserializer::from_slice(bytes);
+    json.disable_recursion_limit();
+    let value = serde::Deserialize::deserialize(serde_stacker::Deserializer::new(&mut json)).ok()?;
+    json.end().ok()?;
+    Some(value)
 }
 
 /// The message of a protocol error: JSON-RPC and the DevTools protocol both write `{code, message}`; the
@@ -145,6 +157,18 @@ fn describe_error(error: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_messages_nested_deeper_than_serde_json_allows() {
+        let depth = 5_000;
+        let text = format!("{{\"id\":1,\"result\":{}0{}}}", "[".repeat(depth), "]".repeat(depth));
+        let value = parse(text.as_bytes()).expect("a deep message is read");
+        assert_eq!(value["id"], 1);
+        assert!(parse(b"{\"id\":").is_none());
+        assert!(parse(b"{} trailing").is_none());
+        // Dropping a value this deep must not overflow the stack either.
+        drop(value);
+    }
 
     #[test]
     fn errors_say_what_went_wrong() {

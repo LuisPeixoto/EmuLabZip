@@ -1,0 +1,14 @@
+name: flutter_demo
+description: A small Flutter app to try EmuLabZip's Flutter tools on.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
