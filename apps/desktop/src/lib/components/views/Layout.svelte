@@ -66,6 +66,7 @@
     if (id != null && treeEl) treeEl.querySelector(`[data-node="${id}"]`)?.scrollIntoView({ block: "nearest" });
   });
 
+  const frameworkName: Record<string, string> = { compose: "Jetpack Compose", flutter: "Flutter", "react-native": "React Native", swiftui: "SwiftUI" };
   const dp = (n: number) => (screen && result?.layout.platform === "android" ? `${Math.round(n / screen.density)} dp` : `${n} ${unit}`);
 
   const props = $derived.by(() => {
@@ -73,6 +74,7 @@
     if (!n) return [];
     const rows: [string, string][] = [
       ["Class", n.class],
+      ["Framework", n.framework ? frameworkName[n.framework] ?? n.framework : ""],
       ["Text", n.text ?? ""],
       ["Label", n.label ?? ""],
       ["Hint", n.hint ?? ""],
@@ -174,6 +176,7 @@
                 {:else}<span class="size-5 shrink-0"></span>{/if}
                 <button onclick={() => layout.select(node.id)} class="flex min-w-0 flex-1 items-center gap-2 py-1 pr-2 text-left text-[12px]">
                   <span class="mono shrink-0 text-[10.5px] text-faint">{node.class.split(".").pop()}</span>
+                  {#if node.framework}<span class="shrink-0 rounded bg-accent-soft px-1 py-px text-[9.5px] font-semibold text-accent" title={frameworkName[node.framework]}>{node.framework === "react-native" ? "RN" : node.framework}</span>{/if}
                   <span class="min-w-0 flex-1 truncate {node.label || node.text ? '' : 'text-faint'}">{title(node)}</span>
                   {#if bad}<span class="size-2 shrink-0 rounded-full {tone[bad[0].severity]}"></span>{/if}
                 </button>
