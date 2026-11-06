@@ -5,6 +5,7 @@
 //! protocol that Hermes exposes through Metro. [`rpc::Rpc`] is the small client both use.
 
 pub mod flutter;
+pub mod react_native;
 pub mod rpc;
 
 pub use rpc::Rpc;
