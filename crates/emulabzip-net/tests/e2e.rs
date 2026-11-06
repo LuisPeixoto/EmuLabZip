@@ -9,7 +9,7 @@ use std::time::Duration;
 use bytes::Bytes;
 use emulabzip_net::{
     Action, Breakpoints, CertificateAuthority, Edits, Flow, FlowKind, FlowState, FlowStore, Matcher, Proxy,
-    ProxyConfig, ProxyHandle, Resume, Rule, decode::decode, to_har,
+    ProxyConfig, ProxyHandle, Resend, Resume, Rule, decode::decode, to_har,
 };
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::service::service_fn;
@@ -983,4 +983,90 @@ async fn a_grpc_request_is_streamed_and_recorded_piece_by_piece() {
     let done = flow_where(&rig.store, "a finished call", |f| f.state == FlowState::Completed).await;
     assert_eq!(done.request_body, [first, second].concat());
     assert_eq!(done.grpc_status(), Some(0));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Resend
+// ---------------------------------------------------------------------------------------------
+
+#[tokio::test]
+async fn a_request_can_be_sent_again_with_changes() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+    let url = format!("http://{}/echo", upstream.addr);
+    let first = Request::post(&url)
+        .header("content-type", "application/json")
+        .header("x-keep", "yes")
+        .body(Full::new(Bytes::from(r#"{"n":1}"#)))
+        .unwrap();
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), first).await;
+    let original = flow_where(&rig.store, "the first request", |f| f.state == FlowState::Completed).await;
+
+    // As it was.
+    let again = rig.proxy.replay(original.id, Resend::default()).await.unwrap();
+    let same = flow_where(&rig.store, "the copy", |f| f.id == again && f.state == FlowState::Completed).await;
+    assert_eq!(same.source.as_deref(), Some("resend"));
+    assert_eq!(same.request_body, br#"{"n":1}"#);
+    assert_eq!(same.response_body, br#"{"n":1}"#);
+    assert!(same.request_headers.iter().any(|(k, v)| k == "x-keep" && v == "yes"));
+
+    // With another body and method.
+    let edited = Resend { body: Some(br#"{"n":2}"#.to_vec()), method: Some("put".into()), ..Default::default() };
+    let id = rig.proxy.replay(original.id, edited).await.unwrap();
+    let changed = flow_where(&rig.store, "the edited copy", |f| f.id == id && f.state == FlowState::Completed).await;
+    assert_eq!(changed.method, "PUT");
+    assert_eq!(changed.response_body, br#"{"n":2}"#);
+    assert_eq!(changed.operation, None);
+
+    // The first one was not touched.
+    let kept = rig.store.get(original.id).unwrap();
+    assert_eq!((kept.method.as_str(), kept.request_body.as_slice()), ("POST", &br#"{"n":1}"#[..]));
+}
+
+#[tokio::test]
+async fn a_resend_can_go_to_another_address_and_says_when_it_fails() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy(vec![]).await;
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&format!("http://{}/hello", upstream.addr))).await;
+    let original = flow_where(&rig.store, "the request", |f| f.state == FlowState::Completed).await;
+
+    let to = Resend {
+        url: Some(format!("http://{}/echo", upstream.addr)),
+        method: Some("POST".into()),
+        ..Default::default()
+    };
+    let id = rig.proxy.replay(original.id, to).await.unwrap();
+    let done = flow_where(&rig.store, "the copy", |f| f.id == id && f.state == FlowState::Completed).await;
+    assert_eq!(done.path, "/echo");
+
+    // Nothing listens there.
+    let dead = Resend { url: Some("http://127.0.0.1:9/nope".into()), ..Default::default() };
+    let id = rig.proxy.replay(original.id, dead).await.unwrap();
+    let failed = flow_where(&rig.store, "the failure", |f| f.id == id && f.state == FlowState::Failed).await;
+    assert!(failed.error.is_some());
+
+    for bad in [
+        Resend { url: Some("ftp://x/y".into()), ..Default::default() },
+        Resend { url: Some("not a url".into()), ..Default::default() },
+        Resend { method: Some("BAD METHOD".into()), ..Default::default() },
+        Resend { headers: Some(vec![("bad name".into(), "x".into())]), ..Default::default() },
+    ] {
+        assert!(rig.proxy.replay(original.id, bad).await.is_err());
+    }
+    assert!(rig.proxy.replay(9_999, Resend::default()).await.is_err());
+}
+
+#[tokio::test]
+async fn a_mocked_flow_cannot_be_sent_again() {
+    let upstream = start_upstream(false).await;
+    let rig = start_proxy_with_rules(vec![rule(
+        "stub",
+        "/hello",
+        Action::Mock { status: 418, headers: vec![], body: "short".into(), base64: false, delay_ms: 0 },
+    )])
+    .await;
+    send_h1(TcpStream::connect(rig.proxy.addr()).await.unwrap(), get(&format!("http://{}/hello", upstream.addr))).await;
+    let mocked = flow_where(&rig.store, "the mocked request", |f| f.mocked).await;
+    let error = rig.proxy.replay(mocked.id, Resend::default()).await.unwrap_err();
+    assert!(error.contains("mocked"), "{error}");
 }
