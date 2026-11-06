@@ -117,6 +117,7 @@ fn convert(ax: &AxNode, map: &Mapping) -> UiNode {
         checked: switch.then(|| matches!(ax.value.trim(), "1" | "true" | "on")),
         scrollable: ax.role == "AXScrollArea",
         editable,
+        framework: None,
         children: ax.children.iter().map(|c| convert(c, map)).collect(),
     }
 }

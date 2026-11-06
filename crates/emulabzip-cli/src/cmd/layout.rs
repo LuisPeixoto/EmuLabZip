@@ -4,12 +4,14 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use emulabzip_core::a11y::{Severity, audit};
-use emulabzip_core::{Lab, UiNode};
+use emulabzip_core::control::is_app_id;
+use emulabzip_core::layout::screen_framework;
+use emulabzip_core::{Lab, Platform, UiNode};
 
 use super::ci::Exit;
 use crate::output;
 
-fn describe(n: &UiNode) -> String {
+fn describe(n: &UiNode, parent: Option<&str>) -> String {
     let name = n
         .label
         .as_deref()
@@ -24,8 +26,13 @@ fn describe(n: &UiNode) -> String {
         .collect::<Vec<_>>()
         .join(",");
     let b = n.bounds;
+    // Where a framework starts, say so; inside it the mark would only repeat.
+    let framework = match n.framework.as_deref() {
+        Some(f) if Some(f) != parent => format!(" {}", output::dim(&format!("[{f}]"))),
+        _ => String::new(),
+    };
     format!(
-        "{}{name}{id}  {}",
+        "{}{framework}{name}{id}  {}",
         n.class.rsplit('.').next().unwrap_or(&n.class),
         output::dim(&format!(
             "{}×{} at {},{}{}",
@@ -38,18 +45,38 @@ fn describe(n: &UiNode) -> String {
     )
 }
 
-fn print_tree(n: &UiNode, depth: usize, max: usize) {
-    println!("{}{}", "  ".repeat(depth), describe(n));
+fn print_tree(n: &UiNode, depth: usize, max: usize, parent: Option<&str>) {
+    println!("{}{}", "  ".repeat(depth), describe(n, parent));
     if depth < max {
         for c in &n.children {
-            print_tree(c, depth + 1, max);
+            print_tree(c, depth + 1, max, n.framework.as_deref());
         }
     }
 }
 
-pub async fn layout(lab: &Lab, device: Option<&str>, json: bool, png: Option<PathBuf>, depth: usize) -> Result<()> {
+pub async fn layout(
+    lab: &Lab,
+    device: Option<&str>,
+    json: bool,
+    png: Option<PathBuf>,
+    depth: usize,
+    app: Option<&str>,
+) -> Result<()> {
+    // Checked before any device is looked for.
+    if let Some(app) = app
+        && !is_app_id(app)
+    {
+        anyhow::bail!("`{app}` is not a package name or bundle id");
+    }
     let device = lab.resolve(device).await?;
-    let snapshot = lab.layout(&device.target()).await?;
+    let mut snapshot = lab.layout(&device.target()).await?;
+    // iOS views have no host class that gives their framework away, so the app's files say it for the whole screen.
+    if let Some(app) = app
+        && snapshot.platform == Platform::Ios
+        && let Some(found) = screen_framework(&lab.frameworks(&device.target(), app).await?)
+    {
+        snapshot.root.mark_all(found);
+    }
     if let Some(path) = &png {
         tokio::fs::write(path, &snapshot.screenshot)
             .await
@@ -59,7 +86,7 @@ pub async fn layout(lab: &Lab, device: Option<&str>, json: bool, png: Option<Pat
     if json {
         println!("{}", serde_json::to_string_pretty(&snapshot)?);
     } else {
-        print_tree(&snapshot.root, 0, depth);
+        print_tree(&snapshot.root, 0, depth, None);
         eprintln!(
             "{}",
             output::dim(&format!(
