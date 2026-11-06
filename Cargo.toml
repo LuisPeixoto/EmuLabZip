@@ -20,6 +20,7 @@ emulabzip-android = { path = "crates/emulabzip-android" }
 emulabzip-apple = { path = "crates/emulabzip-apple" }
 emulabzip-storage = { path = "crates/emulabzip-storage" }
 emulabzip-heap = { path = "crates/emulabzip-heap" }
+emulabzip-frameworks = { path = "crates/emulabzip-frameworks" }
 emulabzip-net = { path = "crates/emulabzip-net" }
 emulabzip-session = { path = "crates/emulabzip-session" }
 emulabzip-trace = { path = "crates/emulabzip-trace" }
@@ -32,6 +33,7 @@ brotli = "8"
 bytes = "1"
 dirs = "6"
 flate2 = "1"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 h3 = "0.0.8"
 h3-quinn = "0.0.10"
 http = "1"
@@ -74,6 +76,7 @@ rusqlite = { version = "0.40", features = ["bundled"] }
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
