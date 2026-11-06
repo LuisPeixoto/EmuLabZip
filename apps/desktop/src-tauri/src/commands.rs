@@ -99,6 +99,15 @@ pub(crate) async fn ask_open_path(app: &AppHandle, filter: (&str, &[&str])) -> O
     rx.await.ok().flatten()
 }
 
+/// Asks which folder to use. `None` when the user cancels.
+pub(crate) async fn ask_folder(app: &AppHandle) -> Option<PathBuf> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog().file().pick_folder(move |path| {
+        let _ = tx.send(path.and_then(|p| p.into_path().ok()));
+    });
+    rx.await.ok().flatten()
+}
+
 /// Saves a PNG the UI already has (base64), returning the path, or `None` if the user cancelled.
 #[tauri::command]
 pub async fn save_png(app: AppHandle, name: String, data: String) -> CmdResult<Option<String>> {
