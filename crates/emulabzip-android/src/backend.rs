@@ -127,6 +127,14 @@ impl Backend for AndroidBackend {
         startup::measure(&self.adb, id, app, kind, runs).await
     }
 
+    async fn recent_logs(&self, id: &str, needle: &str) -> Result<Vec<LogEntry>> {
+        logcat::recent(&self.adb, id, needle).await
+    }
+
+    async fn connect_port(&self, id: &str, port: u16) -> Result<emulabzip_core::DeviceStream> {
+        Ok(Box::new(self.adb.connect_tcp(id, port).await?))
+    }
+
     async fn energy_begin(&self, id: &str, _app: &str) -> Result<()> {
         energy::begin(&self.adb, id).await
     }

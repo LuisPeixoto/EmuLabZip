@@ -12,6 +12,24 @@ pub fn command(options: LogOptions) -> String {
     format!("logcat -v threadtime -T {tail} {level}")
 }
 
+/// How many of the latest lines a search looks through.
+const RECENT_LINES: u32 = 5_000;
+
+/// The lines of the log so far whose message contains `needle`, oldest first.
+pub async fn recent(
+    adb: &emulabzip_adb::AdbClient,
+    serial: &str,
+    needle: &str,
+) -> emulabzip_core::Result<Vec<LogEntry>> {
+    let text = adb.shell(serial, &format!("logcat -d -v threadtime -t {RECENT_LINES}")).await?;
+    Ok(matching(text.lines(), needle))
+}
+
+/// Parses `lines` and keeps the ones that say `needle`.
+pub fn matching<'a>(lines: impl Iterator<Item = &'a str>, needle: &str) -> Vec<LogEntry> {
+    lines.filter_map(parse_line).filter(|e| e.message.contains(needle)).collect()
+}
+
 /// Parses one `threadtime` line:
 ///
 /// ```text
@@ -158,5 +176,17 @@ mod tests {
         assert!(entries.len() >= 10, "parsed {} entries", entries.len());
         assert!(entries.windows(2).all(|w| w[0].seq + 1 == w[1].seq));
         assert!(entries.iter().any(|e| e.level == LogLevel::Error));
+    }
+
+    #[test]
+    fn keeps_only_the_lines_that_say_the_needle() {
+        let log = "--------- beginning of main\n\
+10-23 14:02:11.123  1234  1250 I flutter : The Dart VM service is listening on http://127.0.0.1:41233/abc=/\n\
+10-23 14:02:12.000  1234  1250 I other   : nothing here\n\
+garbage line";
+        let found = matching(log.lines(), "Dart VM service");
+        assert_eq!(found.len(), 1);
+        assert!(found[0].message.ends_with("http://127.0.0.1:41233/abc=/"));
+        assert!(matching(log.lines(), "absent").is_empty());
     }
 }
