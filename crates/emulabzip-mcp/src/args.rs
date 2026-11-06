@@ -70,6 +70,23 @@ pub struct Energy {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct Flutter {
+    pub device: Option<String>,
+    /// Where the Dart VM service listens, such as `http://127.0.0.1:41233/token=/`. When left out it is found in the log.
+    pub uri: Option<String>,
+    /// For `flutter_frames`: how long to record, 1 to 30 seconds (default 8). The app should be used meanwhile.
+    pub seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReactNative {
+    /// The app's package name or bundle id, to pick its runtime among those Metro lists.
+    pub app: String,
+    /// Metro's port on this computer (default 8081).
+    pub metro_port: Option<u16>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Heap {
     pub device: Option<String>,
     /// The app: a package name. It must be debuggable (Android).
