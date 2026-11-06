@@ -1247,6 +1247,7 @@ dependencies = [
  "emulabzip-android",
  "emulabzip-apple",
  "emulabzip-core",
+ "emulabzip-frameworks",
  "emulabzip-heap",
  "emulabzip-net",
  "emulabzip-plugin",
