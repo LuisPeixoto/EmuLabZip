@@ -124,7 +124,7 @@ fn report_checks_its_arguments_before_asking_for_a_device() {
     for (args, word) in [
         (vec!["report", "--issue", "github:onlyone"], "github:owner/repo"),
         (vec!["report", "--issue", "bitbucket:a/b"], "unknown tracker"),
-        (vec!["report", "--without", "everything"], "screenshot, logs, requests or crashes"),
+        (vec!["report", "--without", "everything"], "screenshot, logs, requests, crashes or video"),
         (vec!["report", "--session", "x.ezsession", "--app", "a.b"], "--app"),
     ] {
         let o = run(&dir, &args);

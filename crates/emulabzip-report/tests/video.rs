@@ -127,3 +127,42 @@ fn video_can_be_left_out() {
     assert!(!html(&report).contains("<video"));
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn what_is_left_out_of_the_report_is_left_out_of_the_strip_too() {
+    let dir = scratch("strip-parts");
+    let session = write(&dir, true);
+    // A request and a log line that say who they are, 48 s in.
+    std::fs::write(
+        dir.join("network.har"),
+        r#"{"log":{"entries":[{"startedDateTime":"2026-11-07T12:00:48.000Z","time":40,
+          "request":{"method":"GET","url":"https://secret.example.com/token"},"response":{"status":500}}]}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("logs.jsonl"),
+        r#"{"seq":1,"time":"11-07 12:00:48.000","pid":1,"tid":1,"level":"error","tag":"Auth","message":"password=hunter2","subsystem":null}"#,
+    )
+    .unwrap();
+    drop(session);
+    let session = Session::open(&dir).unwrap();
+
+    let everything = BugReport::from_session(&session, &Options::everything(), &store(&dir));
+    let text = serde_json::to_string(&everything.strip).unwrap();
+    assert!(
+        text.contains("secret.example.com") && text.contains("hunter2"),
+        "the strip has them when they are in: {text}"
+    );
+
+    let options =
+        Options { include_requests: false, include_logs: false, include_crashes: false, ..Options::everything() };
+    let lean = BugReport::from_session(&session, &options, &store(&dir));
+    let strip = lean.strip.as_ref().expect("touches are still there");
+    let text = serde_json::to_string(&strip).unwrap();
+    assert!(!text.contains("secret") && !text.contains("hunter2") && !text.contains("zero"), "{text}");
+    assert!(strip.marks.iter().all(|m| m.lane == "taps" || m.lane == "frames"), "{text}");
+    assert!(!strip.ends_at_crash, "a crash left out is not hinted at either");
+    let page = html(&lean);
+    assert!(!page.contains("secret.example.com") && !page.contains("hunter2"));
+    std::fs::remove_dir_all(dir).ok();
+}
