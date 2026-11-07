@@ -72,6 +72,16 @@ where
     Ok(command(args).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?)
 }
 
+/// Starts a long-running `simctl` command with its standard error piped, for tools that print their progress there
+/// (`recordVideo` says "Recording started" when the first frame is in). The child is killed when it is dropped.
+pub fn spawn_with_stderr<I, S>(args: I) -> Result<Child>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    Ok(command(args).stdout(Stdio::null()).stderr(Stdio::piped()).spawn()?)
+}
+
 /// Converts an old-style (OpenStep) property list, which `simctl listapps` prints, into JSON
 /// with `plutil`.
 pub async fn plist_to_json(plist: &[u8]) -> Result<serde_json::Value> {
