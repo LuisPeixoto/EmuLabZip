@@ -1,6 +1,8 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { api, errorText, type FileEntry, type Preview, type StorageRoot } from "../../api";
+  import { api, errorText, type Edited, type FileEntry, type Preview, type StorageRoot } from "../../api";
+  import { confirmed } from "../../confirm";
+  import AppState from "../storage/AppState.svelte";
   import { app } from "../../stores/app.svelte";
   import { bytes, dateTime } from "../../format";
   import Icon from "../Icon.svelte";
@@ -16,7 +18,18 @@
   /** Root and path of the file in the preview, which may differ from the folder on screen. */
   let previewAt = $state<{ root: string; path: string } | null>(null);
 
+  /** Edit mode: files can be changed. Off by default, and off again when the device or the app changes. */
+  let editing = $state(false);
+  /** The folder of the last change's backup, for Undo. */
+  let lastEdit = $state<string | null>(null);
+  let table = $state<string | null>(null);
+
   const root = $derived(roots.find((r) => r.id === rootId) ?? null);
+  const at = $derived(
+    previewAt && app.target && app.selectedApp
+      ? { target: app.target, app: app.selectedApp.id, root: previewAt.root, path: previewAt.path }
+      : null,
+  );
   const crumbs = $derived(path ? path.split("/") : []);
   const ios = $derived(app.device?.platform === "ios");
 
@@ -33,6 +46,8 @@
     preview = null;
     error = null;
     path = "";
+    editing = false;
+    lastEdit = null;
     if (!app.target || !app.selectedApp) return;
     try {
       const list = await api.storageRoots(app.target, app.selectedApp.id);
@@ -72,6 +87,46 @@
     } finally {
       opening = null;
     }
+  }
+
+  /** The file changed on the device: read it again, and keep the table that was open. */
+  async function edited(e: Edited) {
+    lastEdit = e.backup;
+    if (previewAt && app.target && app.selectedApp) {
+      try {
+        preview = await api.openFile(app.target, app.selectedApp.id, previewAt.root, previewAt.path);
+      } catch (err) {
+        app.toast(errorText(err), "err");
+      }
+    }
+    app.toast("Changed. Undo puts the old file back.", "ok");
+  }
+
+  async function undo() {
+    if (!lastEdit || !app.target) return;
+    if (!(await confirmed("Put back the file as it was before the last change?", "Undo", "Undo the change"))) return;
+    const backup = lastEdit;
+    if (await app.attempt(async () => (await api.editUndo(app.target!, backup), true), "Put back.")) {
+      lastEdit = null;
+      if (previewAt && app.selectedApp) {
+        preview = await api.openFile(app.target, app.selectedApp.id, previewAt.root, previewAt.path).catch(() => preview);
+      }
+    }
+  }
+
+  async function turnOnEditing() {
+    if (editing) return (editing = false);
+    editing =
+      (await confirmed(
+        "Edit mode changes the app's real files on the device. Each change stops the app, keeps the old file for Undo, and asks first.\n\nTurn it on?",
+        "Edit mode",
+        "Turn on",
+      ));
+  }
+
+  async function reload() {
+    if (rootId) await open(rootId, path);
+    preview = null;
   }
 
   async function save() {
@@ -157,9 +212,23 @@
         {/if}
       </div>
     </section>
-    <section class="min-w-0 flex-1 bg-panel">
+    <section class="flex min-w-0 flex-1 flex-col bg-panel">
+      <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
+        <button onclick={turnOnEditing} aria-pressed={editing} title="Change rows and preferences on the device" class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium {editing ? 'border-warn bg-warn/10 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}">
+          <Icon name="lock" size={13} /> {editing ? "Editing" : "Edit"}
+        </button>
+        {#if lastEdit}
+          <button onclick={undo} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="history" size={13} /> Undo last change</button>
+        {/if}
+        <span class="flex-1"></span>
+        <AppState onrestored={reload} />
+      </div>
+      {#if editing}
+        <p class="shrink-0 border-b border-line bg-warn/10 px-4 py-1.5 text-[11.5px] text-warn">Edit mode: double-click a value to change it. The app is stopped for each change.</p>
+      {/if}
+      <div class="min-h-0 flex-1">
       {#if preview}
-        <FilePreview {preview} onsave={save} />
+        <FilePreview {preview} onsave={save} {at} {editing} initialTable={table} ontable={(n) => (table = n)} onedited={edited} />
       {:else}
         <div class="grid h-full place-items-center text-center text-[12.5px] text-muted">
           <div>
@@ -168,6 +237,7 @@
           </div>
         </div>
       {/if}
+      </div>
     </section>
   </div>
 {/if}
