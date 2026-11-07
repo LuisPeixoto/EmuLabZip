@@ -36,3 +36,4 @@ tracing-subscriber.workspace = true
 
 [dev-dependencies]
 png.workspace = true
+zip.workspace = true
