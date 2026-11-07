@@ -134,14 +134,19 @@ pub fn html(r: &BugReport) -> String {
         out.push_str(&format!("<p class=\"mut\">• {}</p>\n", escape(n)));
     }
     if let Some(clip) = &r.video {
+        // A media fragment makes the browser open the clip at that second and show that frame.
+        let seek = if clip.at_ms > 0 { format!("#t={:.1}", clip.at_ms as f64 / 1000.0) } else { String::new() };
         let (src, extra) = if clip.bytes.len() <= MAX_INLINE_VIDEO {
             (
-                format!("data:video/mp4;base64,{}", base64::engine::general_purpose::STANDARD.encode(&clip.bytes)),
+                format!(
+                    "data:video/mp4;base64,{}{seek}",
+                    base64::engine::general_purpose::STANDARD.encode(&clip.bytes)
+                ),
                 String::new(),
             )
         } else {
             (
-                VIDEO_FILE.to_string(),
+                format!("{VIDEO_FILE}{seek}"),
                 format!(" The video is the file {VIDEO_FILE}, next to this one: keep the two together."),
             )
         };
@@ -289,15 +294,20 @@ mod tests {
     fn a_short_clip_is_part_of_the_file_and_a_long_one_is_next_to_it() {
         use crate::model::VideoClip;
         let small = BugReport {
-            video: Some(VideoClip { bytes: b"\0\0\0 ftypmp42".to_vec(), label: "Screen recording, 30 s".into() }),
+            video: Some(VideoClip {
+                bytes: b"\0\0\0 ftypmp42".to_vec(),
+                label: "Screen recording, 30 s".into(),
+                at_ms: 12_340,
+            }),
             ..Default::default()
         };
         let h = html(&small);
         assert!(h.contains("<video controls") && h.contains("src=\"data:video/mp4;base64,"));
+        assert!(h.contains("#t=12.3\""), "the clip opens before the crash");
         assert!(small.video_sidecar().is_none());
 
         let big = BugReport {
-            video: Some(VideoClip { bytes: vec![0; MAX_INLINE_VIDEO + 1], label: "Screen recording".into() }),
+            video: Some(VideoClip { bytes: vec![0; MAX_INLINE_VIDEO + 1], label: "Screen recording".into(), at_ms: 0 }),
             ..Default::default()
         };
         let h = html(&big);

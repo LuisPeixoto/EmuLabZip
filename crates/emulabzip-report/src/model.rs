@@ -24,6 +24,8 @@ pub const MAX_VIDEO: usize = 100 * 1024 * 1024;
 pub const VIDEO_FILE: &str = "emulabzip-report.mp4";
 /// How much of the run the timeline strip shows, ending at the crash or at the end of the run.
 pub const STRIP_WINDOW_MS: u64 = 60_000;
+/// How long before the crash a clip opens, in milliseconds.
+const CLIP_LEAD_MS: u64 = 2000;
 /// Most marks on the strip.
 pub const MAX_STRIP_MARKS: usize = 300;
 
@@ -59,6 +61,9 @@ pub struct VideoClip {
     pub bytes: Vec<u8>,
     /// What it shows, for the caption.
     pub label: String,
+    /// Where to start playing, in milliseconds into the clip: a little before the crash, so the page opens on what led
+    /// to it.
+    pub at_ms: u64,
 }
 
 /// One thing that happened, drawn as a dot on the strip.
@@ -392,9 +397,12 @@ fn video_clip(session: &Session, crash_at: Option<u64>) -> Result<VideoClip, Str
     }
     let secs = piece.end_ms.saturating_sub(piece.start_ms) / 1000;
     let what = if crash_at.is_some() { "around the crash" } else { "the last piece of the run" };
+    // Open two seconds before the crash.
+    let at_ms = at.map_or(0, |t| t.saturating_sub(piece.start_ms).saturating_sub(CLIP_LEAD_MS));
     Ok(VideoClip {
         bytes,
         label: format!("Screen recording, {secs} s, {what} (piece {} of {}).", i + 1, session.video.len()),
+        at_ms,
     })
 }
 
