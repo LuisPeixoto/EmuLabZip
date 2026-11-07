@@ -10,8 +10,8 @@ use crate::control::{Control, ControlInfo};
 use crate::crash::{CrashReport, CrashSummary};
 use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::energy::EnergyReport;
-use crate::events::{DeviceClock, InputEvent, SlowFrame, VideoSegment};
 use crate::error::{Error, Result};
+use crate::events::{DeviceClock, InputEvent, SlowFrame, VideoSegment};
 use crate::files::{FileEntry, StorageRoot};
 use crate::frameworks::Framework;
 use crate::layout::LayoutSnapshot;
@@ -221,7 +221,7 @@ pub trait Backend: Send + Sync {
     }
 
     /// Records the screen in pieces of `segment_secs` into `out_dir`, reporting each piece on `segments`
-    /// once it is complete. It stops when `stop` turns `true`, after finishing the piece in progress.
+    /// once it is complete. It stops when `stop` turns `true`, keeping what the piece in progress has recorded.
     async fn record_video(
         &self,
         _id: &str,
