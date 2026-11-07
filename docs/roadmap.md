@@ -78,25 +78,77 @@ Left for later from this phase: **recomposition counts** (Android Studio gets th
 which uses interfaces that are not public), SwiftUI's own view type names (accessibility does not expose them), and
 recording the network conditions in a session.
 
-## Phase 9: Devices and platforms (v0.9)
+## Phase 9: Readable stacks and one-click bug reports (v0.9)
+
+**Symbolication** of crashes and stacks: R8 and ProGuard retrace from `mapping.txt`, dSYMs with `atos` on a Mac, and
+Hermes and Metro **source maps**, so React Native JavaScript stacks point at the right file and line · mapping files
+kept per app and version, and `--mapping` in the command line · a **bug report** in one click: the session, a
+screenshot, the device's details, the filtered logs and the failed requests, packed into one HTML file or opened as an
+issue on GitHub, GitLab or Jira.
+
+## Phase 10: Timeline and replay (v0.10)
+
+A **timeline** that lines up taps, logs, requests, slow frames, garbage collections and crashes on one time axis ·
+**screen video** recorded into a session (`screenrecord` on Android, `simctl io recordVideo` on iOS), in step with the
+timeline, and added to bug reports · **network replay**: a session or a HAR becomes a mock server, so the app runs
+offline against recorded responses, for bugs whose backend has since changed and for deterministic CI runs.
+
+## Phase 11: App state as data (v0.11)
+
+**App state snapshots**: save the whole sandbox and restore it (`run-as` and tar for debuggable Android apps, the data
+container on the simulator) · **emulator snapshots** (`adb emu avd snapshot`), and creating, wiping and booting AVDs and
+simulators from the app (`avdmanager`, `simctl create` and `erase`) · a **write mode** in Storage for SQLite rows,
+SharedPreferences and property lists, behind a confirmation, with read-only staying the default · viewers for
+**DataStore, MMKV, Realm, AsyncStorage and Core Data** · a **schema diff** between two sessions, for testing
+migrations.
+
+## Phase 12: Quality beyond performance (v0.12)
+
+A **security and privacy audit** while the app runs: cleartext traffic, tokens and personal data in logs and
+preferences, exported components (`dumpsys package`), the `debuggable` and `allowBackup` flags, App Transport Security
+exceptions in `Info.plist` and domains missing from the privacy manifest · an **APK, AAB and IPA analyzer**: size by
+folder, dex and assets, a diff between two builds, and a size budget in `emulabzip.toml` · **localization checks**:
+pseudo-locales (`en-XA`, `ar-XB`) in one click, right-to-left layouts, font scale and display size, and truncated text
+found through Layout · **more accessibility checks**: focus order, text scaling and colour blindness simulation ·
+**visual regression**: screenshots compared between runs or devices, with a baseline in CI · an **analytics
+inspector**: Firebase Analytics events through its debug mode, and Segment, Amplitude and Mixpanel calls decoded by the
+proxy, in a list of their own.
+
+## Phase 13: Automation and hybrid apps (v0.13)
+
+**WebViews** on Android through the Chrome DevTools Protocol (`webview_devtools_remote` sockets forwarded with `adb`),
+with their console and network inside EmuLabZip, and a shortcut to Safari's Web Inspector on iOS · **input** on Android
+(tap, swipe and text through `adb input`) and **recording a flow** from `getevent`, exported as a Maestro flow or a
+command-line script; iOS has no public interface for touches, so this stays Android only · a **deep link tester** with
+history, and checks for `assetlinks.json` and `apple-app-site-association` (`pm get-app-links` on Android) ·
+**programmable network rules**: map local and map remote, responses checked against an OpenAPI file, and rule scripts
+in sandboxed WebAssembly.
+
+## Phase 14: AI with context (v0.14)
+
+The timeline, network replay, state snapshots and input as **MCP tools** · **MCP prompts** for the common questions:
+explain this crash, why this screen got slow, summarize this session · an assistant that reproduces a bug through
+input, records it as a session and opens the issue, with every action shown to the user before it runs.
+
+## Phase 15: Devices and platforms (v0.15)
 
 **Physical iPhones and iPads** through the tools Xcode ships (`devicectl`, `usbmuxd`): logs, apps, screenshots, crashes
 and files where iOS allows it, and a plain note where it does not · **Android over Wi-Fi**, with wireless debugging
 pairing from the app · **Wear OS and Android TV** emulators, and **watchOS, tvOS and visionOS** simulators, with the
 views that apply to each · **several devices at once**: logs and requests from two devices in one list, tagged by device.
 
-## Phase 10: Team and ecosystem, 1.0 (v1.0)
+## Phase 16: Team and ecosystem, 1.0 (v1.0)
 
 **Comparing sessions** side by side, and a **shareable HTML report** of a session (one file, no server) · **shared rule
 libraries**: a rules file kept in the app's repository, loaded by the app and the command line · a **VS Code extension**
 with devices, logs and the MCP server in the editor · a **plugin catalog**: community plugins listed with checksums, still
 enabled one by one by the user · an **interface in Portuguese** and other languages · **updates**: signed auto-update in
 the app, and Homebrew, winget and Scoop packages · the **1.0 promise**: the command line's options and JSON, the MCP
-tools and the `.ezsession` format are stable, and change only with a major version.
+tools and prompts, and the `.ezsession` format are stable, and change only with a major version.
 
 ## Ideas
 
-What is not in a phase yet: layouts for apps that draw their own UI (games, canvases) · more accessibility checks (focus
-order, text scaling, colour blindness simulation) · HTTP/3 streaming for very large responses · plugins that read
-sessions · a timeline that lines up logs, requests and frames · screen video recorded into a session · AI-written
-summaries of a session through the MCP server.
+What is not in a phase yet: layouts for apps that draw their own UI (games, canvases) · HTTP/3 streaming for very large
+responses · plugins that read sessions · an optional **companion SDK** (npm, Gradle, SwiftPM) for what only code inside
+the app can see, such as Redux, Zustand or React Query state, recomposition counts and feature flags, kept apart from
+the default, which installs nothing on the device.
