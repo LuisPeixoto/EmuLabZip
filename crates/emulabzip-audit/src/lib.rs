@@ -10,6 +10,7 @@ pub mod package;
 pub mod patterns;
 pub mod security;
 pub mod sweep;
+pub mod visual;
 
 pub use emulabzip_core::Severity;
 pub use finding::{Area, Audit, Finding};
