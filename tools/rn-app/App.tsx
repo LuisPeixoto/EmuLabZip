@@ -12,6 +12,15 @@ function Counter({label}: {label: string}) {
   );
 }
 
+// Nested calls, so the stack of a crash has a few frames of this file to read.
+function price(item: {cost?: {amount: number}}) {
+  return item.cost!.amount;
+}
+
+function checkout() {
+  return price({});
+}
+
 function Fruit({name}: {name: string}) {
   return <Text style={styles.item}>{name}</Text>;
 }
@@ -22,6 +31,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>React Native demo</Text>
       <Counter label="Taps" />
+      <Button title="Crash" onPress={() => { checkout(); }} />
       <View style={styles.row}>
         <Text>Notifications</Text>
         <Switch value={enabled} onValueChange={setEnabled} />

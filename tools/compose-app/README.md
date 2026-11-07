@@ -12,3 +12,13 @@ emulabzip layout
 ```
 
 `testTagsAsResourceId` is switched on, so Layout shows the tags as ids.
+
+## A release build with R8
+
+```bash
+tools/compose-app/install.sh --release
+adb shell am start -n dev.emulabzip.composedemo/.MainActivity --es crash 1
+```
+
+The release build is minified, so a crash has scrambled names. The `mapping.txt` that R8 writes is in
+`app/build/outputs/mapping/release/`. Add it with `emulabzip mappings add` to read the crash.

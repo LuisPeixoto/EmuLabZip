@@ -28,8 +28,20 @@ import androidx.compose.ui.unit.dp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // `--es crash 1` fails on purpose, a few calls deep, so a release build shows what R8 does to a stack.
+        if (intent.getStringExtra("crash") != null) Checkout(Cart(listOf(3, 0))).total()
         setContent { Demo() }
     }
+}
+
+/** Nested calls, so a crash has a few frames of the app's own to read. */
+class Cart(private val prices: List<Int>) {
+    fun average(): Int = prices.sum() / prices.count { it == 0 }
+}
+
+class Checkout(private val cart: Cart) {
+    fun total(): Int = discounted(cart.average())
+    private fun discounted(value: Int): Int = value - 1
 }
 
 @Composable

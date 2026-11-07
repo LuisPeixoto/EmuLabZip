@@ -20,3 +20,13 @@ emulabzip rn console dev.emulabzip.rndemo --seconds 20     # tap the button mean
 ```
 
 Metro lets one debugger connect at a time, so close React Native DevTools and Chrome's inspector first.
+
+## A release build
+
+```bash
+tools/rn-app/install.sh --release
+```
+
+This builds the app with Hermes and the JavaScript bundled in it. Tap **Crash**: the JS error is thrown a few calls
+deep in `App.tsx`. The source maps Metro and Hermes write are printed at the end; add the composed one with
+`emulabzip mappings add` to read the stack.

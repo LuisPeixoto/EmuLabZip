@@ -15,6 +15,14 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+    buildTypes {
+        // A release build with R8, so the names in a crash are scrambled. Signed with the debug key, only to try it.
+        release {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
