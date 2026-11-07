@@ -9,7 +9,7 @@
   const close = () => (app.report = null);
 
   // The tracker is remembered; the words of the report are not.
-  const prefs = load("report", { issue: "", screenshot: true, logs: true, requests: true, crashes: true });
+  const prefs = load("report", { issue: "", screenshot: true, logs: true, requests: true, crashes: true, video: true });
   let title = $state("");
   let description = $state("");
   let issue = $state(prefs.issue);
@@ -17,6 +17,7 @@
   let logs = $state(prefs.logs);
   let requests = $state(prefs.requests);
   let crashes = $state(prefs.crashes);
+  let video = $state(prefs.video ?? true);
   let busy = $state(false);
   let error = $state<string | null>(null);
   let notes = $state<string[]>([]);
@@ -32,10 +33,10 @@
     busy = true;
     error = null;
     savedTo = null;
-    save("report", { issue, screenshot, logs, requests, crashes });
+    save("report", { issue, screenshot, logs, requests, crashes, video });
     try {
       const saved = await api.reportSave(session ? null : app.target, {
-        title, description, screenshot, logs, requests, crashes, issue, session, app: app.selectedApp?.id ?? null,
+        title, description, screenshot, logs, requests, crashes, video: session != null && video, issue, session, app: app.selectedApp?.id ?? null,
       });
       if (saved) {
         savedTo = saved.path;
@@ -78,6 +79,9 @@
           <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" bind:checked={logs} class="accent-[var(--accent)]" />Warnings and errors of the log</label>
           <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" bind:checked={requests} class="accent-[var(--accent)]" />Failed requests</label>
           <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" bind:checked={crashes} class="accent-[var(--accent)]" />Crashes, made readable</label>
+          {#if session}
+            <label class="flex cursor-pointer items-center gap-2" title="The piece of the screen recording that holds the crash, and the last minute on a strip"><input type="checkbox" bind:checked={video} class="accent-[var(--accent)]" />Screen recording</label>
+          {/if}
         </div>
       </fieldset>
 
@@ -100,7 +104,7 @@
     </div>
 
     <div class="flex items-center gap-2 border-t border-line px-4 py-3">
-      <span class="flex-1 text-[11.5px] text-muted">One HTML file. You choose where it goes.</span>
+      <span class="flex-1 text-[11.5px] text-muted">One HTML file (a long video goes next to it). You choose where.</span>
       <button onclick={close} class="h-8 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">Close</button>
       <button onclick={make} disabled={busy} class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50">
         <Icon name={busy ? "refresh" : "download"} size={13} class={busy ? "animate-spin" : ""} />{issue.trim() ? "Save and open issue…" : "Save HTML…"}

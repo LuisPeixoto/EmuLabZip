@@ -1,5 +1,6 @@
 import { api, errorText, type RecordingStatus, type SessionFile, type SessionView } from "../api";
 import { app } from "./app.svelte";
+import { net } from "./net.svelte";
 
 export type SessionTab = "overview" | "logs" | "requests" | "timeline" | "screens";
 
@@ -12,6 +13,10 @@ class SessionsStore {
   /** What the next recording will do. */
   network = $state(false);
   screensEvery = $state(0);
+  /** Record the screen, in pieces of this many seconds; 0 is off. */
+  videoSecs = $state(0);
+  /** Record touches (Android). */
+  taps = $state(false);
   /** The request open in the Requests tab, as HAR describes it. */
   request = $state.raw<Record<string, any> | null>(null);
   requestIndex = $state<number | null>(null);
@@ -52,7 +57,7 @@ class SessionsStore {
     if (!target) return;
     this.busy = "start";
     try {
-      this.status = await api.sessionStart(target, app.appId, this.network, this.screensEvery || null);
+      this.status = await api.sessionStart(target, app.appId, this.network, this.screensEvery || null, this.videoSecs || null, this.taps);
       this.#timer ??= setInterval(() => this.refresh(), 1000);
     } catch (e) {
       app.toast(errorText(e), "err");
@@ -100,6 +105,11 @@ class SessionsStore {
     } catch (e) {
       app.toast(errorText(e), "err");
     }
+  }
+
+  /** Makes the Network view answer from this session's recorded requests, and goes there. */
+  async replayNetwork(path: string) {
+    if (await net.replayLoad(path, false)) app.setView("network");
   }
 
   async remove(file: SessionFile) {
