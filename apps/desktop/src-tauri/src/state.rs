@@ -34,6 +34,8 @@ pub struct NetRuntime {
     pub conditions: emulabzip_net::Conditions,
     /// The `.proto` files gRPC messages are decoded with.
     pub protos: Option<emulabzip_net::protos::ProtoSet>,
+    /// The recording requests are answered from. Like the rules, it outlives the proxy.
+    pub replay: Option<Arc<emulabzip_net::ReplaySet>>,
 }
 
 impl Default for NetRuntime {
@@ -49,6 +51,7 @@ impl Default for NetRuntime {
             hide_http3: true,
             conditions: emulabzip_net::Conditions::default(),
             protos: None,
+            replay: None,
         }
     }
 }

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
-use emulabzip_core::{CrashSummary, LogEntry, PerfSample, Target, data_dir, diff};
-use emulabzip_session::{Meta, Options, Recorder, Session, Stats, Summary, summarize};
+use emulabzip_core::{CrashSummary, LogEntry, PerfSample, Target, VideoSegment, data_dir, diff};
+use emulabzip_session::{Meta, Options, Recorder, Session, Stats, Summary, Timeline, summarize};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
@@ -108,10 +108,15 @@ pub async fn session_start(
     app: Option<String>,
     network: bool,
     screens_every: Option<u64>,
+    video: Option<u32>,
+    taps: bool,
 ) -> CmdResult<RecordingStatus> {
     let mut slot = state.recording.lock().await;
     if slot.is_some() {
         return Err("A recording is already running.".into());
+    }
+    if video.is_some_and(|secs| secs == 0 || secs > emulabzip_core::MAX_SEGMENT_SECS) {
+        return Err(format!("A piece of video is 1 to {} seconds long.", emulabzip_core::MAX_SEGMENT_SECS));
     }
     let device = state.lab.resolve(Some(&target.id)).await.map_err(err)?;
     if network {
@@ -128,6 +133,8 @@ pub async fn session_start(
         app,
         screens_every: screens_every.filter(|s| *s > 0).map(Duration::from_secs),
         flows: network.then(|| state.flows.clone()),
+        video,
+        taps,
         ..Default::default()
     };
     let recorder = Recorder::start(state.lab.clone(), &device, out, options).await.map_err(err)?;
@@ -209,6 +216,10 @@ pub struct SessionView {
     pub requests: Vec<RequestRow>,
     pub crashes: Vec<CrashSummary>,
     pub screens: Vec<String>,
+    /// The pieces of the screen recording, in order.
+    pub video: Vec<VideoSegment>,
+    /// Everything the recording captured, on one time axis.
+    pub timeline: Timeline,
 }
 
 fn requests(har: &serde_json::Value) -> Vec<RequestRow> {
@@ -257,6 +268,8 @@ pub async fn session_open(
         requests: session.har.as_ref().map(requests).unwrap_or_default(),
         crashes: session.crashes.iter().map(|c| c.summary.clone()).collect(),
         screens: session.screens.clone(),
+        video: session.video.clone(),
+        timeline: emulabzip_session::timeline::build(&session),
     };
     *state.opened.lock() = Some(Arc::new(session));
     Ok(Some(view))
@@ -283,6 +296,14 @@ pub fn session_request(state: State<'_, AppState>, index: usize) -> CmdResult<se
 pub fn session_screen(state: State<'_, AppState>, name: String) -> CmdResult<String> {
     let png = opened(&state)?.screen(&name).map_err(err)?;
     Ok(base64::engine::general_purpose::STANDARD.encode(png))
+}
+
+/// One piece of the screen recording, as bytes, so the view can play it from a blob.
+#[tauri::command]
+pub async fn session_video(state: State<'_, AppState>, name: String) -> CmdResult<tauri::ipc::Response> {
+    let session = opened(&state)?;
+    let bytes = tokio::task::spawn_blocking(move || session.video_file(&name)).await.map_err(err)?.map_err(err)?;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]
