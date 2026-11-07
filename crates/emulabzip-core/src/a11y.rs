@@ -165,8 +165,48 @@ pub fn audit(snapshot: &LayoutSnapshot) -> Audit {
     });
 
     duplicates(&snapshot.root, &mut audit.findings);
+    focus_order(snapshot, &mut audit.findings);
     audit.findings.sort_by(|a, b| b.severity.cmp(&a.severity).then(a.node.cmp(&b.node)));
     audit
+}
+
+/// How many jumps back up the screen are reported: more than a few says the same thing again.
+const MAX_FOCUS_JUMPS: usize = 5;
+
+/// Controls whose turn comes before the ones above them. A screen reader or a keyboard moves through the controls in the
+/// order the layout lists them; when that order jumps back up the screen, the person is lost. Controls in a row (the
+/// same height on screen) do not count as a jump.
+fn focus_order(snapshot: &LayoutSnapshot, findings: &mut Vec<Finding>) {
+    let mut order: Vec<&UiNode> = Vec::new();
+    snapshot.root.walk(&mut |n| {
+        if (n.interactive() || n.focusable) && !n.bounds.is_empty() {
+            order.push(n);
+        }
+    });
+    let centre = |n: &UiNode| n.bounds.y + n.bounds.height / 2;
+    let mut found = 0;
+    for pair in order.windows(2) {
+        let (prev, next) = (pair[0], pair[1]);
+        let slack = prev.bounds.height.min(next.bounds.height).max(1);
+        if centre(next) < centre(prev) - slack && found < MAX_FOCUS_JUMPS {
+            found += 1;
+            findings.push(Finding {
+                rule: "focus-order".into(),
+                severity: Severity::Warning,
+                node: next.id,
+                class: next.class.clone(),
+                resource_id: next.resource_id.clone(),
+                bounds: next.bounds,
+                message: format!(
+                    "Focus moves up the screen, from “{}” to “{}”.",
+                    shorten(prev.name().unwrap_or(prev.short_class())),
+                    shorten(next.name().unwrap_or(next.short_class()))
+                ),
+                wcag: "2.4.3 Focus Order".into(),
+                fix: "Put the views in the layout in the order they appear (or set accessibilityTraversalBefore/After on Android, or an accessibility order on iOS).".into(),
+            });
+        }
+    }
 }
 
 fn shorten(text: &str) -> String {
@@ -213,7 +253,7 @@ pub struct Image {
 }
 
 impl Image {
-    fn pixel(&self, x: u32, y: u32) -> [u8; 3] {
+    pub(crate) fn pixel(&self, x: u32, y: u32) -> [u8; 3] {
         let i = ((y * self.width + x) * 4) as usize;
         [self.rgba[i], self.rgba[i + 1], self.rgba[i + 2]]
     }
@@ -346,6 +386,46 @@ mod tests {
         // #777 on white just fails AA, #767676 just passes: the well-known pair.
         assert!(contrast_ratio([0x77, 0x77, 0x77], [255, 255, 255]) < 4.5);
         assert!(contrast_ratio([0x76, 0x76, 0x76], [255, 255, 255]) >= 4.5);
+    }
+
+    #[test]
+    fn focus_that_jumps_back_up_the_screen_is_reported() {
+        let mut root = node("FrameLayout", (0, 0, 400, 400));
+        for (i, (y, name)) in [(300, "Tab bar"), (20, "Title"), (120, "Body"), (60, "Late")].into_iter().enumerate() {
+            let mut n = node("Button", (0, y, 100, 40));
+            n.clickable = true;
+            n.text = Some(name.into());
+            n.id = i as u32 + 1;
+            root.children.push(n);
+        }
+        // Two controls in one row are not a jump, whichever comes first.
+        let mut row = node("Button", (200, 120, 100, 40));
+        row.clickable = true;
+        row.text = Some("Beside".into());
+        root.children.insert(3, row);
+        let jumps: Vec<_> =
+            audit(&with(root, Vec::new())).findings.into_iter().filter(|f| f.rule == "focus-order").collect();
+        let messages: Vec<_> = jumps.iter().map(|f| f.message.as_str()).collect();
+        assert_eq!(
+            messages,
+            [
+                "Focus moves up the screen, from “Tab bar” to “Title”.",
+                "Focus moves up the screen, from “Beside” to “Late”."
+            ]
+        );
+        assert_eq!(jumps[0].wcag, "2.4.3 Focus Order");
+    }
+
+    #[test]
+    fn a_screen_that_reads_top_to_bottom_has_no_focus_findings() {
+        let mut root = node("FrameLayout", (0, 0, 400, 400));
+        for i in 0..4 {
+            let mut n = node("Button", (0, i * 90, 100, 40));
+            n.clickable = true;
+            n.text = Some(format!("Item {i}"));
+            root.children.push(n);
+        }
+        assert!(audit(&with(root, Vec::new())).findings.iter().all(|f| f.rule != "focus-order"));
     }
 
     #[test]
