@@ -40,6 +40,10 @@ emulabzip report --session run.ezsession -o report.html       # from a recording
 | Failed requests | Requests that got no answer or a status of 400 and up, with the error and the start of the answer. They come from the proxy in [Network](network.md), so start it and connect the device first |
 | Log | The warnings and errors (errors first when there are many), and the last lines |
 
+<p align="center">
+  <img src="images/bug-report-video.png" alt="A report made from a session: the clip around the crash and the last minute on a strip" />
+</p>
+
 The file has no script and loads nothing from a server, so it opens the same in any browser, offline, years later.
 Everything in it is escaped, so text from a log or a response can never become markup. Lists are capped, and a very
 big screenshot is left out with a note, so a report stays something a person can read.

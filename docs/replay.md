@@ -1,5 +1,9 @@
 # Replaying a recording
 
+<p align="center">
+  <img src="images/replay.png" alt="Network with a recording replayed: three requests answered, one not in the recording" />
+</p>
+
 A **replay** answers the app's requests from a recording, so the servers are never asked. The app runs without the
 internet, against what a server said once. It is for bugs whose backend has changed since, and for runs in CI that must
 give the same result every time.

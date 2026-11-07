@@ -142,6 +142,18 @@ request, record a whole run and compare two devices. It ships as a native deskto
 </table>
 
 <p align="center">
+  <img src="docs/images/timeline.png" alt="Sessions: touches, requests, log problems, slow frames, garbage collections and a crash on one timeline, with the screen recording showing the crash dialog" /><br />
+  <sub><b>Timeline</b>: everything a run recorded on one axis, and the screen video that follows it. Here the playhead is on the crash.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/replay.png" alt="Network: a recording is replayed, three requests are answered from it and one that is not in it fails" /><br /><sub><b>Replay</b>: the app runs against a recording. What is not in it fails with a 504 and never reaches the internet.</sub></td>
+    <td width="50%"><img src="docs/images/bug-report-video.png" alt="A bug report in a browser with the clip of the crash and a strip of the last minute" /><br /><sub><b>Video in the report</b>: the clip around the crash, and the last minute on a strip, in the same file.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
   <img src="docs/images/frameworks-flutter.png" alt="Frameworks: the widget tree of a Flutter app, with the file and line of each widget the app made" /><br />
   <sub><b>Flutter</b>: the widget tree of a running debug app, with the file and line of the widgets your code made. Frame times and the Dart heap are one tab away.</sub>
 </p>

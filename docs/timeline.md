@@ -1,5 +1,9 @@
 # Timeline and screen video
 
+<p align="center">
+  <img src="images/timeline.png" alt="The Timeline tab: lanes for touches, requests, log, slow frames, GC and crashes, and the video at the crash" />
+</p>
+
 A [session](sessions.md) is a pile of separate streams: log lines, samples, requests, crashes. Each one stamps time its
 own way, so seeing *what happened just before the crash* meant opening four tabs and doing arithmetic. The **timeline**
 puts all of it on one axis, and the **screen video** lets you watch it.
