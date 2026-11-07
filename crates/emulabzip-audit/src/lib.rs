@@ -6,6 +6,7 @@
 
 pub mod collect;
 pub mod finding;
+pub mod package;
 pub mod patterns;
 pub mod security;
 
