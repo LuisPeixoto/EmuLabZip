@@ -15,6 +15,7 @@ pub mod config;
 pub mod format;
 pub mod reader;
 pub mod recorder;
+pub mod replay;
 pub mod summary;
 pub mod timeline;
 
