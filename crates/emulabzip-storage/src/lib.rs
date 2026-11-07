@@ -2,6 +2,7 @@
 //! detector that picks the right one.
 
 pub mod detect;
+pub mod edit;
 pub mod plist;
 pub mod prefs;
 pub mod schema;
