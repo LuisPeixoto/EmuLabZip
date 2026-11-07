@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código abierto · MIT · v0.8",
+    "eyebrow": "Código abierto · MIT · v0.9",
     "titleLead": "El laboratorio de depuración para tu",
     "titleAccent": "emulador Android y simulador iOS",
     "lead": "<strong>EmuLabZip</strong> reúne logs, tráfico de red, rendimiento, memoria, almacenamiento, fallos y accesibilidad de tus <strong>emuladores Android y simuladores iOS</strong> en una sola app nativa y rápida. No hay nada que instalar en el dispositivo.",
@@ -79,7 +79,10 @@
       { "id": "compose", "shot": "layout-compose", "label": "Compose", "title": "Jetpack Compose en Layout", "text": "Las vistas que dibuja Compose aparecen marcadas, las etiquetas de prueba se muestran como ids y el inspector nombra el framework.", "alt": "Vista Layout de una pantalla de Jetpack Compose con sus vistas marcadas como Compose" },
       { "id": "graphql", "shot": "network-graphql", "label": "GraphQL", "title": "GraphQL, con nombre y legible", "text": "Cada operación tiene nombre en la lista y la petición se muestra como una consulta con sus variables.", "alt": "Vista Network con una petición GraphQL mostrada como consulta con variables" },
       { "id": "grpc", "shot": "network-grpc", "label": "gRPC", "title": "Llamadas gRPC, con su estado", "text": "El método y el estado de cada llamada, y protobuf leído como JSON, con o sin tus archivos .proto.", "alt": "Vista Network con una llamada gRPC y su mensaje protobuf mostrado como JSON" },
-      { "id": "conditions", "shot": "network-conditions", "label": "Red lenta", "title": "Lenta, con retraso o sin conexión, a pedido", "text": "3G rápido y lento, latencia alta, pérdida de paquetes, sin conexión o tus propios números, con las conexiones abiertas.", "alt": "Vista Network con el menú de condiciones de red y 3G lento elegido" }
+      { "id": "conditions", "shot": "network-conditions", "label": "Red lenta", "title": "Lenta, con retraso o sin conexión, a pedido", "text": "3G rápido y lento, latencia alta, pérdida de paquetes, sin conexión o tus propios números, con las conexiones abiertas.", "alt": "Vista Network con el menú de condiciones de red y 3G lento elegido" },
+      { "id": "readable", "shot": "symbolication", "label": "Stacks legibles", "title": "El mismo crash, legible", "text": "Con el mapping.txt guardado para la compilación, el frame que R8 revolvió vuelve a ser la cadena real de llamadas, con archivos y líneas. El original está a un clic.", "alt": "El mismo crash de Android leído con su mapping.txt y como lo escribió el dispositivo" },
+      { "id": "report-dialog", "shot": "bug-report-dialog", "label": "Informe de bug", "title": "Reporta un bug con un clic", "text": "Elige qué entra y dónde se abre el issue: GitHub, GitLab o Jira, ya rellenado. La app no envía nada.", "alt": "El diálogo Report a bug con título, descripción y qué incluir" },
+      { "id": "report-html", "shot": "bug-report-html", "label": "Un archivo", "title": "Un archivo HTML con todo", "text": "Captura, dispositivo, log, solicitudes fallidas y el crash legible, en un archivo que abre en cualquier navegador.", "alt": "Un informe de bug abierto en el navegador con la captura, los datos del dispositivo y el crash legible" }
     ]
   },
   "cli": {
@@ -142,8 +145,8 @@
       { "state": "done", "version": "v0.6", "title": "Herramientas avanzadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, diseño, accesibilidad, sesiones y CI." },
       { "state": "done", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
       { "state": "done", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
-      { "state": "next", "version": "v0.9", "title": "Stacks legibles e informes de errores", "text": "Fallos simbolizados (R8, dSYMs, source maps) e informes de errores con un clic." },
-      { "state": "later", "version": "v0.10", "title": "Línea de tiempo y repetición", "text": "Una línea de tiempo de toques, logs y peticiones, vídeo de pantalla y repetición de red." },
+      { "state": "done", "version": "v0.9", "title": "Stacks legibles e informes de errores", "text": "Fallos simbolizados (R8, dSYMs, source maps) e informes de errores con un clic." },
+      { "state": "next", "version": "v0.10", "title": "Línea de tiempo y repetición", "text": "Una línea de tiempo de toques, logs y peticiones, vídeo de pantalla y repetición de red." },
       { "state": "later", "version": "v0.11", "title": "El estado de la app como datos", "text": "Instantáneas del sandbox y de los emuladores, modo de escritura en Storage y más visores." },
       { "state": "later", "version": "v0.12", "title": "Calidad más allá del rendimiento", "text": "Auditoría de seguridad, tamaño de APK e IPA, localización, regresión visual y analíticas." },
       { "state": "later", "version": "v0.13", "title": "Automatización y apps híbridas", "text": "WebViews, entrada y flujos grabados, pruebas de deep links y reglas programables." },
