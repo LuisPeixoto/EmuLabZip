@@ -23,9 +23,11 @@ emulabzip session record -o run.ezsession --app com.example.app --network --vide
 ```
 
 - `--taps` records touches. They are read from the kernel's input device, so they are the touches that arrive there: a
-  finger on the emulator window, or an event sent through the emulator console. `adb shell input tap` is injected higher
-  up, inside Android, and is **not** seen. iOS does not give the simulator's touches to anything outside it, so this is
-  Android only.
+  finger on the emulator window, or an event sent through the emulator console (which the app takes for a click only
+  when the event carries `ABS_MT_PRESSURE`). `adb shell input tap` is injected higher up, inside Android, and is **not**
+  seen. iOS does not give the simulator's touches to anything outside it, so this is Android only. The kernel reports a
+  position only when it changes, so the very first touch of a recording can have none: it is kept, and shown as "Tap"
+  without coordinates.
 - `--video` records the screen in pieces of 30 seconds (`--video 10` for 10). See [Screen video](#screen-video).
 - Slow frames and garbage collections need no option: they are recorded when there is an app, on Android.
 
