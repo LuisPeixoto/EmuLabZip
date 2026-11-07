@@ -144,7 +144,11 @@ pub fn detect(path: &Path) -> Result<Kind> {
             .read(&mut buf)?;
         String::from_utf8_lossy(&buf[..n]).into_owned()
     };
-    if head.trim_start().starts_with('{') && head.contains("\"mappings\"") {
+    // The `mappings` of a big bundle come after a long list of `sources`, so the head may not reach them: a JSON
+    // object that names sources, or sections, is a source map.
+    if head.trim_start().starts_with('{')
+        && ["\"mappings\"", "\"sources\"", "\"sections\""].iter().any(|key| head.contains(key))
+    {
         return Ok(Kind::SourceMap);
     }
     // A mapping has lines like `com.example.Foo -> a.b:` and members under them.
@@ -285,6 +289,21 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_source_map_with_a_long_list_of_sources_is_still_one() {
+        // A real Hermes map: hundreds of source paths come before `mappings`, past the first 64 KB.
+        let dir = std::env::temp_dir().join(format!("emulabzip-detect-big-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let sources: Vec<String> =
+            (0..2000).map(|i| format!("\"/very/long/path/to/node_modules/package-{i}/src/index.js\"")).collect();
+        let text = format!("{{\"version\":3,\"sources\":[{}],\"names\":[],\"mappings\":\"AAAA\"}}", sources.join(","));
+        assert!(text.len() > 64 * 1024);
+        let file = dir.join("index.android.bundle.map");
+        std::fs::write(&file, text).unwrap();
+        assert_eq!(detect(&file).unwrap(), Kind::SourceMap);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
     use super::*;
 
     fn scratch(name: &str) -> PathBuf {

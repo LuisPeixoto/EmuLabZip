@@ -147,15 +147,7 @@ fn sources_for(report: &CrashReport, named: &[PathBuf]) -> Result<Vec<Source>> {
 
 fn print_notes(s: &Symbolicated) {
     for a in &s.applied {
-        println!(
-            "{}",
-            output::dim(&format!(
-                "Made readable with {} ({}, {} frames). `--raw` shows the original.",
-                a.source,
-                a.kind.label(),
-                a.frames
-            ))
-        );
+        println!("{}", output::dim(&format!("Made readable with {}. `--raw` shows the original.", a.describe())));
     }
     for m in &s.missing {
         println!("{}", output::dim(m));

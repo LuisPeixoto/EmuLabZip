@@ -241,7 +241,7 @@ pub fn crash_section(report: &CrashReport, store: &Store) -> CrashSection {
         when: s.report.summary.time_ms.map(|ms| format!("{ms}")),
         threads,
         readable: !s.applied.is_empty(),
-        applied: s.applied.iter().map(|a| format!("{} ({}, {} frames)", a.source, a.kind.label(), a.frames)).collect(),
+        applied: s.applied.iter().map(|a| a.describe()).collect(),
         missing: s.missing,
     }
 }

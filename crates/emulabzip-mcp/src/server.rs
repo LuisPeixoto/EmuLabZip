@@ -185,14 +185,7 @@ fn readable(report: emulabzip_core::CrashReport) -> Readable {
     };
     let s = symbolicate(&report, &sources);
     Readable {
-        symbolication: Symbolication {
-            applied: s
-                .applied
-                .iter()
-                .map(|a| format!("{} ({}, {} frames)", a.source, a.kind.label(), a.frames))
-                .collect(),
-            missing: s.missing,
-        },
+        symbolication: Symbolication { applied: s.applied.iter().map(|a| a.describe()).collect(), missing: s.missing },
         report: s.report,
     }
 }
