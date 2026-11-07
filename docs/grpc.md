@@ -1,5 +1,7 @@
 # gRPC and protobuf
 
+![A gRPC call in Network, with its status and the protobuf message read as JSON](images/network-grpc.png)
+
 gRPC calls are shown in **Network** by the method they call, with the status the server answered.
 
 - The **Operation** column shows `Service/Method`, taken from the path.

@@ -116,6 +116,8 @@ The **Proto** column shows what the proxy spoke to the server: `h1`, `h2` or `h3
 - **Network conditions**: a slow, laggy, lossy or missing connection. See [Network conditions](network-conditions.md).
 - **HTTP/3**: see below.
 
+![The editor to send a GraphQL request again with another variable](images/network-resend.png)
+
 ### Apps that pin their certificate
 
 Some apps (many Google services, banking apps) accept only their own server's certificate. EmuLabZip cannot decrypt

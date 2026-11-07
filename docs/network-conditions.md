@@ -3,6 +3,8 @@
 Test how an app copes with a slow, laggy, lossy or missing network. The proxy sits in the middle of everything the
 device sends, so it can shape the link.
 
+![The menu of network conditions in Network, with Slow 3G chosen](images/network-conditions.png)
+
 In **Network**, the **Network** button picks a preset or numbers of your own, and the change applies at once, also to
 connections that are already open. A badge shows what is in force.
 
