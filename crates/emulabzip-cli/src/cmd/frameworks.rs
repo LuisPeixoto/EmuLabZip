@@ -286,3 +286,76 @@ pub async fn rn_console(app: &str, metro: u16, seconds: u64, json: bool) -> Resu
 }
 
 pub const DEFAULT_METRO: u16 = METRO_PORT;
+
+fn print_state(state: &emulabzip_frameworks::react_native::ReactState) {
+    if state.stores.is_empty() {
+        println!("No Redux store, React Query cache, context or named store was found.");
+        println!("{}", output::dim("Register others with globalThis.__EMULABZIP_STORES__ = { name: store }."));
+    }
+    for s in &state.stores {
+        println!("{} {}", output::heading(&s.name), output::dim(&s.kind));
+        match &s.error {
+            Some(e) => println!("  could not be read: {e}"),
+            None => println!("{}", serde_json::to_string_pretty(&s.state).unwrap_or_default()),
+        }
+        for c in &s.cut {
+            println!("  {}", output::dim(&format!("cut {c}")));
+        }
+    }
+}
+
+/// How often `--watch` looks.
+const WATCH_EVERY: std::time::Duration = std::time::Duration::from_millis(700);
+
+pub async fn rn_state(app: &str, metro: u16, watch: bool, json: bool) -> Result<()> {
+    let rn = rn_connect(app, metro).await?;
+    let first = rn.state().await?;
+    if !watch {
+        if json {
+            println!("{}", serde_json::to_string_pretty(&first)?);
+        } else {
+            print_state(&first);
+        }
+        return Ok(());
+    }
+    // Watching wraps `dispatch` of each Redux store, and puts it back at the end.
+    let wrapped = rn.watch_actions().await?;
+    if !json {
+        print_state(&first);
+        eprintln!("{}", output::dim(&format!("Watching ({wrapped} Redux store(s) wrapped). Ctrl-C to stop.")));
+    }
+    let result = watch_loop(&rn, first, json).await;
+    let _ = rn.stop_actions().await;
+    result
+}
+
+async fn watch_loop(rn: &ReactNative, first: emulabzip_frameworks::react_native::ReactState, json: bool) -> Result<()> {
+    let mut last = first;
+    let mut seq = 0u64;
+    let mut stop = std::pin::pin!(tokio::signal::ctrl_c());
+    loop {
+        tokio::select! {
+            _ = &mut stop => return Ok(()),
+            _ = tokio::time::sleep(WATCH_EVERY) => {}
+        }
+        let (_, actions) = rn.actions_since(seq).await?;
+        let now = rn.state().await?;
+        let changes = emulabzip_frameworks::react_native::diff_states(&last, &now);
+        for a in &actions {
+            seq = seq.max(a.seq);
+        }
+        if json {
+            if !actions.is_empty() || !changes.is_empty() {
+                println!("{}", serde_json::json!({ "actions": actions, "changes": changes }));
+            }
+        } else {
+            for a in &actions {
+                println!("{} {}", output::heading("action"), a.kind);
+            }
+            for c in &changes {
+                println!("  {}", c.line());
+            }
+        }
+        last = now;
+    }
+}

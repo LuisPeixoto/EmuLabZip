@@ -5,8 +5,8 @@ use emulabzip_core::Lab;
 
 use crate::output;
 
-pub async fn run(lab: &Lab, json: bool) -> Result<()> {
-    let (devices, errors) = lab.devices().await;
+pub async fn run(lab: &Lab, all: bool, json: bool) -> Result<()> {
+    let (devices, errors) = if all { lab.all_devices().await } else { lab.devices().await };
     if json {
         println!("{}", serde_json::to_string_pretty(&devices)?);
         return Ok(());

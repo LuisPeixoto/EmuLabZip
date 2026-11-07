@@ -9,7 +9,7 @@ use emulabzip_storage::sqlite::{Database, Rows};
 use crate::output::{self, cell};
 
 /// The requested root, or the first readable one.
-async fn pick_root(lab: &Lab, device: &Device, app: &str, root: Option<&str>) -> Result<StorageRoot> {
+pub(crate) async fn pick_root(lab: &Lab, device: &Device, app: &str, root: Option<&str>) -> Result<StorageRoot> {
     let roots = lab.storage_roots(&device.target(), app).await?;
     let found = match root {
         Some(id) => roots.iter().find(|r| r.id == id).cloned(),
