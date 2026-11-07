@@ -147,7 +147,7 @@ fn valid_session_id(id: &str) -> bool {
         && !id.contains("..")
 }
 
-fn session_summary(id: &str) -> Result<String, String> {
+fn open_session(id: &str) -> Result<emulabzip_session::Session, String> {
     if !valid_session_id(id) {
         return Err(format!("`{id}` is not a session name: use one from list_sessions"));
     }
@@ -157,8 +157,42 @@ fn session_summary(id: &str) -> Result<String, String> {
         .map(|n| dir.join(n))
         .find(|p| p.exists())
         .ok_or_else(|| format!("there is no session called `{id}`; list_sessions shows what exists"))?;
-    let session = emulabzip_session::Session::open(&path).map_err(|e| e.to_string())?;
-    json(&emulabzip_session::summarize(&session))
+    emulabzip_session::Session::open(&path).map_err(|e| e.to_string())
+}
+
+fn session_summary(id: &str) -> Result<String, String> {
+    json(&emulabzip_session::summarize(&open_session(id)?))
+}
+
+/// The most events `session_timeline` returns.
+const MAX_TIMELINE_EVENTS: usize = 2000;
+
+fn session_timeline(a: &args::SessionTimeline) -> Result<String, String> {
+    // Everything that can be checked without opening the session is checked first.
+    let lanes = a
+        .lanes
+        .iter()
+        .flatten()
+        .map(|l| {
+            emulabzip_session::Lane::parse(l).ok_or_else(|| {
+                format!("`{l}` is not a lane: use taps, logs, requests, frames, gc, crashes, screens or video")
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let limit = a.limit.unwrap_or(200).clamp(1, MAX_TIMELINE_EVENTS);
+    let session = open_session(&a.id)?;
+    let timeline = emulabzip_session::timeline::build(&session);
+    let events = timeline.only(&lanes);
+    let total = events.len();
+    json(&serde_json::json!({
+        "startMs": timeline.start_ms,
+        "durationMs": timeline.duration_ms,
+        "clock": timeline.clock,
+        "lanes": timeline.lanes,
+        "events": events.into_iter().take(limit).collect::<Vec<_>>(),
+        "eventsTotal": total,
+        "truncated": total > limit,
+    }))
 }
 
 /// What went into making a crash readable, next to the crash.
@@ -461,6 +495,13 @@ impl EmuLabServer {
     )]
     async fn session_summary(&self, Parameters(a): Parameters<args::Session>) -> CallToolResult {
         reply(session_summary(&a.id))
+    }
+
+    #[tool(
+        description = "Everything a recorded session captured on one time axis, oldest first: touches, log warnings and errors, requests, slow frames (a stutter is one event), garbage collections, crashes, screenshots and pieces of screen video. Times are milliseconds from the start of the recording. Pick lanes to keep it short."
+    )]
+    async fn session_timeline(&self, Parameters(a): Parameters<args::SessionTimeline>) -> CallToolResult {
+        reply(session_timeline(&a))
     }
 
     #[tool(description = "List the crashes, native crashes and ANRs a device has recorded, newest first.")]
@@ -992,14 +1033,7 @@ impl EmuLabServer {
                 if !valid_session_id(id) {
                     return Err(format!("`{id}` is not a session name: use one from list_sessions"));
                 }
-                let dir = sessions_dir();
-                let path = [format!("{id}.ezsession"), format!("{id}.ezsession.partial")]
-                    .into_iter()
-                    .map(|n| dir.join(n))
-                    .find(|p| p.exists())
-                    .ok_or_else(|| format!("there is no session called `{id}`; list_sessions shows what exists"))?;
-                let session = emulabzip_session::Session::open(&path).map_err(|e| e.to_string())?;
-                BugReport::from_session(&session, &options, &store)
+                BugReport::from_session(&open_session(id)?, &options, &store)
             }
             None => {
                 let target = self.target(&a.device).await?;
@@ -1015,11 +1049,24 @@ impl EmuLabServer {
         }
         let dir = emulabzip_core::data_dir().join("reports");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        let path = dir.join(format!("{}-{}.html", report.created_ms, slug(&report.title)));
+        let stem = format!("{}-{}", report.created_ms, slug(&report.title));
+        // A clip too big to be part of the file goes next to it, so the two get a folder of their own.
+        let (path, video) = match report.video_sidecar() {
+            Some(clip) => {
+                let folder = dir.join(&stem);
+                std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+                let video = folder.join(emulabzip_report::VIDEO_FILE);
+                std::fs::write(&video, clip).map_err(|e| e.to_string())?;
+                (folder.join("emulabzip-report.html"), Some(video))
+            }
+            None => (dir.join(format!("{stem}.html")), None),
+        };
         std::fs::write(&path, html::html(&report)).map_err(|e| e.to_string())?;
         let summary = markdown::markdown(&report);
         json(&serde_json::json!({
             "path": path,
+            "video": video,
+            "hasVideo": report.video.is_some(),
             "title": report.title,
             "crashes": report.crashes.len(),
             "failedRequests": report.requests.len(),
