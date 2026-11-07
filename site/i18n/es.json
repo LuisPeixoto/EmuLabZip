@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código abierto · MIT · v0.9",
+    "eyebrow": "Código abierto · MIT · v0.10",
     "titleLead": "El laboratorio de depuración para tu",
     "titleAccent": "emulador Android y simulador iOS",
     "lead": "<strong>EmuLabZip</strong> reúne logs, tráfico de red, rendimiento, memoria, almacenamiento, fallos y accesibilidad de tus <strong>emuladores Android y simuladores iOS</strong> en una sola app nativa y rápida. No hay nada que instalar en el dispositivo.",
@@ -58,6 +58,7 @@
       { "icon": "sessions", "title": "Presupuestos y líneas base", "text": "Escribe límites en emulabzip.toml y haz fallar una ejecución de CI que los rompa o que sea más lenta que la última buena." },
       { "icon": "layout", "title": "Dentro de Flutter y React Native", "text": "El árbol de widgets, los tiempos de fotogramas y la memoria de apps Flutter, y el árbol React y el heap de Hermes de apps React Native, leídos con sus propios depuradores." },
       { "icon": "network", "title": "GraphQL y gRPC", "text": "Operaciones y llamadas con nombre en la lista, consultas con sus variables, estado y streaming de gRPC, y protobuf leído con o sin tus archivos .proto." },
+      { "icon": "sessions", "title": "Línea de tiempo, vídeo y repetición", "text": "Toques, peticiones, problemas del log, fotogramas lentos y fallos en un solo eje de tiempo, con la grabación de pantalla al lado, y una grabación de la red que responde a tu app sin internet." },
       { "icon": "rules", "title": "Reenviar y redes lentas", "text": "Reenvía una petición con cambios, o haz la red lenta, con retraso, con pérdidas o sin conexión para ver cómo responde la app." }
     ]
   },
@@ -82,7 +83,10 @@
       { "id": "conditions", "shot": "network-conditions", "label": "Red lenta", "title": "Lenta, con retraso o sin conexión, a pedido", "text": "3G rápido y lento, latencia alta, pérdida de paquetes, sin conexión o tus propios números, con las conexiones abiertas.", "alt": "Vista Network con el menú de condiciones de red y 3G lento elegido" },
       { "id": "readable", "shot": "symbolication", "label": "Stacks legibles", "title": "El mismo crash, legible", "text": "Con el mapping.txt guardado para la compilación, el frame que R8 revolvió vuelve a ser la cadena real de llamadas, con archivos y líneas. El original está a un clic.", "alt": "El mismo crash de Android leído con su mapping.txt y como lo escribió el dispositivo" },
       { "id": "report-dialog", "shot": "bug-report-dialog", "label": "Informe de bug", "title": "Reporta un bug con un clic", "text": "Elige qué entra y dónde se abre el issue: GitHub, GitLab o Jira, ya rellenado. La app no envía nada.", "alt": "El diálogo Report a bug con título, descripción y qué incluir" },
-      { "id": "report-html", "shot": "bug-report-html", "label": "Un archivo", "title": "Un archivo HTML con todo", "text": "Captura, dispositivo, log, solicitudes fallidas y el crash legible, en un archivo que abre en cualquier navegador.", "alt": "Un informe de bug abierto en el navegador con la captura, los datos del dispositivo y el crash legible" }
+      { "id": "report-html", "shot": "bug-report-html", "label": "Un archivo", "title": "Un archivo HTML con todo", "text": "Captura, dispositivo, log, solicitudes fallidas y el crash legible, en un archivo que abre en cualquier navegador.", "alt": "Un informe de bug abierto en el navegador con la captura, los datos del dispositivo y el crash legible" },
+      { "id": "timeline", "shot": "timeline", "label": "Línea de tiempo", "title": "Qué pasó y cómo se veía", "text": "Toques, peticiones, problemas del log, fotogramas lentos, recolecciones de basura y el fallo en un solo eje, con la grabación de pantalla que lo acompaña.", "alt": "La línea de tiempo de una sesión con su grabación de pantalla en el momento de un fallo" },
+      { "id": "replay", "shot": "replay", "label": "Repetición", "title": "Ejecuta la app sin internet", "text": "Responde a la app desde una grabación: lo que está en ella se sirve como era, y lo que no está falla con un 504 y nunca llega a un servidor.", "alt": "La vista Network repitiendo una grabación, con una petición que no está en ella" },
+      { "id": "report-video", "shot": "bug-report-video", "label": "Informe con vídeo", "title": "El fragmento del fallo, dentro del informe", "text": "Un informe de errores hecho desde una sesión lleva el trozo de la grabación de pantalla que contiene el fallo y una franja del último minuto, en el mismo archivo.", "alt": "Un informe de errores en el navegador con el fragmento del fallo y una franja del último minuto" }
     ]
   },
   "cli": {
@@ -137,7 +141,7 @@
   "roadmap": {
     "kicker": "Hoja de ruta",
     "title": "Hacia dónde va EmuLabZip",
-    "lead": "Ocho fases ya están hechas. Las ocho siguientes llevan a una versión 1.0 estable.",
+    "lead": "Diez fases ya están hechas. Las seis siguientes llevan a una versión 1.0 estable.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, rendimiento, memoria, almacenamiento y el proxy de red." },
       { "state": "done", "version": "v0.4", "title": "Trazas", "text": "Perfetto, simpleperf e Instruments, con flame graphs y SQL." },
@@ -146,8 +150,8 @@
       { "state": "done", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
       { "state": "done", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
       { "state": "done", "version": "v0.9", "title": "Stacks legibles e informes de errores", "text": "Fallos simbolizados (R8, dSYMs, source maps) e informes de errores con un clic." },
-      { "state": "next", "version": "v0.10", "title": "Línea de tiempo y repetición", "text": "Una línea de tiempo de toques, logs y peticiones, vídeo de pantalla y repetición de red." },
-      { "state": "later", "version": "v0.11", "title": "El estado de la app como datos", "text": "Instantáneas del sandbox y de los emuladores, modo de escritura en Storage y más visores." },
+      { "state": "done", "version": "v0.10", "title": "Línea de tiempo y repetición", "text": "Una línea de tiempo de toques, logs y peticiones, vídeo de pantalla y repetición de red." },
+      { "state": "next", "version": "v0.11", "title": "El estado de la app como datos", "text": "Instantáneas del sandbox y de los emuladores, modo de escritura en Storage y más visores." },
       { "state": "later", "version": "v0.12", "title": "Calidad más allá del rendimiento", "text": "Auditoría de seguridad, tamaño de APK e IPA, localización, regresión visual y analíticas." },
       { "state": "later", "version": "v0.13", "title": "Automatización y apps híbridas", "text": "WebViews, entrada y flujos grabados, pruebas de deep links y reglas programables." },
       { "state": "later", "version": "v0.14", "title": "IA con contexto", "text": "La línea de tiempo, la repetición y las instantáneas como herramientas MCP, y prompts para preguntas comunes." },
@@ -166,7 +170,7 @@
       { "q": "¿Puede ver el tráfico HTTPS de mi app?", "a": "Sí. El proxy integrado descifra el HTTPS cuando el emulador confía en el certificado de EmuLabZip, que la app instala por ti. Las apps que fijan su certificado pasan sin cambios." },
       { "q": "¿Funciona con asistentes de IA?", "a": "Sí. EmuLabZip incluye un servidor MCP, de modo que asistentes como Claude pueden leer logs y fallos, hacer capturas, auditar la accesibilidad y controlar el dispositivo." },
       { "q": "¿Puedo usarlo en CI?", "a": "Sí. El comando emulabzip ci graba una sesión alrededor de tu comando de tests, conserva su código de salida y puede hacer fallar la ejecución si la app se cierra o la pantalla tiene problemas de accesibilidad." },
-      { "q": "¿Admite dispositivos físicos?", "a": "Todavía no. Hoy se admiten emuladores Android y simuladores iOS. Los iPhone físicos y Android por Wi-Fi están previstos para la v0.9." }
+      { "q": "¿Admite dispositivos físicos?", "a": "Todavía no. Hoy se admiten emuladores Android y simuladores iOS. Los iPhone físicos y Android por Wi-Fi están previstos para la v0.15." }
     ]
   },
   "final": {

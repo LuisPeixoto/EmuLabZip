@@ -17,7 +17,7 @@
     "language": "语言"
   },
   "hero": {
-    "eyebrow": "开源 · MIT · v0.9",
+    "eyebrow": "开源 · MIT · v0.10",
     "titleLead": "专为你的",
     "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
     "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
@@ -58,6 +58,7 @@
       { "icon": "sessions", "title": "预算与基线", "text": "在 emulabzip.toml 中写下限制，让超出限制或比上次良好运行更慢的 CI 运行失败。" },
       { "icon": "layout", "title": "深入 Flutter 与 React Native", "text": "通过各自的调试器读取 Flutter 应用的组件树、帧耗时和内存，以及 React Native 应用的 React 组件树和 Hermes 堆。" },
       { "icon": "network", "title": "GraphQL 与 gRPC", "text": "在请求列表中显示操作与调用名称、查询及其变量、gRPC 状态与流式传输，并可使用或不使用 .proto 文件解析 protobuf。" },
+      { "icon": "sessions", "title": "时间线、录屏与回放", "text": "点击、请求、日志问题、卡顿帧和崩溃放在同一条时间轴上，旁边是屏幕录像；还有一份能在没有网络时回答应用的网络录制。" },
       { "icon": "rules", "title": "重发与慢速网络", "text": "修改后重新发送请求，或让网络变慢、延迟、丢包或断开，看看应用如何应对。" }
     ]
   },
@@ -82,7 +83,10 @@
       { "id": "conditions", "shot": "network-conditions", "label": "慢速网络", "title": "随时变慢、延迟或断网", "text": "快速和慢速 3G、高延迟、丢包、断网或自定义数值，对已打开的连接同样生效。", "alt": "网络视图，显示网络条件菜单并选中了慢速 3G" },
       { "id": "readable", "shot": "symbolication", "label": "可读堆栈", "title": "同一个崩溃，可读了", "text": "用为该构建保存的 mapping.txt，R8 打乱的帧会还原成真实的调用链，带文件和行号。原始内容一键即可查看。", "alt": "同一个 Android 崩溃：用 mapping.txt 读取，以及设备写下的原样" },
       { "id": "report-dialog", "shot": "bug-report-dialog", "label": "Bug 报告", "title": "一键报告 Bug", "text": "选择要包含的内容，以及在哪里创建问题：GitHub、GitLab 或 Jira，内容已预填。应用不会发送任何数据。", "alt": "“Report a bug”对话框，包含标题、描述和要包含的内容" },
-      { "id": "report-html", "shot": "bug-report-html", "label": "一个文件", "title": "一个包含全部内容的 HTML 文件", "text": "截图、设备、日志、失败的请求和可读的崩溃，放在任何浏览器都能打开的文件里。", "alt": "在浏览器中打开的 Bug 报告，含截图、设备信息和可读的崩溃" }
+      { "id": "report-html", "shot": "bug-report-html", "label": "一个文件", "title": "一个包含全部内容的 HTML 文件", "text": "截图、设备、日志、失败的请求和可读的崩溃，放在任何浏览器都能打开的文件里。", "alt": "在浏览器中打开的 Bug 报告，含截图、设备信息和可读的崩溃" },
+      { "id": "timeline", "shot": "timeline", "label": "时间线", "title": "发生了什么，当时屏幕是什么样", "text": "点击、请求、日志问题、卡顿帧、垃圾回收和崩溃在同一条轴上，并配有随之播放的屏幕录像。", "alt": "一次会话的时间线，屏幕录像停在崩溃的瞬间" },
+      { "id": "replay", "shot": "replay", "label": "回放", "title": "不联网也能运行应用", "text": "用一份录制来回答应用：录制里有的原样返回，没有的以 504 失败，绝不会到达服务器。", "alt": "Network 视图正在回放一份录制，其中有一个请求不在录制里" },
+      { "id": "report-video", "shot": "bug-report-video", "label": "带视频的报告", "title": "报告里带着崩溃前后的片段", "text": "由会话生成的缺陷报告，会带上包含崩溃的那段屏幕录像和最后一分钟的时间条，都在同一个文件里。", "alt": "浏览器中的缺陷报告，含崩溃片段和最后一分钟的时间条" }
     ]
   },
   "cli": {
@@ -137,7 +141,7 @@
   "roadmap": {
     "kicker": "路线图",
     "title": "EmuLabZip 的下一步",
-    "lead": "八个阶段已经完成，接下来的八个阶段将通向稳定的 1.0。",
+    "lead": "十个阶段已经完成，接下来的六个阶段将通向稳定的 1.0。",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "观察", "text": "设备、日志、性能、内存、存储和网络代理。" },
       { "state": "done", "version": "v0.4", "title": "追踪", "text": "Perfetto、simpleperf 和 Instruments，支持火焰图和 SQL。" },
@@ -146,8 +150,8 @@
       { "state": "done", "version": "v0.7", "title": "性能与质量", "text": "应用启动耗时、能耗、泄漏检测，以及 CI 中的性能预算。" },
       { "state": "done", "version": "v0.8", "title": "深入框架内部", "text": "Flutter、React Native、Compose 和 SwiftUI；gRPC 和 GraphQL。" },
       { "state": "done", "version": "v0.9", "title": "可读的堆栈与缺陷报告", "text": "符号化的崩溃（R8、dSYM、source map）和一键缺陷报告。" },
-      { "state": "next", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
-      { "state": "later", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
+      { "state": "done", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
+      { "state": "next", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
       { "state": "later", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
       { "state": "later", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView、输入与录制的操作流程、深层链接测试和可编程规则。" },
       { "state": "later", "version": "v0.14", "title": "带上下文的 AI", "text": "时间线、回放和快照作为 MCP 工具，以及常见问题的提示词。" },
@@ -166,7 +170,7 @@
       { "q": "能看到我的应用的 HTTPS 流量吗？", "a": "可以。当模拟器信任 EmuLabZip 证书后（应用会替你安装），内置代理就能解密 HTTPS。固定了证书的应用会原样放行。" },
       { "q": "能配合 AI 助手使用吗？", "a": "可以。EmuLabZip 内置 MCP 服务器，因此 Claude 等助手可以读取日志和崩溃、截屏、审计无障碍并控制设备。" },
       { "q": "能用在 CI 里吗？", "a": "可以。emulabzip ci 命令会围绕你的测试命令录制会话、保留它的退出码，并能在应用崩溃或屏幕有无障碍问题时让运行失败。" },
-      { "q": "支持真机吗？", "a": "暂时不支持。目前支持 Android 模拟器和 iOS 模拟器，真机 iPhone 和 Wi-Fi 连接的 Android 计划在 v0.9 提供。" }
+      { "q": "支持真机吗？", "a": "暂时不支持。目前支持 Android 模拟器和 iOS 模拟器，真机 iPhone 和 Wi-Fi 连接的 Android 计划在 v0.15 提供。" }
     ]
   },
   "final": {
