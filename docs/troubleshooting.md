@@ -122,6 +122,43 @@ Some windows forbid it: secure screens, and a few players. Go to another screen 
 The recording was killed before it could pack itself. Nothing is lost: `emulabzip session show run.ezsession.partial`
 opens it. Delete the folder, or move it, before you record to the same name again.
 
+## Timeline: touches are missing
+
+Touches are read from the kernel's input device with `getevent`, so a finger on the emulator window or an event sent
+through the emulator console is seen. `adb shell input tap` is injected higher up, inside Android, and is not. iOS does
+not give the simulator's touches to anything outside it, so there are none there. Record with `--taps`.
+
+## Timeline: the log times are "estimated"
+
+The recording was made before EmuLabZip 0.10, or the device could not tell its time, so the log's local times were placed
+by comparing the first line with the start of the recording. They can be off by the difference between the two clocks.
+Record again for exact times.
+
+## Video: "screenrecord made no video"
+
+Some screens cannot be recorded (secure windows) and a few images do not support `screenrecord` at all. The message
+carries what the tool printed. On the iOS Simulator, `recordVideo` needs the simulator to be booted; if it does not start
+within 20 seconds, the message says why.
+
+## Video: the report has a separate `.mp4`
+
+A clip up to 20 MB is part of the HTML file. A bigger one is written next to it as `emulabzip-report.mp4`, and the file
+refers to it by that name: move or attach the two together.
+
+## Replay: "not in the recording"
+
+The app asked for something the recording does not hold: another address, another query, a method that was not used, or
+a request that failed when it was recorded. The proxy answers 504 and lists it under **Not recorded** (or at the end of
+`emulabzip net --replay`). Record again with that request, or add `--passthrough` to let it reach the server. Matching
+ignores the order of query parameters and the port, but not the values: an app that adds a timestamp or a random id to
+every request will always miss.
+
+## Replay: WebSockets and some connections fail
+
+While a recording is replayed, what cannot be answered from a HAR file is refused, so it cannot reach the internet:
+WebSockets, gRPC calls, apps that do not accept the EmuLabZip certificate, and non-TLS connections the proxy cannot read.
+Use `--passthrough` if those must work.
+
 ## Traces: "Perfetto did not record a trace"
 
 Perfetto needs Android 9 or newer. If the message names a permission, restart the emulator, or run

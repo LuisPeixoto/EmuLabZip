@@ -65,6 +65,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
   JavaScript points at the right file and line with its source map, and iOS addresses are read with the dSYM. Then
   [one click](docs/bug-reports.md) packs a screenshot, the device, the log, the failed requests and the readable crash
   into one HTML file, and opens a pre-filled issue on GitHub, GitLab or Jira.
+- **A timeline, screen video and replay.** [One time axis](docs/timeline.md) lines up touches, log problems, requests,
+  slow frames, garbage collections and crashes, with the screen recording that follows it; the clip around a crash goes
+  in the bug report; and a session or a HAR file can be [replayed](docs/replay.md), so an app runs offline against what
+  the servers said once, for bugs whose backend has changed and for CI runs that must not vary.
 - **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
   the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
   slower.
@@ -134,6 +138,18 @@ request, record a whole run and compare two devices. It ships as a native deskto
   <tr>
     <td width="50%"><img src="docs/images/bug-report-dialog.png" alt="The Report a bug dialog" /><br /><sub><b>Report a bug</b>: choose what goes in, and where the issue opens.</sub></td>
     <td width="50%"><img src="docs/images/bug-report-html.png" alt="The report opened in a browser" /><br /><sub><b>One file</b>: screenshot, device and the readable crash, in any browser.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/images/timeline.png" alt="Sessions: touches, requests, log problems, slow frames, garbage collections and a crash on one timeline, with the screen recording showing the crash dialog" /><br />
+  <sub><b>Timeline</b>: everything a run recorded on one axis, and the screen video that follows it. Here the playhead is on the crash.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/replay.png" alt="Network: a recording is replayed, three requests are answered from it and one that is not in it fails" /><br /><sub><b>Replay</b>: the app runs against a recording. What is not in it fails with a 504 and never reaches the internet.</sub></td>
+    <td width="50%"><img src="docs/images/bug-report-video.png" alt="A bug report in a browser with the clip of the crash and a strip of the last minute" /><br /><sub><b>Video in the report</b>: the clip around the crash, and the last minute on a strip, in the same file.</sub></td>
   </tr>
 </table>
 
@@ -218,6 +234,7 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | Layout inspection and accessibility audit | ✅ | ✅ (Simulator.app open) |
 | Sessions, CI mode and comparing two devices | ✅ | ✅ |
 | Readable crashes (R8 `mapping.txt`, React Native source maps, dSYM) and one-click bug reports | ✅ | ✅ (dSYM needs a Mac) |
+| Timeline, screen video in sessions and reports, and network replay | ✅ | ✅ (no touches, no slow frames or GC) |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
 
@@ -296,6 +313,8 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Crashes](docs/crashes.md) | Crashes, native crashes and ANRs with their stacks, and where the reports come from |
 | [Readable stacks](docs/symbolication.md) | `mapping.txt`, source maps and dSYMs, kept per app and version |
 | [Bug reports](docs/bug-reports.md) | One HTML file, and a pre-filled issue for GitHub, GitLab or Jira |
+| [Timeline and screen video](docs/timeline.md) | One time axis for touches, log problems, requests, slow frames, GC and crashes, and the video that follows it |
+| [Replaying a recording](docs/replay.md) | Answer an app's requests from a session or a HAR file, offline and the same every time |
 | [Mocks and breakpoints](docs/mocks.md) | Rules that answer, delay, block or hold requests |
 | [WebSocket messages](docs/websockets.md) | Reading frames, compression, limits |
 | [Packet captures](docs/pcap.md) | Importing `.pcap` and `.pcapng`, capturing with `emulator -tcpdump` |
@@ -311,7 +330,7 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |
 | [Troubleshooting](docs/troubleshooting.md) | Devices that do not show up, empty logs, failing screenshots |
 | [Distribution](docs/distribution.md) | Releases, code signing and updates |
-| [Roadmap](docs/roadmap.md) | What is done, and Phases 9 to 16 up to 1.0 |
+| [Roadmap](docs/roadmap.md) | What is done, and Phases 11 to 16 up to 1.0 |
 
 ## Project layout
 

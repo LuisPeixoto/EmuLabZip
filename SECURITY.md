@@ -55,6 +55,13 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   written only where you save it (or to the `reports` folder for an assistant). "Open issue" is a link that your
   browser opens: EmuLabZip does not talk to GitHub, GitLab or Jira and stores no token. Everything in the file is
   HTML-escaped and it contains no script. Look at it before you attach it to an issue others can see.
+- A session can hold a **screen recording**, touches, and the requests and bodies of a run. A video can show anything
+  that was on the screen: messages, email, a password being typed. Sessions and reports are written only where you
+  save them (or to EmuLabZip's own folders), and nothing is sent anywhere. Watch a recording before you attach it to an
+  issue others can see.
+- **Replaying a recording** answers requests from a file on your computer. While it runs, what it cannot answer
+  (WebSockets, gRPC, connections it cannot decode) is refused rather than let through, unless you ask for
+  `--passthrough`. A HAR file holds what servers sent, tokens included.
 - A heap dump holds everything the app had in memory: tokens, personal data, what was on screen. `emulabzip heap analyze`
   reads it on your computer and sends nothing anywhere, but keep the file as private as the app's data.
 - The Perfetto trace processor is the one thing EmuLabZip downloads, after you agree: from the official Perfetto

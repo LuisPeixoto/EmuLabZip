@@ -6,6 +6,41 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-07
+
+Phase 10: timeline and replay.
+
+### Added
+
+- **A timeline.** `emulabzip session timeline` and the Timeline tab of the desktop app put touches, log warnings and
+  errors, requests, slow frames, garbage collections, crashes, screenshots and video on one axis. Hover to read, click to
+  put the video there, drag to move, ⌘ and scroll to zoom; **Open** goes to the request, log line or crash behind an
+  event. A run of slow frames is one burst. `session_timeline` gives it to an assistant over MCP.
+- **A common clock.** A recording keeps the device's clock, zone and uptime, so streams that stamp time differently line
+  up. Session format version 2; version 1 files still open, with their log times estimated.
+- **Touches** (`--taps`, Android): taps, long presses and swipes from `getevent`, placed on the screen. **Slow frames**
+  from `dumpsys gfxinfo framestats`, and **garbage collections** from ART's log lines, are recorded on Android with no
+  option.
+- **Screen video** (`--video [seconds]`, and **Video** in the desktop app): `screenrecord` on Android and
+  `simctl io recordVideo` on the iOS Simulator, in pieces (30 s by default) that are stored as they finish, so a killed
+  recording keeps what it had. `emulabzip session video` writes the pieces out; the desktop app plays them in step with
+  the timeline.
+- **Video in bug reports.** A report made from a session includes the piece that holds the crash and a strip of the
+  last minute, drawn without script. Up to 20 MB the clip is part of the HTML; a bigger one is written next to it as
+  `emulabzip-report.mp4`. `--without video` leaves it out.
+- **Network replay.** `emulabzip net --replay <file>`, **Network → Replay** and **Sessions → Replay network** answer the
+  app's requests from a HAR file or a recorded session. A request that is not in the recording fails with a 504 and is
+  listed (`--passthrough` lets it reach the server); a request recorded twice gets the answers in order. HTTP and HTTPS
+  work; WebSockets, gRPC, connections the proxy cannot decode and resends are refused so nothing reaches the network.
+  `session record` and `ci` take `--replay`, and `ci --fail-on-miss` fails a run that asked for something the recording
+  does not hold.
+- The Compose demo has a button that fetches over plain HTTP, for the replay and timeline demos.
+
+### Documentation
+
+- New guides: [Timeline and screen video](docs/timeline.md) and [Replaying a recording](docs/replay.md). Updated:
+  sessions, network, mocks, CI, command line, MCP, bug reports, architecture, troubleshooting, security and the roadmap.
+
 ## [0.9.0] - 2026-11-07
 
 Phase 9: readable stacks and one-click bug reports.
