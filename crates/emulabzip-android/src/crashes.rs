@@ -512,11 +512,19 @@ pub fn report(entry: &Entry, offset: Option<i64>) -> Result<CrashReport> {
     let summary =
         summaries(std::slice::from_ref(entry), offset, None).pop().ok_or_else(|| Error::failed("empty crash entry"))?;
     let package = summary.app.as_deref();
-    let threads = match kind {
+    let mut threads = match kind {
         CrashKind::Crash => java_threads(&entry.body, package),
         CrashKind::NativeCrash => native_threads(&entry.body, package),
         CrashKind::Anr => anr_threads(&entry.body, summary.pid, package),
     };
+    // A React Native app that fails in JavaScript throws a Java exception whose message holds the JavaScript stack.
+    // That stack is where the cause is, so it goes first.
+    if kind == CrashKind::Crash
+        && (entry.body.contains("JavascriptException") || entry.body.contains("js engine:"))
+        && let Some(js) = emulabzip_core::js_thread(&entry.body)
+    {
+        threads.insert(0, js);
+    }
     let hints = hints_of(kind, &threads, &entry.body, package);
     let app_version = app_version_of(&entry.body);
     Ok(CrashReport {
@@ -666,6 +674,20 @@ mod tests {
         let managed = r.threads[0].frames.iter().find(|f| f.symbol == "dev.emulabzip.crashy.MainActivity.run").unwrap();
         assert_eq!(managed.language, Some(Language::Java));
         assert_eq!(managed.build_id, None);
+    }
+
+    #[test]
+    fn a_react_native_crash_has_its_javascript_stack_first() {
+        let body = "Process: dev.emulabzip.rndemo\nPackage: dev.emulabzip.rndemo v1 (1.0)\n\ncom.facebook.react.common.JavascriptException: Error: boom, js engine: hermes, stack:\ncrashDeep@1:12345\nonPress@1:23456\n\n\tat com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.java:70)\n\tat java.lang.Thread.run(Thread.java:1012)\n";
+        let e = Entry { tag: "data_app_crash".into(), date: "2026-10-23 20:59:28".into(), body: body.into() };
+        let r = report(&e, None).unwrap();
+        assert_eq!(r.threads[0].name, "JavaScript");
+        assert_eq!(r.threads[0].frames[0].symbol, "crashDeep");
+        assert_eq!(r.threads[0].frames[0].language, Some(Language::Js));
+        assert_eq!(r.threads[1].frames[0].language, Some(Language::Java));
+        // An ordinary crash has no such thread.
+        let plain = report(&one(CRASH), OFFSET).unwrap();
+        assert!(plain.threads.iter().all(|t| t.name != "JavaScript"));
     }
 
     #[test]
