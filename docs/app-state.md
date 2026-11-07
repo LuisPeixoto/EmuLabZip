@@ -1,5 +1,9 @@
 # App state: save, restore and compare
 
+<p align="center">
+  <img src="images/state-compare.png" alt="A saved state opened in Storage, compared with another: a column, an index and a table were added" />
+</p>
+
 An app's state is what it keeps: databases, preferences, files. **Save state** puts all of it in one `.ezstate` file;
 **Restore** puts it back; **compare** says what changed in its structure between two saves. It is what you need to
 repeat a bug from the same data every time, to test a migration, and to start a test from a known place.
@@ -46,8 +50,8 @@ One line per change: `+` added, `-` removed, `~` changed, then the file, what it
 ```
 $ emulabzip state diff v1.ezstate v2.ezstate
 + databases/shop.db: column cart.note  TEXT
-+ databases/shop.db: index idx_cart_sku  …
-+ databases/shop.db: table orders  …
++ databases/shop.db: index idx_cart_sku  CREATE INDEX idx_cart_sku ON cart (sku)
++ databases/shop.db: table orders  3 columns
 ```
 
 It lists tables, columns (and their type, `NOT NULL` and primary key), indexes, and the keys and types of preferences,
