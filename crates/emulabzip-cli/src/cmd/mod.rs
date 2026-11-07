@@ -1,5 +1,6 @@
 pub mod analytics;
 pub mod apps;
+pub mod audit;
 pub mod ci;
 pub mod compare;
 pub mod control;
@@ -21,6 +22,7 @@ pub mod plugin;
 pub mod report;
 pub mod screenshot;
 pub mod session;
+pub mod size;
 pub mod startup;
 pub mod state;
 pub mod symbols;
