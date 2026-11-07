@@ -48,6 +48,27 @@ impl EmuLabServer {
         Ok((device, target))
     }
 
+    /// A device by name or id, running or not.
+    async fn find_device(&self, query: &str, platform: Option<&str>) -> Result<Device, String> {
+        let platform = match platform {
+            None => None,
+            Some("android") => Some(emulabzip_core::Platform::Android),
+            Some("ios") => Some(emulabzip_core::Platform::Ios),
+            Some(other) => return Err(format!("`{other}` is not a platform; use android or ios")),
+        };
+        let (devices, _) = self.lab.all_devices().await;
+        let mut found: Vec<Device> = devices
+            .into_iter()
+            .filter(|d| platform.is_none_or(|p| d.platform == p))
+            .filter(|d| d.id == query || d.name == query || d.id == format!("avd:{query}"))
+            .collect();
+        match found.len() {
+            0 => Err(format!("no device is called {query}; list_all_devices shows them")),
+            1 => Ok(found.remove(0)),
+            _ => Err(format!("several devices are called {query}; give the platform or the id")),
+        }
+    }
+
     async fn target(&self, query: &Option<String>) -> Result<Target, String> {
         self.device(query).await.map(|(_, t)| t)
     }
@@ -137,6 +158,42 @@ fn sessions_list() -> Result<String, String> {
     }
     out.sort_by_key(|e| std::cmp::Reverse(e.modified_ms));
     json(&out)
+}
+
+/// Where states saved from the app, the command line and here are kept.
+fn states_dir() -> std::path::PathBuf {
+    emulabzip_core::data_dir().join("states")
+}
+
+/// A saved state by name, never by path.
+fn state_file(name: &str) -> Result<std::path::PathBuf, String> {
+    if !valid_session_id(name) {
+        return Err(format!("`{name}` is not the name of a saved state; list_states shows them"));
+    }
+    let path = states_dir().join(format!("{name}.{}", emulabzip_storage::snapshot::EXTENSION));
+    if path.is_file() { Ok(path) } else { Err(format!("no saved state is called {name}; list_states shows them")) }
+}
+
+fn states_list() -> Result<String, String> {
+    let mut out = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(states_dir()) {
+        for entry in entries.flatten() {
+            let file = entry.file_name().to_string_lossy().into_owned();
+            let Some(name) = file.strip_suffix(&format!(".{}", emulabzip_storage::snapshot::EXTENSION)) else {
+                continue;
+            };
+            let modified_ms = entry
+                .metadata()
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map_or(0, |d| d.as_millis() as u64);
+            let meta = emulabzip_storage::snapshot::open(&entry.path()).ok().map(|s| s.meta);
+            out.push((modified_ms, serde_json::json!({ "name": name, "modifiedMs": modified_ms, "state": meta })));
+        }
+    }
+    out.sort_by_key(|(ms, _)| std::cmp::Reverse(*ms));
+    json(&out.into_iter().map(|(_, v)| v).collect::<Vec<_>>())
 }
 
 /// A session name is a file name: nothing that could point outside the sessions folder.
@@ -414,6 +471,164 @@ impl EmuLabServer {
     #[tool(description = "The Dart heap of a running Flutter app and the classes that use the most memory.")]
     async fn flutter_memory(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
         reply(async { json(&self.flutter(&a).await?.memory(15).await.map_err(|e| e.to_string())?) }.await)
+    }
+
+    #[tool(
+        description = "List every emulator and simulator, running or not (a stopped one has state \"shutdown\"), with ids to start them with boot_device."
+    )]
+    async fn list_all_devices(&self) -> CallToolResult {
+        let (devices, errors) = self.lab.all_devices().await;
+        let mut value = serde_json::json!({ "devices": devices });
+        if !errors.is_empty() {
+            value["problems"] = errors.iter().map(|(p, e)| format!("{p:?}: {e}")).collect::<Vec<_>>().into();
+        }
+        reply(json(&value))
+    }
+
+    #[tool(
+        description = "Start an emulator or simulator that is not running, and wait until it is up. It never wipes the device."
+    )]
+    async fn boot_device(&self, Parameters(a): Parameters<args::BootDevice>) -> CallToolResult {
+        reply(
+            async {
+                let device = self.find_device(&a.device, a.platform.as_deref()).await?;
+                let options =
+                    emulabzip_core::BootOptions { wipe: false, cold: false, headless: a.headless.unwrap_or(false) };
+                json(&self.lab.boot_device(&device.target(), &options).await.map_err(|e| e.to_string())?)
+            }
+            .await,
+        )
+    }
+
+    #[tool(description = "Stop a running emulator or simulator. What is on it is kept.")]
+    async fn shutdown_device(&self, Parameters(a): Parameters<args::ShutdownDevice>) -> CallToolResult {
+        reply(
+            async {
+                let device = self.find_device(&a.device, a.platform.as_deref()).await?;
+                self.lab.shutdown_device(&device.target()).await.map_err(|e| e.to_string())?;
+                Ok(format!("{} is shut down.", device.name))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Save an app's data (databases, preferences, files; not caches) to a state file kept by EmuLabZip, to compare later with diff_state. Stops the app. Putting a state back is not offered here."
+    )]
+    async fn save_state(&self, Parameters(a): Parameters<args::SaveState>) -> CallToolResult {
+        reply(
+            async {
+                let name = match &a.name {
+                    Some(n) if valid_session_id(n) => n.clone(),
+                    Some(n) => return Err(format!("`{n}` is not a plain name")),
+                    None => {
+                        let ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map_or(0, |d| d.as_millis());
+                        format!("{}-{ms}", slug(&a.app))
+                    }
+                };
+                if !emulabzip_core::control::is_app_id(&a.app) {
+                    return Err(format!("`{}` is not a package name or bundle id", a.app));
+                }
+                let dir = states_dir();
+                std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+                let out = dir.join(format!("{name}.{}", emulabzip_storage::snapshot::EXTENSION));
+                let target = self.target(&a.device).await?;
+                let meta = emulabzip_storage::snapshot::save(&self.lab, &target, &a.app, &out, false)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                json(&serde_json::json!({ "name": name, "file": out.display().to_string(), "state": meta }))
+            }
+            .await,
+        )
+    }
+
+    #[tool(description = "The state files EmuLabZip has saved, newest first, by the names diff_state takes.")]
+    async fn list_states(&self) -> CallToolResult {
+        reply(states_list())
+    }
+
+    #[tool(
+        description = "What changed in the structure of an app's data between two saved states, or between a saved state and the app now: tables, columns, indexes and preference keys added, removed or changed."
+    )]
+    async fn diff_state(&self, Parameters(a): Parameters<args::DiffState>) -> CallToolResult {
+        reply(
+            async {
+                let before = state_file(&a.before)?;
+                let changes = match &a.after {
+                    Some(after) => emulabzip_storage::snapshot::compare(&before, &state_file(after)?),
+                    None => {
+                        let app = emulabzip_storage::snapshot::open(&before).map_err(|e| e.to_string())?.meta.app;
+                        let target = self.target(&a.device).await?;
+                        let now = std::env::temp_dir().join(format!(
+                            "emulabzip-mcp-now-{}.{}",
+                            std::process::id(),
+                            emulabzip_storage::snapshot::EXTENSION
+                        ));
+                        let _ = std::fs::remove_file(&now);
+                        let saved = emulabzip_storage::snapshot::save(&self.lab, &target, &app, &now, false).await;
+                        let result = saved.and_then(|_| emulabzip_storage::snapshot::compare(&before, &now));
+                        let _ = std::fs::remove_file(&now);
+                        result
+                    }
+                }
+                .map_err(|e| e.to_string())?;
+                json(&serde_json::json!({
+                    "changes": changes.iter().map(|c| c.line()).collect::<Vec<_>>(),
+                    "detail": changes,
+                }))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "The snapshots of a running Android emulator (its whole state, saved by the emulator itself)."
+    )]
+    async fn list_emulator_snapshots(&self, Parameters(a): Parameters<args::Device>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                json(&self.lab.emulator_snapshots(&target).await.map_err(|e| e.to_string())?)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Save the running Android emulator's whole state as a snapshot with this name. Loading or deleting snapshots is not offered here."
+    )]
+    async fn save_emulator_snapshot(&self, Parameters(a): Parameters<args::EmulatorSnapshot>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                self.lab
+                    .emulator_snapshot(&target, emulabzip_core::SnapshotAction::Save, &a.name, false)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(format!("Saved snapshot {}.", a.name))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "The state of a React Native development app: Redux stores, React Query caches, React contexts and stores registered in globalThis.__EMULABZIP_STORES__, read through Metro (must be running). Release builds have none of this."
+    )]
+    async fn react_state(&self, Parameters(a): Parameters<args::ReactNative>) -> CallToolResult {
+        reply(
+            async {
+                if !emulabzip_core::control::is_app_id(&a.app) {
+                    return Err(format!("`{}` is not a package name or bundle id", a.app));
+                }
+                let port = a.metro_port.unwrap_or(emulabzip_frameworks::react_native::METRO_PORT);
+                let rn =
+                    emulabzip_frameworks::react_native::connect_app(&a.app, port).await.map_err(|e| e.to_string())?;
+                Ok(cap(json(&rn.state().await.map_err(|e| e.to_string())?)?, 200_000))
+            }
+            .await,
+        )
     }
 
     #[tool(
@@ -1008,7 +1223,8 @@ impl ServerHandler for EmuLabServer {
         InitializeResult::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
             "EmuLabZip inspects and controls Android emulators and iOS simulators. Start with list_devices. \
              Every tool takes an optional `device`; it can be left out when only one device is running. \
-             Tools that change the device (control_*, open_url, record_trace) act on it for real.",
+             Tools that change the device (control_*, open_url, record_trace, boot_device, shutdown_device, save_state) act on it for real. \
+             Restoring state, wiping, deleting and editing data are not offered to assistants.",
         )
     }
 }
