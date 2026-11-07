@@ -53,6 +53,15 @@ pub fn parse_version(dumpsys: &str) -> Option<String> {
     }
 }
 
+/// The text of `dumpsys package <app>`.
+pub async fn package_dump(adb: &AdbClient, serial: &str, app: &str) -> Result<String> {
+    let out = adb.shell(serial, &command(["dumpsys", "package", app])).await?;
+    if !out.contains("Package [") {
+        return Err(Error::NotFound(format!("{app} is not installed on this device")));
+    }
+    Ok(out)
+}
+
 async fn version(adb: &AdbClient, serial: &str, app: &str) -> Option<String> {
     let out = adb.shell(serial, &command(["dumpsys", "package", app])).await.ok()?;
     parse_version(&out)
