@@ -106,10 +106,14 @@ async fn read_log(lab: &Lab, target: &Target, app: &str) -> emulabzip_core::Resu
         .filter(|e| pid.is_some_and(|p| e.pid == p) || e.message.contains(app) || e.tag.contains(app))
         .map(|e| format!("{}: {}", e.tag, e.message))
         .collect();
-    if mine.len() >= 10 || (pid.is_some() && !mine.is_empty()) {
-        return Ok(mine);
+    if mine.is_empty() {
+        // The log of a whole device is mostly other people's: scanning it would report their secrets and mistake numbers for
+        // cards. Better to say that the app's own lines could not be told.
+        return Err(emulabzip_core::Error::failed(
+            "The app has written nothing to the log and is not running, so its lines cannot be told from the system's. Start the app and use it, then audit again.",
+        ));
     }
-    Ok(entries.iter().map(|e| format!("{}: {}", e.tag, e.message)).collect())
+    Ok(mine)
 }
 
 async fn read_storage(lab: &Lab, target: &Target, app: &str) -> emulabzip_core::Result<(Vec<Stored>, Vec<Column>)> {

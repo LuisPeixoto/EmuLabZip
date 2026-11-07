@@ -22,6 +22,13 @@ pub struct Column {
     pub column: String,
 }
 
+/// Values that only sit under a secret-sounding name: a date (`2026-11-07T20:54:21Z`), or binary data a viewer shows as `<…>`.
+fn is_not_a_secret(value: &str) -> bool {
+    let v = value.trim();
+    let date = v.len() >= 10 && v.as_bytes()[..4].iter().all(u8::is_ascii_digit) && &v[4..5] == "-" && &v[7..8] == "-";
+    date || (v.starts_with('<') && v.ends_with('>'))
+}
+
 pub fn analyze(stored: &[Stored], columns: &[Column]) -> Vec<Finding> {
     let mut out = Vec::new();
     for s in stored {
@@ -33,19 +40,19 @@ pub fn analyze(stored: &[Stored], columns: &[Column]) -> Vec<Finding> {
                 hit.kind.severity,
                 Area::Storage,
                 format!("`{}` holds {} in a plain file.", s.key, hit.kind.what),
-                "Keep secrets in the Android Keystore or the iOS Keychain (EncryptedSharedPreferences and EncryptedFile on Android), and do not store personal data you do not need.",
+                "Keep secrets in the platform's secure store (the Android Keystore, with EncryptedSharedPreferences or EncryptedFile; the iOS Keychain), and do not store personal data you do not need.",
             );
             x.evidence = Some(hit.redacted.clone());
             x.location = location.clone();
             out.push(x);
         }
-        if hits.is_empty() && sensitive_name(&s.key) && !is_empty_secret(&s.value) {
+        if hits.is_empty() && sensitive_name(&s.key) && !is_empty_secret(&s.value) && !is_not_a_secret(&s.value) {
             let mut x = finding(
                 "secret-in-storage",
                 Severity::Warning,
                 Area::Storage,
                 format!("`{}` is named like a secret and has a value, kept in a plain file.", s.key),
-                "Keep secrets in the Android Keystore or the iOS Keychain (EncryptedSharedPreferences and EncryptedFile on Android).",
+                "Keep secrets in the platform's secure store (the Android Keystore, with EncryptedSharedPreferences or EncryptedFile; the iOS Keychain).",
             );
             x.evidence = Some(redact(&s.value));
             x.location = location;
@@ -95,6 +102,20 @@ mod tests {
         assert_eq!(rules, ["secret-in-storage", "email-in-storage", "bearer-token-in-storage"]);
         assert_eq!(found[0].location.as_deref(), Some("shared_prefs/auth.xml · session_token"));
         assert!(!found[0].evidence.as_deref().unwrap().contains("123456"));
+    }
+
+    #[test]
+    fn dates_and_binary_data_under_a_secret_sounding_name_are_left_alone() {
+        let found = analyze(
+            &[
+                stored("PasswordWarningLastUpdate", "2026-11-07T20:54:21Z"),
+                stored("PasswordBag/0", "<data: 35 bytes>"),
+                stored("password", "hunter2hunter2"),
+            ],
+            &[],
+        );
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].location.as_deref(), Some("shared_prefs/auth.xml · password"));
     }
 
     #[test]
