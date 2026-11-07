@@ -350,27 +350,9 @@ pub fn list(json: bool) -> Result<()> {
 async fn open_in_perfetto(trace: &Path) -> Result<()> {
     let handoff = ui::serve(trace).await?;
     println!("Opening the Perfetto UI. Waiting for the browser to load the trace…");
-    open_browser(&handoff.url)?;
+    crate::output::open_browser(&handoff.url)?;
     handoff.finished().await;
     Ok(())
-}
-
-fn open_browser(url: &str) -> Result<()> {
-    let mut cmd = if cfg!(target_os = "macos") {
-        std::process::Command::new("open")
-    } else if cfg!(windows) {
-        let mut c = std::process::Command::new("rundll32");
-        c.arg("url.dll,FileProtocolHandler");
-        c
-    } else {
-        std::process::Command::new("xdg-open")
-    };
-    cmd.arg(url).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
-    if cmd.status().is_ok_and(|s| s.success()) {
-        Ok(())
-    } else {
-        bail!("could not open a browser. Open this address yourself:\n{url}")
-    }
 }
 
 pub async fn perfetto_ui(trace: &Path) -> Result<()> {

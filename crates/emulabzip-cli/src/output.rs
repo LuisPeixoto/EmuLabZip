@@ -1,5 +1,6 @@
 //! Terminal styling shared by the commands.
 
+use anyhow::{Result, bail};
 use emulabzip_core::{Device, DeviceState, LogEntry, LogLevel, Platform};
 use emulabzip_net::{FlowKind, FlowState, FlowSummary};
 use owo_colors::{OwoColorize, Stream::Stdout, Style};
@@ -157,6 +158,25 @@ pub fn device_row(d: &Device) -> Vec<(String, String)> {
         styled(state_plain, state(d.state)),
         cell(d.id.clone()),
     ]
+}
+
+/// Opens an address (or a file) in the default browser.
+pub fn open_browser(url: &str) -> Result<()> {
+    let mut cmd = if cfg!(target_os = "macos") {
+        std::process::Command::new("open")
+    } else if cfg!(windows) {
+        let mut c = std::process::Command::new("rundll32");
+        c.arg("url.dll,FileProtocolHandler");
+        c
+    } else {
+        std::process::Command::new("xdg-open")
+    };
+    cmd.arg(url).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+    if cmd.status().is_ok_and(|s| s.success()) {
+        Ok(())
+    } else {
+        bail!("could not open a browser. Open this address yourself:\n{url}")
+    }
 }
 
 #[cfg(test)]
