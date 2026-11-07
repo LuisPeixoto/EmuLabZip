@@ -47,6 +47,7 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "audit_accessibility",
         "list_sessions",
         "session_summary",
+        "create_bug_report",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }
@@ -125,5 +126,41 @@ fn sessions_are_listed_and_summarized_from_the_sessions_folder_only() {
     for bad in ["../../etc/passwd", "a/b", "", "nothing-by-this-name"] {
         let r = s.call(4, "tools/call", json!({ "name": "session_summary", "arguments": { "id": bad } }));
         assert_eq!(r["result"]["isError"], true, "{bad}: {r}");
+    }
+}
+
+#[test]
+fn a_bug_report_is_written_to_the_reports_folder() {
+    plant_session("report-me");
+    let mut s = Server::start_session();
+    let r = s.call(
+        2,
+        "tools/call",
+        json!({ "name": "create_bug_report", "arguments": { "session": "report-me", "title": "Login <fails>", "issue": "github:a/b" } }),
+    );
+    assert_eq!(r["result"]["isError"], false, "{r}");
+    let v: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    let path = std::path::PathBuf::from(v["path"].as_str().unwrap());
+    assert!(path.starts_with(Server::home().join("reports")), "{path:?}");
+    let html = std::fs::read_to_string(&path).unwrap();
+    assert!(html.contains("Login &lt;fails&gt;") && html.contains("timeout after 30 s"), "{html}");
+    assert!(v["issueUrl"].as_str().unwrap().starts_with("https://github.com/a/b/issues/new?title=Login%20%3Cfails%3E"));
+    assert!(v["markdown"].as_str().unwrap().contains("emulabzip-report.html"));
+}
+
+#[test]
+fn a_bug_report_checks_its_arguments_before_asking_for_a_device() {
+    let mut s = Server::start_session();
+    for (args, word) in [
+        (json!({ "issue": "nope" }), "no tracker named"),
+        (json!({ "issue": "github:a" }), "github:owner/repo"),
+        (json!({ "session": "x", "app": "a.b" }), "app"),
+        (json!({ "session": "../../etc" }), "not a session name"),
+        (json!({ "session": "no-such-session" }), "no session called"),
+    ] {
+        let r = s.call(2, "tools/call", json!({ "name": "create_bug_report", "arguments": args }));
+        assert_eq!(r["result"]["isError"], true, "{args}: {r}");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(word), "{args}: {text}");
     }
 }
