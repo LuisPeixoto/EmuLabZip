@@ -62,6 +62,11 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "control_font_scale",
         "control_display_size",
         "simulate_color_blindness",
+        "audit_security",
+        "analyze_package",
+        "diff_packages",
+        "check_text",
+        "visual_compare",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }
@@ -264,4 +269,25 @@ fn state_tools_never_offer_what_destroys_data_and_refuse_paths() {
         s.call(5, "tools/call", json!({ "name": "boot_device", "arguments": { "device": "x", "platform": "plan9" } }));
     assert_eq!(boot["result"]["isError"], true);
     assert!(boot["result"]["content"][0]["text"].as_str().unwrap().contains("not a platform"));
+}
+
+#[test]
+fn package_tools_read_builds_only_and_refuse_other_files() {
+    let mut s = Server::start_session();
+    for bad in ["/etc/passwd", "notes.txt", "build.apk", ""] {
+        let r = s.call(2, "tools/call", json!({ "name": "analyze_package", "arguments": { "file": bad } }));
+        assert_eq!(r["result"]["isError"], true, "{bad:?}: {r}");
+    }
+    let r =
+        s.call(3, "tools/call", json!({ "name": "visual_compare", "arguments": { "baseline": "../../etc/passwd" } }));
+    assert_eq!(r["result"]["isError"], true);
+    assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("not a baseline name"));
+    let r = s.call(4, "tools/call", json!({ "name": "audit_security", "arguments": { "app": "a b" } }));
+    assert_eq!(r["result"]["isError"], true);
+    let r = s.call(
+        5,
+        "tools/call",
+        json!({ "name": "audit_security", "arguments": { "app": "com.example", "only": ["wifi"] } }),
+    );
+    assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("not an area"), "{r}");
 }
