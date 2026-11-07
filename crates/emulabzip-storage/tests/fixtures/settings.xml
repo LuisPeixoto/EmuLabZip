@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <boolean name="onboarded" value="true" />
+    <long name="last_sync" value="1792773580000" />
+    <string name="theme">dark</string>
+    <int name="launches" value="3" />
+    <float name="ratio" value="0.5" />
+    <set name="tags">
+        <string>vip</string>
+        <string>beta</string>
+    </set>
+</map>
