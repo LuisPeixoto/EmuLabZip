@@ -275,7 +275,7 @@ mod tests {
 
         // Once a position is seen, later touches have one, even when they report none of their own.
         let seen = lines(10.0, 10.1, &[], (16000, 20000), (16000, 20000));
-        let again = bare.replace("5.", "12.").replace("12.1", "12.1");
+        let again = bare.replace("5.", "12.");
         let events: Vec<_> = format!("{seen}{again}").lines().filter_map(|l| g.feed(l)).collect();
         assert_eq!(events.len(), 2);
         assert!(events[0].positioned && events[1].positioned, "{events:?}");
