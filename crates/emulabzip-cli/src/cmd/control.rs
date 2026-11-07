@@ -9,6 +9,8 @@ use crate::output;
 
 /// Applies a control to the device and says what was done.
 pub async fn apply(lab: &Lab, device: Option<&str>, control: Control, done: &str) -> Result<()> {
+    // A value a device should never be sent is refused before any device is looked for.
+    control.validate()?;
     let device = lab.resolve(device).await?;
     lab.control(&device.target(), &control).await?;
     println!("{done} {}", output::dim(&format!("({})", device.name)));
