@@ -83,8 +83,9 @@
     const d = drag;
     drag = null;
     if (d && !d.moved) {
-      const box = (e.currentTarget as Element).getBoundingClientRect();
-      seek(Math.min(Math.max(timeAt(e.clientX - box.left), 0), total));
+      // The pointer is measured from the left of the drawing, as `timeAt` expects, not from the rectangle it landed on.
+      const box = (e.currentTarget as SVGElement).ownerSVGElement?.getBoundingClientRect();
+      if (box) seek(Math.min(Math.max(timeAt(e.clientX - box.left), 0), total));
     }
   }
   function wheel(e: WheelEvent) {
@@ -100,6 +101,9 @@
   let loadedFile: string | null = null;
   let pendingSeek: number | null = null;
   let loading = $state(false);
+  // Whether the person (or the next-piece hand-over) pressed play. A seek past the last frame also ends a video, and
+  // must not start the next piece on its own.
+  let playing = false;
   let videoError = $state<string | null>(null);
   let playMs = $state<number | null>(null);
   const urls = new Map<string, string>();
@@ -117,6 +121,12 @@
     urls.set(file, url);
     return url;
   }
+  /** Seconds into the file, kept inside it. A piece holds frames only up to the last time the screen changed, so a moment
+   *  after that is its last frame. */
+  function clampTo(seconds: number): number {
+    const end = videoEl?.duration;
+    return end && Number.isFinite(end) ? Math.min(Math.max(seconds, 0), Math.max(end - 0.05, 0)) : Math.max(seconds, 0);
+  }
   async function show(piece: VideoPiece, seconds: number, play = false) {
     videoError = null;
     pendingSeek = seconds;
@@ -133,10 +143,13 @@
       }
       await tick();
     } else if (videoEl) {
-      videoEl.currentTime = seconds;
+      videoEl.currentTime = clampTo(seconds);
       pendingSeek = null;
     }
-    if (play) videoEl?.play().catch(() => {});
+    if (play) {
+      playing = true;
+      videoEl?.play().catch(() => (playing = false));
+    }
   }
   function seek(ms: number) {
     playMs = ms;
@@ -145,7 +158,7 @@
   }
   function loadedmetadata() {
     if (videoEl && pendingSeek != null) {
-      videoEl.currentTime = pendingSeek;
+      videoEl.currentTime = clampTo(pendingSeek);
       pendingSeek = null;
     }
   }
@@ -154,6 +167,9 @@
     if (piece && videoEl && pendingSeek == null) playMs = rel(piece) + videoEl.currentTime * 1000;
   }
   function ended() {
+    const wasPlaying = playing;
+    playing = false;
+    if (!wasPlaying) return;
     const i = view.video.findIndex((p) => p.file === loadedFile);
     const next = view.video[i + 1];
     if (next) show(next, 0, true);
@@ -198,7 +214,7 @@
     <div class="mb-3 flex items-start gap-4">
       <div class="relative shrink-0 overflow-hidden rounded-xl border border-line bg-black" style="height: 300px; aspect-ratio: 9 / 16; max-width: 60%;">
         <!-- svelte-ignore a11y_media_has_caption -->
-        <video bind:this={videoEl} src={videoSrc ?? undefined} controls preload="metadata" class="size-full object-contain" onloadedmetadata={loadedmetadata} ontimeupdate={timeupdate} onended={ended}></video>
+        <video bind:this={videoEl} src={videoSrc ?? undefined} controls preload="metadata" class="size-full object-contain" onloadedmetadata={loadedmetadata} ontimeupdate={timeupdate} onended={ended} onplay={() => (playing = true)} onpause={() => videoEl && !videoEl.ended && (playing = false)}></video>
         {#if loading}<span class="absolute inset-0 grid place-items-center bg-black/50 text-[12px] text-white">Loading…</span>{/if}
       </div>
       <div class="min-w-0 flex-1 text-[12px] leading-relaxed text-muted">

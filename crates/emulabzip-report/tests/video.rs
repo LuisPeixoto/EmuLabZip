@@ -84,6 +84,8 @@ fn the_clip_with_the_crash_and_the_minute_before_it() {
     let clip = report.video.as_ref().expect("a clip");
     assert_eq!(clip.bytes, b"clip 2");
     assert!(clip.label.contains("around the crash") && clip.label.contains("piece 2 of 3"), "{}", clip.label);
+    // The crash is 20 s into the second piece (30 s to 60 s); the clip opens two seconds before it.
+    assert_eq!(clip.at_ms, 18_000);
 
     let strip = report.strip.as_ref().expect("a strip");
     assert!(strip.ends_at_crash);
@@ -108,6 +110,7 @@ fn without_a_crash_the_last_piece_and_the_end_of_the_run() {
     let clip = report.video.as_ref().unwrap();
     assert_eq!(clip.bytes, b"clip 3");
     assert!(clip.label.contains("the last piece of the run"), "{}", clip.label);
+    assert_eq!(clip.at_ms, 0, "with no crash a clip opens at its start");
     let strip = report.strip.as_ref().unwrap();
     assert!(!strip.ends_at_crash);
     assert_eq!(strip.window_ms, 60_000);
