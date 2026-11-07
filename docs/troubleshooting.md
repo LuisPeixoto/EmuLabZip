@@ -106,6 +106,29 @@ Start Metro (`npx react-native start`) and open the app on a device that reaches
 Android). Metro lists a runtime only while the app is connected to it, and lets one debugger in at a time: close React
 Native DevTools and Chrome's inspector, then try again. Release builds have no Metro and no React DevTools hook.
 
+## State: "RN state is empty" or "no DevTools hook"
+
+Redux, React Query and contexts are found through React's DevTools hook, which only development builds have. In a release
+build register stores in `globalThis.__EMULABZIP_STORES__` (see [React Native state](react-native-state.md)). A store
+used without a react-redux `Provider` has to be registered too.
+
+## State: restoring or saving fails on Android
+
+The app has to be debuggable (as for [Storage](storage.md)). `run-as` and `tar` run on the device: an emulator image with
+a locked-down `run-as` cannot save a state. A restore that says the tar was refused found an entry outside the app's
+folder; the file is not from EmuLabZip, or is damaged.
+
+## Edit: "the table cannot be changed"
+
+A row is found by `rowid` or by its primary key. A view, or a table without either, has nothing to tell its rows apart:
+change it with SQL in the app instead. An edit that reads back differently puts the old file back and says so.
+
+## Devices: an emulator will not start
+
+`emulabzip avd boot` needs the SDK's `emulator` (found from `ANDROID_HOME`, `ANDROID_SDK_ROOT` and the usual folders).
+Run `emulator -avd <name>` yourself to see its own message. A running emulator is never wiped or deleted: shut it down
+first.
+
 ## Network: a Gradle build cannot download its distribution
 
 Not an EmuLabZip matter, but it comes up with the demo apps: some networks let `curl` reach the Gradle servers while
