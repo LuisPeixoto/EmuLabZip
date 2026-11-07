@@ -1304,6 +1304,7 @@ dependencies = [
  "emulabzip-plugin",
  "emulabzip-report",
  "emulabzip-session",
+ "emulabzip-storage",
  "emulabzip-symbols",
  "emulabzip-trace",
  "rmcp",
