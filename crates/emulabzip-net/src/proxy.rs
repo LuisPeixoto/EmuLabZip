@@ -34,6 +34,7 @@ use crate::conditions::{Conditions, Shaped, Shaper};
 use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::http3::{self, Http3};
 use crate::io::{BoxIo, Prefixed};
+use crate::replay::{Recorded, ReplaySet};
 use crate::rules::{Action, Rule, RuleSet, mock_bytes};
 use crate::store::FlowStore;
 use crate::ws::{Deflate, Direction, FrameParser, MAX_MESSAGES, parse_extensions};
@@ -62,6 +63,8 @@ pub struct ProxyConfig {
     pub hide_http3: bool,
     /// A slow, laggy or missing connection to apply from the start. See [`Conditions`].
     pub conditions: Conditions,
+    /// Answers requests from a recording instead of from the servers. See [`ReplaySet`].
+    pub replay: Option<Arc<ReplaySet>>,
 }
 
 impl Default for ProxyConfig {
@@ -75,6 +78,7 @@ impl Default for ProxyConfig {
             http3: false,
             hide_http3: true,
             conditions: Conditions::default(),
+            replay: None,
         }
     }
 }
@@ -93,7 +97,20 @@ struct Ctx {
     breakpoints: Arc<Breakpoints>,
     http3: Http3,
     shaper: Arc<Shaper>,
+    /// The recording requests are answered from, when there is one. It can be set and cleared while running.
+    replay: Mutex<Option<Arc<ReplaySet>>>,
     shutdown: watch::Receiver<bool>,
+}
+
+impl Ctx {
+    fn replay_set(&self) -> Option<Arc<ReplaySet>> {
+        self.replay.lock().clone()
+    }
+
+    /// Whether a recording is being replayed and a request it does not hold must fail.
+    fn replay_is_strict(&self) -> bool {
+        self.replay.lock().as_ref().is_some_and(|r| r.is_strict())
+    }
 }
 
 /// A running proxy. Dropping it stops the proxy and closes its connections.
@@ -155,6 +172,16 @@ impl ProxyHandle {
         conditions.check()?;
         self.ctx.shaper.set(conditions);
         Ok(())
+    }
+
+    /// The recording requests are answered from, if there is one.
+    pub fn replay_set(&self) -> Option<Arc<ReplaySet>> {
+        self.ctx.replay_set()
+    }
+
+    /// Starts answering from a recording, or stops with `None`. It applies to the next request.
+    pub fn set_replay_set(&self, set: Option<Arc<ReplaySet>>) {
+        *self.ctx.replay.lock() = set;
     }
 
     /// Where requests and responses held at breakpoints wait.
@@ -221,6 +248,7 @@ impl Proxy {
             breakpoints: config.breakpoints,
             http3,
             shaper: Shaper::new(config.conditions),
+            replay: Mutex::new(config.replay),
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -420,6 +448,17 @@ async fn serve_decrypted(
 /// Copies bytes both ways without looking at them.
 async fn raw_tunnel<C: AsyncRead + AsyncWrite + Unpin>(mut client: C, host: String, port: u16, ctx: Arc<Ctx>) {
     let mut flow = Flow::new(FlowKind::Tunnel, "CONNECT", "tcp", &host, port, "");
+    if ctx.replay_is_strict() {
+        // Bytes the proxy cannot read cannot be answered from a recording, and must not reach the internet.
+        flow.state = FlowState::Failed;
+        flow.error = Some(
+            "Refused: a recording is being replayed, and this connection could not be decoded to answer from it \
+             (it is not TLS, or the app does not accept the EmuLabZip certificate)."
+                .into(),
+        );
+        ctx.store.begin(flow);
+        return;
+    }
     flow.http_version = String::new();
     let id = ctx.store.begin(flow);
     let started = Instant::now();
@@ -547,6 +586,9 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     flow.request_headers = header_list(req.headers());
 
     if upgrade {
+        if ctx.replay_is_strict() {
+            return refuse_replayed(&ctx, flow, "WebSocket connections are not replayed");
+        }
         return forward_upgrade(req, ctx, scheme, &host, port, flow, started).await;
     }
 
@@ -614,6 +656,17 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
                 }
             }
             Action::Breakpoint { .. } => {}
+        }
+    }
+
+    // A recording answers before any server is asked. A rule above still wins: it was written on purpose.
+    if let Some(set) = ctx.replay_set() {
+        match set.lookup(parts.method.as_str(), &host, &path, &body) {
+            Some(recorded) => return replayed(&ctx, id, started, client_version, recorded, &set).await,
+            None if set.is_strict() => {
+                return not_recorded(&ctx, id, &set, parts.method.as_str(), &host, &path);
+            }
+            None => {}
         }
     }
 
@@ -694,6 +747,14 @@ async fn forward_grpc(
             Action::Breakpoint { .. } => {}
         }
     }
+    if ctx.replay_is_strict() {
+        return fail(
+            &ctx,
+            id,
+            StatusCode::GATEWAY_TIMEOUT,
+            "gRPC calls are not in a recording, so they are not replayed.".into(),
+        );
+    }
     let uri =
         match Uri::builder().scheme(scheme).authority(format!("{host}:{port}")).path_and_query(path.as_str()).build() {
             Ok(uri) => uri,
@@ -771,6 +832,9 @@ async fn replay(ctx: Arc<Ctx>, id: FlowId, edits: Resend) -> std::result::Result
     }
     if original.source.as_deref() == Some("pcap") {
         return Err("A request read from a capture file cannot be sent again.".into());
+    }
+    if ctx.replay_is_strict() {
+        return Err("Sending a request again is off while a recording is replayed: it would reach the server.".into());
     }
 
     let method = edits.method.clone().unwrap_or_else(|| original.method.clone());
@@ -923,6 +987,64 @@ fn to_header_map(list: &[(String, String)]) -> HeaderMap {
         }
     }
     map
+}
+
+/// A recorded answer, sent as the server sent it once.
+async fn replayed(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    recorded: &Recorded,
+    set: &ReplaySet,
+) -> Resp {
+    if set.keeps_timing() && recorded.ttfb_ms > 0 {
+        tokio::time::sleep(std::time::Duration::from_millis(recorded.ttfb_ms.min(60_000))).await;
+    }
+    let mut res = Response::new(full(recorded.body.clone()));
+    *res.status_mut() = StatusCode::from_u16(recorded.status).unwrap_or(StatusCode::OK);
+    *res.headers_mut() = to_header_map(&recorded.headers);
+    *res.version_mut() = version;
+    let total = started.elapsed().as_millis() as u64;
+    let (code, shown) = (recorded.status, header_list(res.headers()));
+    let (body, size) = (recorded.body.clone(), recorded.body.len() as u64);
+    ctx.store.update(id, |f| {
+        f.status = Some(code);
+        f.response_headers = shown;
+        f.response_body = body[..body.len().min(ctx.body_limit)].to_vec();
+        f.response_size = size;
+        f.response_truncated = body.len() > ctx.body_limit;
+        f.timing.ttfb_ms = Some(total);
+        f.timing.total_ms = Some(total);
+        f.mocked = true;
+        f.rule = Some("replay".into());
+        f.source = Some("replay".into());
+        f.state = FlowState::Completed;
+    });
+    res
+}
+
+/// The answer to a request the recording does not hold: a 504 that says so, and a failed flow.
+fn not_recorded(ctx: &Ctx, id: FlowId, set: &ReplaySet, method: &str, host: &str, path: &str) -> Resp {
+    let message =
+        format!("{method} {host}{path} is not in the recording ({}). It was not sent to the server.", set.source());
+    ctx.store.update(id, |f| {
+        f.state = FlowState::Failed;
+        f.error = Some(message.clone());
+        f.rule = Some("replay: not in recording".into());
+        f.source = Some("replay".into());
+    });
+    text(StatusCode::GATEWAY_TIMEOUT, &format!("not in recording\n\n{message}\n"))
+}
+
+/// Something that cannot be answered from a recording, refused so it does not reach the network.
+fn refuse_replayed(ctx: &Ctx, mut flow: Flow, why: &str) -> Resp {
+    flow.state = FlowState::Failed;
+    flow.error = Some(format!("{why}, so it was refused while a recording is replayed."));
+    flow.source = Some("replay".into());
+    let message = flow.error.clone().unwrap_or_default();
+    ctx.store.begin(flow);
+    text(StatusCode::GATEWAY_TIMEOUT, &format!("not in recording\n\n{message}\n"))
 }
 
 /// Answers from a mock rule, without asking the server.
