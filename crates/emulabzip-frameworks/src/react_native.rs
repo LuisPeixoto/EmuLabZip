@@ -228,6 +228,207 @@ pub const TREE_SCRIPT: &str = r#"(function () {
   return JSON.stringify({ name: 'Root', host: false, key: null, props: [], children: roots });
 })()"#;
 
+const JS_COMMON: &str = include_str!("js/common.js");
+
+/// Wraps a script that uses the shared helpers so nothing it declares reaches the page's global scope.
+fn page_script(body: &str) -> String {
+    format!("(function () {{\n{JS_COMMON}\nreturn ({body});\n}})()")
+}
+
+/// The script that collects the app's state: Redux stores, React Query caches, React contexts and the named stores.
+pub fn state_script() -> String {
+    page_script(include_str!("js/state.js"))
+}
+
+/// Wraps `dispatch` of each Redux store to keep the last 200 actions. It is the one script that changes the page, and
+/// [`actions_remove_script`] puts everything back.
+pub fn actions_install_script() -> String {
+    page_script(include_str!("js/actions_install.js"))
+}
+
+pub fn actions_read_script(since: u64) -> String {
+    page_script(&format!("({})({since})", include_str!("js/actions_read.js").trim()))
+}
+
+pub fn actions_remove_script() -> String {
+    page_script(include_str!("js/actions_remove.js"))
+}
+
+/// One piece of state: a Redux store, a React Query cache, a context or a named store.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateStore {
+    /// `redux`, `query`, `context` or `store`.
+    pub kind: String,
+    pub name: String,
+    pub state: Value,
+    /// What the page cut to keep the state small, with where.
+    pub cut: Vec<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReactState {
+    pub stores: Vec<StateStore>,
+}
+
+/// An action that went through a Redux store's `dispatch`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DispatchedAction {
+    pub seq: u64,
+    /// Milliseconds since the epoch, on the device.
+    pub at: u64,
+    pub store: String,
+    pub kind: String,
+    pub action: Value,
+}
+
+/// Reads what the state script returned. `"hook"` means a release build, where React keeps no DevTools hook.
+pub fn parse_state(text: &str) -> Result<ReactState> {
+    let value: Value = serde_json::from_str(text).map_err(|_| Error::failed("The state script gave no answer."))?;
+    if value.get("error").and_then(Value::as_str) == Some("hook") {
+        return Err(Error::failed(
+            "React has no DevTools hook here, which is the case in a release build. State needs a debug build, or stores \
+             registered in globalThis.__EMULABZIP_STORES__.",
+        ));
+    }
+    let stores = value
+        .get("stores")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .map(|s| StateStore {
+                    kind: s.get("kind").and_then(Value::as_str).unwrap_or("store").to_string(),
+                    name: s.get("name").and_then(Value::as_str).unwrap_or("").to_string(),
+                    state: s.get("state").cloned().unwrap_or(Value::Null),
+                    cut: s
+                        .get("cut")
+                        .and_then(Value::as_array)
+                        .map(|c| c.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
+                        .unwrap_or_default(),
+                    error: s.get("error").and_then(Value::as_str).map(str::to_string),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(ReactState { stores })
+}
+
+/// Reads what the actions script returned, and whether the log is installed.
+pub fn parse_actions(text: &str) -> (bool, Vec<DispatchedAction>) {
+    let value: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    let installed = value.get("installed").and_then(Value::as_bool).unwrap_or(false);
+    let actions = value
+        .get("actions")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .filter_map(|a| {
+                    Some(DispatchedAction {
+                        seq: a.get("seq")?.as_u64()?,
+                        at: a.get("at").and_then(Value::as_u64).unwrap_or(0),
+                        store: a.get("store").and_then(Value::as_str).unwrap_or("redux").to_string(),
+                        kind: a.get("type").and_then(Value::as_str).unwrap_or("").to_string(),
+                        action: a.get("action").cloned().unwrap_or(Value::Null),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    (installed, actions)
+}
+
+/// One difference between two states.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateChange {
+    /// Where, like `redux/cart/items/0/qty`.
+    pub path: String,
+    pub before: Option<Value>,
+    pub after: Option<Value>,
+}
+
+impl StateChange {
+    pub fn line(&self) -> String {
+        let show = |v: &Value| {
+            let text = v.to_string();
+            if text.chars().count() > 80 { format!("{}…", text.chars().take(80).collect::<String>()) } else { text }
+        };
+        match (&self.before, &self.after) {
+            (None, Some(a)) => format!("+ {} = {}", self.path, show(a)),
+            (Some(b), None) => format!("- {} (was {})", self.path, show(b)),
+            (Some(b), Some(a)) => format!("~ {}: {} → {}", self.path, show(b), show(a)),
+            (None, None) => self.path.clone(),
+        }
+    }
+}
+
+const MAX_CHANGES: usize = 500;
+
+/// The differences between two states, down to the value that changed. Arrays are compared by position.
+pub fn diff_values(path: &str, before: &Value, after: &Value, out: &mut Vec<StateChange>) {
+    if out.len() >= MAX_CHANGES || before == after {
+        return;
+    }
+    let join = |key: &str| if path.is_empty() { key.to_string() } else { format!("{path}/{key}") };
+    match (before, after) {
+        (Value::Object(a), Value::Object(b)) if !is_marker(a) && !is_marker(b) => {
+            for (key, old) in a {
+                match b.get(key) {
+                    Some(new) => diff_values(&join(key), old, new, out),
+                    None => out.push(StateChange { path: join(key), before: Some(old.clone()), after: None }),
+                }
+            }
+            for (key, new) in b {
+                if !a.contains_key(key) && out.len() < MAX_CHANGES {
+                    out.push(StateChange { path: join(key), before: None, after: Some(new.clone()) });
+                }
+            }
+        }
+        (Value::Array(a), Value::Array(b)) => {
+            for i in 0..a.len().max(b.len()) {
+                match (a.get(i), b.get(i)) {
+                    (Some(old), Some(new)) => diff_values(&join(&i.to_string()), old, new, out),
+                    (Some(old), None) => {
+                        out.push(StateChange { path: join(&i.to_string()), before: Some(old.clone()), after: None })
+                    }
+                    (None, Some(new)) => {
+                        out.push(StateChange { path: join(&i.to_string()), before: None, after: Some(new.clone()) })
+                    }
+                    (None, None) => {}
+                }
+                if out.len() >= MAX_CHANGES {
+                    break;
+                }
+            }
+        }
+        _ => out.push(StateChange { path: path.to_string(), before: Some(before.clone()), after: Some(after.clone()) }),
+    }
+}
+
+/// The page script writes `{ "$": "date", … }` for values JSON cannot hold; those are compared whole.
+fn is_marker(map: &serde_json::Map<String, Value>) -> bool {
+    map.get("$").is_some_and(Value::is_string)
+}
+
+/// The differences between two readings, store by store (a store is named by its kind and name).
+pub fn diff_states(before: &ReactState, after: &ReactState) -> Vec<StateChange> {
+    let mut out = Vec::new();
+    for old in &before.stores {
+        match after.stores.iter().find(|s| s.kind == old.kind && s.name == old.name) {
+            Some(new) => diff_values(&old.name, &old.state, &new.state, &mut out),
+            None => out.push(StateChange { path: old.name.clone(), before: Some(old.state.clone()), after: None }),
+        }
+    }
+    for new in &after.stores {
+        if !before.stores.iter().any(|s| s.kind == new.kind && s.name == new.name) {
+            out.push(StateChange { path: new.name.clone(), before: None, after: Some(new.state.clone()) });
+        }
+    }
+    out
+}
+
 /// What Hermes uses of its heap.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -322,6 +523,30 @@ impl ReactNative {
             return Err(Error::failed(text.unwrap_or("The page script failed.").to_string()));
         }
         Ok(answer.get("result").and_then(|r| r.get("value")).cloned().unwrap_or(Value::Null))
+    }
+
+    /// The app's state: Redux, React Query, React contexts, and stores in `globalThis.__EMULABZIP_STORES__`.
+    pub async fn state(&self) -> Result<ReactState> {
+        let text = self.evaluate(&state_script()).await?;
+        parse_state(text.as_str().unwrap_or("{}"))
+    }
+
+    /// Starts keeping the Redux actions from now on. Returns how many stores it wrapped. A development build only.
+    pub async fn watch_actions(&self) -> Result<usize> {
+        let text = self.evaluate(&actions_install_script()).await?;
+        let value: Value = serde_json::from_str(text.as_str().unwrap_or("{}")).unwrap_or(Value::Null);
+        Ok(value.get("wrapped").and_then(Value::as_u64).unwrap_or(0) as usize)
+    }
+
+    /// The actions after `since` (a `seq`; 0 for all kept), and whether the log is installed.
+    pub async fn actions_since(&self, since: u64) -> Result<(bool, Vec<DispatchedAction>)> {
+        let text = self.evaluate(&actions_read_script(since)).await?;
+        Ok(parse_actions(text.as_str().unwrap_or("{}")))
+    }
+
+    /// Puts each store's `dispatch` back and drops the log.
+    pub async fn stop_actions(&self) -> Result<()> {
+        self.evaluate(&actions_remove_script()).await.map(|_| ())
     }
 
     /// The components on screen, from the React DevTools hook of a development build.
@@ -453,6 +678,72 @@ mod tests {
         assert_eq!(strip_colors("\u{1b}[48;2;253;247;231m\u{1b}[30m\u{1b}[1mNOTE: \u{1b}[22mhello"), "NOTE: hello");
         assert_eq!(strip_colors("plain"), "plain");
         assert_eq!(strip_colors("cut \u{1b}[3"), "cut ");
+    }
+
+    #[test]
+    fn state_is_read_from_the_pages_answer() {
+        let state = parse_state(
+            r#"{"stores":[{"kind":"redux","name":"redux","state":{"n":1},"cut":["/a: depth"]},{"kind":"store","name":"cart","state":null,"cut":[],"error":"boom"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(state.stores.len(), 2);
+        assert_eq!(state.stores[0].state, json!({ "n": 1 }));
+        assert_eq!(state.stores[0].cut, ["/a: depth"]);
+        assert_eq!(state.stores[1].error.as_deref(), Some("boom"));
+        assert!(parse_state(r#"{"error":"hook"}"#).unwrap_err().to_string().contains("release build"));
+        assert!(parse_state("nope").is_err());
+    }
+
+    #[test]
+    fn actions_are_read_and_a_missing_log_is_said() {
+        let (installed, actions) = parse_actions(
+            r#"{"installed":true,"actions":[{"seq":3,"at":9,"store":"redux","type":"cart/add","action":{"type":"cart/add"}},{"no":"seq"}]}"#,
+        );
+        assert!(installed);
+        assert_eq!(actions.len(), 1);
+        assert_eq!((actions[0].seq, actions[0].kind.as_str()), (3, "cart/add"));
+        assert!(!parse_actions("{}").0);
+    }
+
+    #[test]
+    fn states_are_compared_down_to_the_value() {
+        let before = ReactState {
+            stores: vec![StateStore {
+                kind: "redux".into(),
+                name: "redux".into(),
+                state: json!({ "cart": { "items": [{ "qty": 1 }], "open": false }, "gone": 1, "when": { "$": "date", "value": "a" } }),
+                cut: vec![],
+                error: None,
+            }],
+        };
+        let mut after = before.clone();
+        after.stores[0].state = json!({ "cart": { "items": [{ "qty": 2 }, { "qty": 1 }], "open": false }, "new": true, "when": { "$": "date", "value": "b" } });
+        after.stores.push(StateStore {
+            kind: "store".into(),
+            name: "theme".into(),
+            state: json!("dark"),
+            cut: vec![],
+            error: None,
+        });
+        let lines: Vec<String> = diff_states(&before, &after).iter().map(StateChange::line).collect();
+        assert!(lines.contains(&"~ redux/cart/items/0/qty: 1 → 2".to_string()), "{lines:?}");
+        assert!(lines.contains(&"+ redux/cart/items/1 = {\"qty\":1}".to_string()), "{lines:?}");
+        assert!(lines.contains(&"- redux/gone (was 1)".to_string()), "{lines:?}");
+        assert!(lines.contains(&"+ redux/new = true".to_string()), "{lines:?}");
+        assert!(lines.iter().any(|l| l.starts_with("~ redux/when:")), "a date marker is compared whole: {lines:?}");
+        assert!(lines.contains(&"+ theme = \"dark\"".to_string()), "{lines:?}");
+        assert!(diff_states(&before, &before).is_empty());
+    }
+
+    #[test]
+    fn the_state_scripts_are_whole_expressions() {
+        for script in [state_script(), actions_install_script(), actions_read_script(4), actions_remove_script()] {
+            assert!(script.starts_with("(function () {") && script.trim_end().ends_with("})()"));
+            for forbidden in ["fetch(", "XMLHttpRequest", "eval("] {
+                assert!(!script.contains(forbidden), "{forbidden}");
+            }
+        }
+        assert!(actions_read_script(4).contains("})(4)"));
     }
 
     #[test]
