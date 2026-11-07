@@ -134,7 +134,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Where EmuLabZip is going",
-    "lead": "Eight phases are done. The next two lead to a stable 1.0.",
+    "lead": "Eight phases are done. The next eight lead to a stable 1.0.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observe", "text": "Devices, logs, performance, memory, storage and the network proxy." },
       { "state": "done", "version": "v0.4", "title": "Tracing", "text": "Perfetto, simpleperf and Instruments, with flame graphs and SQL." },
@@ -142,7 +142,13 @@
       { "state": "done", "version": "v0.6", "title": "Power tools", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, accessibility, sessions and CI." },
       { "state": "done", "version": "v0.7", "title": "Performance and quality", "text": "App start time, energy, leak finder and performance budgets in CI." },
       { "state": "done", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
-      { "state": "next", "version": "v0.9", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
+      { "state": "next", "version": "v0.9", "title": "Readable stacks and bug reports", "text": "Symbolicated crashes (R8, dSYMs, source maps) and one-click bug reports." },
+      { "state": "later", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of taps, logs and requests, screen video, and network replay." },
+      { "state": "later", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
+      { "state": "later", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
+      { "state": "later", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },
+      { "state": "later", "version": "v0.14", "title": "AI with context", "text": "The timeline, replay and snapshots as MCP tools, and prompts for common questions." },
+      { "state": "later", "version": "v0.15", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
       { "state": "later", "version": "v1.0", "title": "Team and ecosystem", "text": "Shareable reports, rule libraries, a VS Code extension and a stable promise." }
     ]
   },

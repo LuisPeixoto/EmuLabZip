@@ -6,6 +6,12 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+### Documentation
+
+- The roadmap lists Phases 9 to 16, up to 1.0: readable stacks and bug reports, timeline and replay, app state as data,
+  quality beyond performance, automation and hybrid apps, AI with context, devices and platforms, and the team and
+  ecosystem features that close 1.0.
+
 ## [0.8.0] - 2026-11-06
 
 Phase 8: inside the frameworks.

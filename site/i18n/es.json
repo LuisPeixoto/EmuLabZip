@@ -134,7 +134,7 @@
   "roadmap": {
     "kicker": "Hoja de ruta",
     "title": "Hacia dónde va EmuLabZip",
-    "lead": "Ocho fases ya están hechas. Las dos siguientes llevan a una versión 1.0 estable.",
+    "lead": "Ocho fases ya están hechas. Las ocho siguientes llevan a una versión 1.0 estable.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, rendimiento, memoria, almacenamiento y el proxy de red." },
       { "state": "done", "version": "v0.4", "title": "Trazas", "text": "Perfetto, simpleperf e Instruments, con flame graphs y SQL." },
@@ -142,7 +142,13 @@
       { "state": "done", "version": "v0.6", "title": "Herramientas avanzadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, diseño, accesibilidad, sesiones y CI." },
       { "state": "done", "version": "v0.7", "title": "Rendimiento y calidad", "text": "Tiempo de arranque, energía, detector de fugas y presupuestos de rendimiento en CI." },
       { "state": "done", "version": "v0.8", "title": "Dentro de los frameworks", "text": "Flutter, React Native, Compose y SwiftUI; gRPC y GraphQL." },
-      { "state": "next", "version": "v0.9", "title": "Dispositivos y plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV y plataformas de Apple." },
+      { "state": "next", "version": "v0.9", "title": "Stacks legibles e informes de errores", "text": "Fallos simbolizados (R8, dSYMs, source maps) e informes de errores con un clic." },
+      { "state": "later", "version": "v0.10", "title": "Línea de tiempo y repetición", "text": "Una línea de tiempo de toques, logs y peticiones, vídeo de pantalla y repetición de red." },
+      { "state": "later", "version": "v0.11", "title": "El estado de la app como datos", "text": "Instantáneas del sandbox y de los emuladores, modo de escritura en Storage y más visores." },
+      { "state": "later", "version": "v0.12", "title": "Calidad más allá del rendimiento", "text": "Auditoría de seguridad, tamaño de APK e IPA, localización, regresión visual y analíticas." },
+      { "state": "later", "version": "v0.13", "title": "Automatización y apps híbridas", "text": "WebViews, entrada y flujos grabados, pruebas de deep links y reglas programables." },
+      { "state": "later", "version": "v0.14", "title": "IA con contexto", "text": "La línea de tiempo, la repetición y las instantáneas como herramientas MCP, y prompts para preguntas comunes." },
+      { "state": "later", "version": "v0.15", "title": "Dispositivos y plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV y plataformas de Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipo y ecosistema", "text": "Informes para compartir, bibliotecas de reglas, una extensión de VS Code y una promesa de estabilidad." }
     ]
   },

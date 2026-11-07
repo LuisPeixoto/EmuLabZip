@@ -292,7 +292,7 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [How the official tools work](docs/research/how-the-official-tools-work.md) | What we learned from Instruments and the Android Studio profilers |
 | [Troubleshooting](docs/troubleshooting.md) | Devices that do not show up, empty logs, failing screenshots |
 | [Distribution](docs/distribution.md) | Releases, code signing and updates |
-| [Roadmap](docs/roadmap.md) | What is done, and Phases 9 and 10 up to 1.0 |
+| [Roadmap](docs/roadmap.md) | What is done, and Phases 9 to 16 up to 1.0 |
 
 ## Project layout
 
