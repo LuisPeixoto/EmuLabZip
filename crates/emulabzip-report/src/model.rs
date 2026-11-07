@@ -220,11 +220,12 @@ pub fn crash_section(report: &CrashReport, store: &Store) -> CrashSection {
         _ => Vec::new(),
     };
     let s = symbolicate(report, &sources);
-    let threads = s
-        .report
-        .threads
-        .iter()
-        .filter(|t| t.crashed || !t.frames.is_empty())
+    // What crashed first: a Java crash lists the outer exceptions before the root cause, and the cause is what to read.
+    let mut ordered: Vec<&emulabzip_core::ThreadTrace> =
+        s.report.threads.iter().filter(|t| t.crashed || !t.frames.is_empty()).collect();
+    ordered.sort_by_key(|t| !t.crashed);
+    let threads = ordered
+        .into_iter()
         .take(3)
         .map(|t| {
             let mut lines: Vec<String> = t.frames.iter().take(MAX_FRAMES).map(frame_line).collect();
@@ -481,6 +482,33 @@ mod tests {
         let s = log_section(&[entry(1, LogLevel::Error, &"x".repeat(5000))]);
         assert_eq!(s.problems[0].message.chars().count(), MAX_MESSAGE + 1);
         assert!(s.problems[0].message.ends_with('…'));
+    }
+
+    #[test]
+    fn the_thread_that_crashed_comes_first() {
+        use emulabzip_core::{CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, ThreadTrace};
+        let frame = |i: u32, name: &str| Frame::new(i, name, None, None, FrameOrigin::App);
+        let thread =
+            |name: &str, crashed: bool| ThreadTrace { name: name.into(), crashed, frames: vec![frame(0, name)] };
+        let report = CrashReport {
+            summary: CrashSummary {
+                id: "x".into(),
+                kind: CrashKind::Crash,
+                app: None,
+                process: "p".into(),
+                pid: None,
+                time_ms: None,
+                title: "t".into(),
+            },
+            details: vec![],
+            threads: vec![thread("outer exception", false), thread("root cause", true)],
+            hints: vec![],
+            app_version: None,
+            raw: String::new(),
+        };
+        let s = crash_section(&report, &Store::at(std::env::temp_dir().join("emulabzip-report-none")));
+        assert_eq!(s.threads[0].0, "root cause (crashed)");
+        assert_eq!(s.threads[1].0, "outer exception");
     }
 
     #[test]
