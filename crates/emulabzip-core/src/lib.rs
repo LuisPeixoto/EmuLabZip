@@ -26,6 +26,7 @@ pub mod perf;
 pub mod startup;
 pub mod state;
 pub mod stream;
+pub mod tarball;
 pub mod trace;
 
 pub use a11y::{Audit, Finding, Severity};
