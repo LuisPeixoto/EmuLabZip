@@ -1207,10 +1207,12 @@ name = "emulabzip-audit"
 version = "0.11.0"
 dependencies = [
  "emulabzip-core",
+ "emulabzip-storage",
  "png",
  "regex",
  "serde",
  "serde_json",
+ "tokio",
  "zip",
 ]
 

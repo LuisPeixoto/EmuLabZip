@@ -283,6 +283,10 @@ impl Backend for AndroidBackend {
         avd::snapshot(id, action, name).await
     }
 
+    async fn package_dump(&self, id: &str, app: &str) -> Result<String> {
+        state::package_dump(&self.adb, id, app).await
+    }
+
     async fn stop_app(&self, id: &str, app: &str) -> Result<()> {
         state::stop(&self.adb, id, app).await
     }

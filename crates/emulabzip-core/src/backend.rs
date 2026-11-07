@@ -107,6 +107,12 @@ pub trait Backend: Send + Sync {
         Err(Error::Unsupported("Framework detection"))
     }
 
+    /// What the system says about an installed app: on Android the text of `dumpsys package`, which carries its flags,
+    /// target level and the components other apps can reach.
+    async fn package_dump(&self, _id: &str, _app: &str) -> Result<String> {
+        Err(Error::Unsupported("Package details"))
+    }
+
     /// The log messages from the last few minutes that contain `needle`, oldest first. Frameworks announce where
     /// their debugger listens in the log, and this is how it is found without following the log.
     async fn recent_logs(&self, _id: &str, _needle: &str) -> Result<Vec<LogEntry>> {
@@ -532,6 +538,13 @@ impl Lab {
             return Err(Error::invalid("video piece length (1 to 180 seconds)", segment_secs.to_string()));
         }
         self.backend(target.platform)?.record_video(&target.id, out_dir, segment_secs, stop, segments).await
+    }
+
+    pub async fn package_dump(&self, target: &Target, app: &str) -> Result<String> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.package_dump(&target.id, app).await
     }
 
     pub async fn stop_app(&self, target: &Target, app: &str) -> Result<()> {
