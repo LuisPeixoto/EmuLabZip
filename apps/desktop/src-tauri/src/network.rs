@@ -263,6 +263,8 @@ pub struct BodyView {
     pub error: Option<String>,
     /// How the body was read when that is more than its type says: `GraphQL`, `gRPC · protobuf`…
     pub label: Option<String>,
+    /// The body as it was sent, when `text` is a reading of it (GraphQL), so it can be edited.
+    pub raw: Option<String>,
 }
 
 fn kind_for(content_type: Option<&str>, bytes: &[u8]) -> FileKind {
@@ -360,6 +362,7 @@ fn protocol_view(flow: &Flow, protos: Option<&emulabzip_net::protos::ProtoSet>, 
         view.kind = Some(FileKind::Text);
         view.decoded_size = stored.len() as u64;
         view.text = Some(text);
+        view.raw = Some(String::from_utf8_lossy(stored).into_owned());
         view.label = Some("GraphQL".into());
         return Some(view);
     }
