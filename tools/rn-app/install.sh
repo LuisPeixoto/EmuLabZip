@@ -31,16 +31,14 @@ if [ "${1:-}" = "--release" ]; then
   echo "› building the release APK"
   (cd "$app/android" && ./gradlew --console=plain :app:assembleRelease -PreactNativeArchitectures="$("${adb_cmd[@]}" shell getprop ro.product.cpu.abi | tr -d '\r')")
   "${adb_cmd[@]}" install -r "$app/android/app/build/outputs/apk/release/app-release.apk"
-  map="$(find "$app/android/app/build" -name 'index.android.bundle.packager.map' -o -name 'index.android.bundle.compiler.map' | head -3)"
+  # The map for Hermes is the composed one: Metro's map and Hermes's, in one.
+  map="$app/android/app/build/generated/sourcemaps/react/release/index.android.bundle.map"
   cat <<MSG
 ✓ the release build is installed. Tap Crash, then:
 
   emulabzip crash <id> --raw
-  emulabzip mappings add dev.emulabzip.rndemo 1.0 <the composed source map>
+  emulabzip mappings add dev.emulabzip.rndemo "1.0 (1)" "$map"
   emulabzip crash <id>
-
-The source maps are here (the composed one is the one for Hermes):
-$map
 MSG
   exit 0
 fi
