@@ -78,7 +78,7 @@ Left for later from this phase: **recomposition counts** (Android Studio gets th
 which uses interfaces that are not public), SwiftUI's own view type names (accessibility does not expose them), and
 recording the network conditions in a session.
 
-## Phase 9: Readable stacks and one-click bug reports (v0.9)
+## Phase 9: Readable stacks and one-click bug reports (v0.9) ✅
 
 **Symbolication** of crashes and stacks: R8 and ProGuard retrace from `mapping.txt`, dSYMs with `atos` on a Mac, and
 Hermes and Metro **source maps**, so React Native JavaScript stacks point at the right file and line · mapping files
