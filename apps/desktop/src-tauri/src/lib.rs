@@ -10,6 +10,7 @@ mod layout;
 mod network;
 mod plugins;
 mod profiling;
+mod report;
 mod sessions;
 mod state;
 mod traces;
@@ -112,6 +113,8 @@ pub fn run() {
             crashes::crash_list,
             crashes::crash_get,
             crashes::crash_save,
+            crashes::mapping_add,
+            report::report_save,
             plugins::plugin_list,
             plugins::plugin_enable,
             plugins::plugin_run,

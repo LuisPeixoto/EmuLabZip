@@ -1,6 +1,7 @@
 <script lang="ts">
   // Lucide-style 24px stroke icons (ISC licensed shapes), inlined so the app works fully offline.
   const paths: Record<string, string> = {
+    bug: "M8 2l1.9 1.9M16 2l-1.9 1.9M9 7.1V6a3 3 0 0 1 6 0v1.1M12 20a6 6 0 0 1-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3a6 6 0 0 1-6 6zM12 20v-9M6.5 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 21c0-2.1-1.7-3.9-3.8-4M22 13h-4.5M3 5a4 4 0 0 0 3.2 3.9M21 5a4 4 0 0 1-3.2 3.9",
     bell: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0",
     pause: "M8 5v14M16 5v14",
     trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",

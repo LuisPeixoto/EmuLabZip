@@ -121,6 +121,11 @@
               </p>
               <h2 class="mt-1.5 text-[15px] leading-snug font-semibold break-words">{report.summary.title}</h2>
             </div>
+            <div class="inline-flex gap-1 rounded-xl bg-panel-2 p-1" role="group" aria-label="Names">
+              {#each [[false, "Readable"], [true, "Original"]] as [orig, text] (text)}
+                <button aria-pressed={crashes.original === orig} onclick={() => crashes.setOriginal(orig as boolean)} class="h-7 rounded-lg px-3 text-[12px] font-medium {crashes.original === orig ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}">{text}</button>
+              {/each}
+            </div>
             <div class="inline-flex gap-1 rounded-xl bg-panel-2 p-1" role="tablist">
               {#each [["report", "Report"], ["raw", "Raw"]] as [id, text] (id)}
                 <button role="tab" aria-selected={tab === id} onclick={() => (tab = id as "report" | "raw")} class="h-7 rounded-lg px-3.5 text-[12px] font-medium {tab === id ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}">{text}</button>
@@ -130,6 +135,23 @@
               <Icon name="download" size={13} /> Save…
             </button>
           </div>
+
+          {#if !crashes.original && (crashes.applied.length || crashes.missing.length)}
+            <div class="mb-4 space-y-2 rounded-2xl border border-line bg-panel p-4 text-[12px]">
+              {#each crashes.applied as a (a)}
+                <p class="flex items-start gap-2"><Icon name="check" size={13} class="mt-0.5 shrink-0 text-ok" /><span class="min-w-0 break-words">Made readable with <b class="font-medium">{a}</b></span></p>
+              {/each}
+              {#each crashes.missing as m (m)}
+                <p class="flex items-start gap-2 text-muted"><Icon name="alert" size={13} class="mt-0.5 shrink-0 text-warn" /><span class="min-w-0 break-words">{m}</span></p>
+              {/each}
+              {#if report.summary.app && crashes.missing.length}
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <button onclick={() => crashes.addMapping(false)} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="file" size={13} /> Add mapping or source map…</button>
+                  <button onclick={() => crashes.addMapping(true)} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="folderOpen" size={13} /> Add dSYM…</button>
+                </div>
+              {/if}
+            </div>
+          {/if}
 
           {#if tab === "raw"}
             <div class="relative rounded-xl border border-line bg-panel">

@@ -8,6 +8,11 @@ class CrashesStore {
   list = $state.raw<CrashSummary[]>([]);
   selectedId = $state<string | null>(null);
   report = $state.raw<CrashReport | null>(null);
+  /** What made the open crash readable, and what is missing for it. */
+  applied = $state.raw<string[]>([]);
+  missing = $state.raw<string[]>([]);
+  /** Show the names as the device wrote them, even when a mapping is stored. */
+  original = $state(false);
   loading = $state(false);
   error = $state<string | null>(null);
   kind = $state<CrashKind | "all">("all");
@@ -76,17 +81,44 @@ class CrashesStore {
     if (!target) return;
     this.selectedId = id;
     this.report = null;
+    this.applied = [];
+    this.missing = [];
     this.error = null;
     const ticket = ++this.#ticket;
     this.loading = true;
     try {
-      const report = await api.crashGet(target, id);
-      if (ticket === this.#ticket) this.report = report;
+      const readable = await api.crashGet(target, id, this.original);
+      if (ticket === this.#ticket) {
+        this.report = readable.report;
+        this.applied = readable.applied;
+        this.missing = readable.missing;
+      }
     } catch (e) {
       if (ticket === this.#ticket) this.error = errorText(e);
     } finally {
       if (ticket === this.#ticket) this.loading = false;
     }
+  }
+
+  /** Keeps a mapping.txt, source map or dSYM for the open crash's app and version, and reads the crash again. */
+  async addMapping(folder: boolean) {
+    const report = this.report;
+    const pkg = report?.summary.app;
+    if (!report || !pkg) return;
+    if (!report.appVersion) {
+      app.toast("This crash does not say which version of the app it came from.", "err");
+      return;
+    }
+    const stored = await app.attempt(() => api.mappingAdd(pkg, report.appVersion!, folder));
+    if (!stored) return;
+    app.toast(`Stored for ${stored.app} ${stored.version}`, "ok");
+    if (this.selectedId) await this.open(this.selectedId);
+  }
+
+  setOriginal(original: boolean) {
+    if (this.original === original) return;
+    this.original = original;
+    if (this.selectedId) void this.open(this.selectedId);
   }
 
   async save() {

@@ -4,6 +4,7 @@
   import { crashes } from "./lib/stores/crashes.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
+  import ReportModal from "./lib/components/ReportModal.svelte";
   import ScreenshotModal from "./lib/components/ScreenshotModal.svelte";
   import SettingsModal from "./lib/components/SettingsModal.svelte";
   import Sidebar from "./lib/components/Sidebar.svelte";
@@ -135,5 +136,6 @@
 </div>
 
 {#if app.settingsOpen}<SettingsModal />{/if}
+{#if app.report}<ReportModal />{/if}
 {#if screenshotOpen}<ScreenshotModal onclose={() => (screenshotOpen = false)} />{/if}
 <Toasts />
