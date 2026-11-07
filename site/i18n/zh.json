@@ -73,7 +73,13 @@
       { "id": "sessions", "shot": "sessions", "label": "会话", "title": "一次完整运行，一个文件", "text": "一次运行的错误、崩溃、请求、CPU 和内存都保存为文件，之后可随时打开，也可从 CI 收集。", "alt": "会话视图汇总一次录制的运行：一次崩溃、重复出现的错误和较慢的请求" },
       { "id": "traces", "shot": "traces-flame", "label": "追踪", "title": "CPU 时间都花在哪里", "text": "整个系统的 CPU 分析以火焰图呈现，并按代码归属着色。", "alt": "Android 模拟器 CPU 分析的火焰图" },
       { "id": "crashes", "shot": "crashes", "label": "崩溃", "title": "崩溃，以及下一步该试什么", "text": "按线程分组的调用栈、设备自己记录的详情和符号化提示。", "alt": "崩溃视图显示一次 ANR、被阻塞的主线程和提示" },
-      { "id": "compare", "shot": "compare", "label": "对比", "title": "两台设备并排", "text": "Android 模拟器和 iPhone 模拟器并排，附图表和差异表。", "alt": "对比视图：Android 模拟器和 iOS 模拟器并排显示" }
+      { "id": "compare", "shot": "compare", "label": "对比", "title": "两台设备并排", "text": "Android 模拟器和 iPhone 模拟器并排，附图表和差异表。", "alt": "对比视图：Android 模拟器和 iOS 模拟器并排显示" },
+      { "id": "flutter", "shot": "frameworks-flutter", "label": "Flutter", "title": "运行中 Flutter 应用的组件", "text": "调试版应用的组件树，并标出你自己的代码创建的组件所在的文件和行号。帧耗时和 Dart 堆就在隔壁标签页。", "alt": "框架视图，显示 Flutter 应用的组件树，带有文件名和行号" },
+      { "id": "react-native", "shot": "frameworks-react-native", "label": "React Native", "title": "React 组件树与 Hermes", "text": "组件及其属性、Hermes 堆和 JavaScript 控制台，通过 Metro 读取。", "alt": "框架视图，显示 React Native 应用的 React 组件树及属性" },
+      { "id": "compose", "shot": "layout-compose", "label": "Compose", "title": "布局中的 Jetpack Compose", "text": "Compose 绘制的视图会被标出，测试标签显示为 id，检查器会注明所属框架。", "alt": "Jetpack Compose 界面的布局视图，其视图被标记为 Compose" },
+      { "id": "graphql", "shot": "network-graphql", "label": "GraphQL", "title": "有名字、看得懂的 GraphQL", "text": "列表中每个操作都有名称，请求以查询及其变量的形式显示。", "alt": "网络视图，GraphQL 请求显示为带变量的查询" },
+      { "id": "grpc", "shot": "network-grpc", "label": "gRPC", "title": "带状态的 gRPC 调用", "text": "每次调用的方法和状态，protobuf 以 JSON 显示，可使用或不使用你的 .proto 文件。", "alt": "网络视图，显示一次 gRPC 调用及以 JSON 显示的 protobuf 消息" },
+      { "id": "conditions", "shot": "network-conditions", "label": "慢速网络", "title": "随时变慢、延迟或断网", "text": "快速和慢速 3G、高延迟、丢包、断网或自定义数值，对已打开的连接同样生效。", "alt": "网络视图，显示网络条件菜单并选中了慢速 3G" }
     ]
   },
   "cli": {

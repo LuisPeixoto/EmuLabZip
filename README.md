@@ -101,6 +101,17 @@ request, record a whole run and compare two devices. It ships as a native deskto
 
 <table>
   <tr>
+    <td width="50%"><img src="docs/images/network-graphql.png" alt="Network: a GraphQL request shown as its query and variables, named in the list" /><br /><sub><b>GraphQL</b>: operations named in the list, queries with their variables.</sub></td>
+    <td width="50%"><img src="docs/images/network-grpc.png" alt="Network: a gRPC call with its status, and the protobuf message read without a schema" /><br /><sub><b>gRPC</b>: the method and status of each call, and protobuf as JSON, with or without your <code>.proto</code> files.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/network-resend.png" alt="Network: the editor to send a GraphQL request again with another variable" /><br /><sub><b>Send again</b>: change a request, send it, and compare the answers.</sub></td>
+    <td width="50%"><img src="docs/images/network-conditions.png" alt="Network: the menu of network conditions with Slow 3G chosen" /><br /><sub><b>Network conditions</b>: Slow 3G, high latency, packet loss or offline, on demand.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
     <td width="50%"><img src="docs/images/layout.png" alt="Layout: a screenshot of Chrome on an Android emulator and the tree of its 166 views" /><br /><sub><b>Layout</b>: every view, with its name, size and flags.</sub></td>
     <td width="50%"><img src="docs/images/layout-audit.png" alt="Layout: the accessibility audit lists small touch targets and low-contrast text" /><br /><sub><b>Accessibility</b>: touch targets, labels and contrast, with what to fix.</sub></td>
   </tr>
@@ -109,6 +120,21 @@ request, record a whole run and compare two devices. It ships as a native deskto
     <td width="50%"><img src="docs/images/compare.png" alt="Compare: an Android emulator and an iPhone simulator side by side" /><br /><sub><b>Compare</b>: two devices, their screens, charts and differences.</sub></td>
   </tr>
 </table>
+
+<p align="center">
+  <img src="docs/images/frameworks-flutter.png" alt="Frameworks: the widget tree of a Flutter app, with the file and line of each widget the app made" /><br />
+  <sub><b>Flutter</b>: the widget tree of a running debug app, with the file and line of the widgets your code made. Frame times and the Dart heap are one tab away.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/frameworks-react-native.png" alt="Frameworks: the React component tree of a React Native app, with props" /><br />
+  <sub><b>React Native</b>: the component tree with props, Hermes' heap and the console, read through Metro.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/layout-compose.png" alt="Layout: a Jetpack Compose screen, with its views marked as Compose and the inspector naming the framework" /><br />
+  <sub><b>Jetpack Compose</b>: the views Compose draws are marked in Layout, with test tags shown as ids.</sub>
+</p>
 
 <p align="center">
   <img src="docs/images/traces-flame.png" alt="Traces: a whole-system CPU profile of an Android emulator as a flame graph" /><br />

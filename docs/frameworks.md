@@ -22,6 +22,8 @@ On the desktop app, **Frameworks** shows the same, and the panels for Flutter an
 
 ## Flutter
 
+![The widget tree of a Flutter app in the Frameworks view, with the file and line of each widget the app made](images/frameworks-flutter.png)
+
 Debug and profile builds have a **Dart VM service**, which the app announces in the log:
 `The Dart VM service is listening on http://127.0.0.1:41233/token=/`. EmuLabZip finds that line, reaches the port
 through the device (`adb` on Android, the Mac's own network on the simulator, nothing is forwarded or left behind), and
@@ -49,6 +51,8 @@ If the address is not in the log any more (the log of a busy app scrolls), start
 
 ## React Native
 
+![The React component tree of a React Native app in the Frameworks view, with props](images/frameworks-react-native.png)
+
 React Native apps in development talk to **Metro**, the development server, which lists the JavaScript runtime of each
 connected app and proxies its Chrome DevTools protocol. EmuLabZip connects to Metro on your computer (port 8081, or
 `--metro <port>`), picks the runtime that belongs to the app, and reads:
@@ -70,6 +74,8 @@ Chrome's inspector, and the other way round. Release builds have no Metro and no
 On Android the app reaches Metro through `adb reverse tcp:8081 tcp:8081`, which EmuLabZip leaves alone.
 
 ## Jetpack Compose and SwiftUI
+
+![A Jetpack Compose screen in Layout, with its views marked as Compose and the inspector naming the framework](images/layout-compose.png)
 
 In **Layout**, the views a framework draws are marked, and the inspector shows which. Everything under a `ComposeView`
 is Compose; test tags (`Modifier.testTag`) show as ids when the app turns on `testTagsAsResourceId`. Under a

@@ -1,5 +1,7 @@
 # GraphQL
 
+![A GraphQL request in Network, shown as its query and variables](images/network-graphql.png)
+
 In **Network**, a GraphQL request is named after what it asks for, so a list of `POST /graphql` is readable.
 
 - The **Operation** shows before the path: the `operationName` the client sent, or else the name written after
