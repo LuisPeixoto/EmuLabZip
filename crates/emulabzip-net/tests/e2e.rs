@@ -1127,3 +1127,167 @@ async fn offline_refuses_new_connections_and_cuts_open_ones() {
     assert_eq!(status, StatusCode::OK);
     assert!(rig.proxy.set_conditions(Conditions { down_kbps: Some(0), ..Default::default() }).is_err());
 }
+
+// ---------------------------------------------------------------------------------------------
+// Replaying a recording
+// ---------------------------------------------------------------------------------------------
+
+/// A proxy that answers from `set`.
+async fn start_replay_proxy(set: emulabzip_net::ReplaySet) -> Rig {
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let store = FlowStore::new(1000);
+    let config =
+        ProxyConfig { addr: "127.0.0.1:0".parse().unwrap(), replay: Some(Arc::new(set)), ..Default::default() };
+    let proxy = Proxy::start(config, ca.clone(), store.clone()).await.unwrap();
+    Rig { proxy, store, ca }
+}
+
+/// Records `/hello` and `/gzip` from a live server through a proxy, and returns the HAR.
+async fn record_hello_and_gzip(upstream: &Upstream) -> serde_json::Value {
+    let rig = start_proxy(vec![]).await;
+    for path in ["hello", "gzip"] {
+        let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+        let (status, _, _) = send_h1(client, get(&format!("http://{}/{path}", upstream.addr))).await;
+        assert_eq!(status, StatusCode::OK);
+    }
+    flow_where(&rig.store, "both recorded", |f| f.path == "/gzip" && f.state == FlowState::Completed).await;
+    to_har(&rig.store.all())
+}
+
+#[tokio::test]
+async fn a_recorded_request_is_answered_without_any_server() {
+    let upstream = start_upstream(false).await;
+    let har = record_hello_and_gzip(&upstream).await;
+    let set = emulabzip_net::ReplaySet::from_har(&har, "recording.har").unwrap();
+    assert_eq!(set.len(), 2);
+    let rig = start_replay_proxy(set).await;
+
+    // Port 1 has nothing listening: only the recording can answer.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get("http://127.0.0.1:1/hello")).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+
+    // The gzip answer was recorded decoded, and is sent as it reads.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, headers, body) = send_h1(client, get("http://127.0.0.1:1/gzip")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers.get("content-encoding").is_none());
+    assert_eq!(&body[..], JSON.as_bytes());
+
+    let flow =
+        flow_where(&rig.store, "the replayed flow", |f| f.path == "/hello" && f.state == FlowState::Completed).await;
+    assert!(flow.mocked);
+    assert_eq!((flow.rule.as_deref(), flow.source.as_deref()), (Some("replay"), Some("replay")));
+    let stats = rig.proxy.replay_set().unwrap().stats();
+    assert_eq!((stats.hits, stats.misses, stats.entries), (2, 0, 2));
+}
+
+#[tokio::test]
+async fn a_request_that_was_not_recorded_gets_a_504_and_never_reaches_the_server() {
+    let upstream = start_upstream(false).await;
+    let har = record_hello_and_gzip(&upstream).await;
+    let rig = start_replay_proxy(emulabzip_net::ReplaySet::from_har(&har, "recording.har").unwrap()).await;
+
+    // The server is alive and has this path; the recording does not, so it must not be asked.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get(&format!("http://{}/big", upstream.addr))).await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT);
+    assert!(String::from_utf8_lossy(&body).contains("not in recording"));
+
+    let flow = flow_where(&rig.store, "the refused flow", |f| f.state == FlowState::Failed).await;
+    assert!(flow.error.as_deref().unwrap_or("").contains("not in the recording"), "{flow:?}");
+    assert_eq!(flow.rule.as_deref(), Some("replay: not in recording"));
+    assert_eq!(flow.response_size, 0, "nothing came from the server");
+    let stats = rig.proxy.replay_set().unwrap().stats();
+    assert_eq!(stats.misses, 1);
+    assert_eq!(stats.missed.len(), 1);
+    assert!(stats.missed[0].starts_with("GET 127.0.0.1/big"));
+}
+
+#[tokio::test]
+async fn passthrough_lets_what_was_not_recorded_reach_the_server() {
+    let upstream = start_upstream(false).await;
+    let har = record_hello_and_gzip(&upstream).await;
+    let rig =
+        start_replay_proxy(emulabzip_net::ReplaySet::from_har(&har, "recording.har").unwrap().passthrough(true)).await;
+
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get(&format!("http://{}/big", upstream.addr))).await;
+    assert_eq!((status, body.len()), (StatusCode::OK, 25_000));
+    let flow = flow_where(&rig.store, "the live flow", |f| f.path == "/big" && f.state == FlowState::Completed).await;
+    assert!(!flow.mocked);
+}
+
+#[tokio::test]
+async fn https_is_replayed_too() {
+    let upstream = start_upstream(true).await;
+    // Record through a proxy that trusts the test server.
+    let live = start_proxy(vec![upstream.ca_pem.clone()]).await;
+    let authority = format!("localhost:{}", upstream.addr.port());
+    let tunnel = connect_tunnel(live.proxy.addr(), &authority).await;
+    let io = tls(tunnel, live.ca.cert_pem(), "localhost", b"h2").await.unwrap();
+    let (status, _, _) = send_h2(io, get(&format!("https://{authority}/hello"))).await;
+    assert_eq!(status, StatusCode::OK);
+    flow_where(&live.store, "the recorded request", |f| f.state == FlowState::Completed).await;
+    let har = to_har(&live.store.all());
+
+    // Replay it where nothing listens on the port: the TLS is ended by the proxy, and the answer comes from the file.
+    let rig = start_replay_proxy(emulabzip_net::ReplaySet::from_har(&har, "recording.har").unwrap()).await;
+    let tunnel = connect_tunnel(rig.proxy.addr(), "localhost:1").await;
+    let io = tls(tunnel, rig.ca.cert_pem(), "localhost", b"http/1.1").await.unwrap();
+    let (status, _, body) = send_h1(io, get("https://localhost:1/hello")).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+}
+
+#[tokio::test]
+async fn strict_replay_refuses_what_it_cannot_answer() {
+    let upstream = start_upstream(false).await;
+    let echo = start_echo().await;
+    let har = record_hello_and_gzip(&upstream).await;
+    let rig = start_replay_proxy(emulabzip_net::ReplaySet::from_har(&har, "recording.har").unwrap()).await;
+
+    // A tunnel of bytes the proxy cannot read is closed, and the server is never contacted.
+    let mut tunnel = connect_tunnel(rig.proxy.addr(), &echo.to_string()).await;
+    tunnel.write_all(b"ping\n").await.unwrap();
+    let mut reply = [0u8; 5];
+    assert!(tunnel.read_exact(&mut reply).await.is_err(), "the echo server must not answer");
+    let flow = flow_where(&rig.store, "the refused tunnel", |f| f.kind == FlowKind::Tunnel).await;
+    assert_eq!(flow.state, FlowState::Failed);
+    assert!(flow.error.as_deref().unwrap_or("").starts_with("Refused"), "{flow:?}");
+
+    // A WebSocket is refused.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (mut sender, conn) = hyper::client::conn::http1::handshake(TokioIo::new(client)).await.unwrap();
+    tokio::spawn(conn.with_upgrades());
+    let req = Request::get(format!("http://{}/ws", upstream.addr))
+        .header("upgrade", "websocket")
+        .header("connection", "Upgrade")
+        .header("sec-websocket-version", "13")
+        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
+        .body(Empty::<Bytes>::new())
+        .unwrap();
+    assert_eq!(sender.send_request(req).await.unwrap().status(), StatusCode::GATEWAY_TIMEOUT);
+
+    // A request cannot be sent again from the list.
+    let replayed = flow_where(&rig.store, "a flow to resend", |f| f.kind == FlowKind::WebSocket).await;
+    let error = rig.proxy.replay(replayed.id, Resend::default()).await.unwrap_err();
+    assert!(!error.is_empty());
+}
+
+#[tokio::test]
+async fn the_recording_can_be_swapped_while_the_proxy_runs() {
+    let upstream = start_upstream(false).await;
+    let har = record_hello_and_gzip(&upstream).await;
+    let rig = start_proxy(vec![]).await;
+    assert!(rig.proxy.replay_set().is_none());
+
+    rig.proxy.set_replay_set(Some(Arc::new(emulabzip_net::ReplaySet::from_har(&har, "a.har").unwrap())));
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, _) = send_h1(client, get("http://127.0.0.1:1/nothing")).await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT);
+
+    rig.proxy.set_replay_set(None);
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, _) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!(status, StatusCode::OK, "with no recording the server is asked again");
+}
