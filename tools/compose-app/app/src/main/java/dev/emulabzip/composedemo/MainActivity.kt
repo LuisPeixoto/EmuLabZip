@@ -17,12 +17,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** A small Jetpack Compose screen to try EmuLabZip's framework detection and Layout on. */
 class MainActivity : ComponentActivity() {
@@ -44,14 +50,34 @@ class Checkout(private val cart: Cart) {
     private fun discounted(value: Int): Int = value - 1
 }
 
+/** One plain HTTP request, for the network, replay and timeline demos. The answer is what the server said, or why not. */
+fun fetch(address: String): String =
+    try {
+        val connection = URL(address).openConnection() as HttpURLConnection
+        connection.connectTimeout = 8000
+        connection.readTimeout = 8000
+        val code = connection.responseCode
+        if (code == 200) connection.inputStream.bufferedReader().readText().trim().take(120) else "HTTP $code"
+    } catch (e: Exception) {
+        "Failed: ${e.message}"
+    }
+
 @Composable
 fun Demo() {
     var count by remember { mutableIntStateOf(0) }
     var enabled by remember { mutableStateOf(true) }
+    var said by remember { mutableStateOf("nothing yet") }
+    val scope = rememberCoroutineScope()
     // Test tags show up as resource ids, which is how a screen reader tool tells composables apart.
     Column(Modifier.fillMaxSize().padding(16.dp).semantics { testTagsAsResourceId = true }) {
         Text("Compose demo", Modifier.testTag("title"))
         Button(onClick = { count++ }, Modifier.testTag("counter")) { Text("Tapped $count times") }
+        // The server answers with the time in seconds, so a recording and a replay of it are easy to tell apart.
+        Row {
+            Button(onClick = { scope.launch { said = withContext(Dispatchers.IO) { fetch("http://time.akamai.com/") } } }, Modifier.testTag("fetch")) { Text("Fetch the time") }
+            Button(onClick = { scope.launch { said = withContext(Dispatchers.IO) { fetch("http://example.com/").take(40) } } }, Modifier.padding(start = 8.dp).testTag("fetch-other")) { Text("Fetch another page") }
+        }
+        Text("Server said: $said", Modifier.testTag("said"))
         Row {
             Text("Notifications", Modifier.padding(end = 12.dp))
             Switch(checked = enabled, onCheckedChange = { enabled = it }, modifier = Modifier.testTag("switch"))
