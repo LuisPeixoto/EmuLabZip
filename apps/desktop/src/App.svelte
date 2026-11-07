@@ -13,6 +13,10 @@
   import Sessions from "./lib/components/views/Sessions.svelte";
   import Compare from "./lib/components/views/Compare.svelte";
   import Layout from "./lib/components/views/Layout.svelte";
+  import Audit from "./lib/components/views/Audit.svelte";
+  import Size from "./lib/components/views/Size.svelte";
+  import Visual from "./lib/components/views/Visual.svelte";
+  import Analytics from "./lib/components/views/Analytics.svelte";
   import Devices from "./lib/components/views/Devices.svelte";
   import Frameworks from "./lib/components/views/Frameworks.svelte";
   import Controls from "./lib/components/views/Controls.svelte";
@@ -87,6 +91,8 @@
     <main class="min-w-0 flex-1 bg-bg">
       {#if app.view === "devices"}
         <Devices />
+      {:else if app.view === "size"}
+        <Size />
       {:else if !app.device || (!app.online && app.view !== "logs")}
         {#if app.device && app.device.state !== "online"}
           <div class="grid h-full place-items-center text-center">
@@ -131,6 +137,12 @@
         <Controls />
       {:else if app.view === "plugins"}
         <Plugins />
+      {:else if app.view === "audit"}
+        <Audit />
+      {:else if app.view === "visual"}
+        <Visual />
+      {:else if app.view === "analytics"}
+        <Analytics />
       {:else}
         <Traces />
       {/if}
