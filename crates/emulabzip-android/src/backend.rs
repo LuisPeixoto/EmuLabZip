@@ -14,8 +14,8 @@ use tokio::task::JoinSet;
 
 use crate::props::Props;
 use crate::{
-    apps, cert, controls, crashes, energy, heapdump, info, layout, logcat, meminfo, network, perf, startup, storage,
-    trace,
+    apps, cert, clock, controls, crashes, energy, heapdump, info, layout, logcat, meminfo, network, perf, startup,
+    storage, trace,
 };
 
 /// Android emulators and devices, through the local ADB server.
@@ -121,6 +121,14 @@ impl Backend for AndroidBackend {
         } else {
             Err(Error::Adb(format!("screencap failed: {}", String::from_utf8_lossy(&png).trim())))
         }
+    }
+
+    async fn input(&self, id: &str) -> Result<Stream<emulabzip_core::InputEvent>> {
+        crate::input::follow(&self.adb, id).await
+    }
+
+    async fn clock(&self, id: &str) -> Result<emulabzip_core::DeviceClock> {
+        clock::measure(&self.adb, id).await
     }
 
     async fn startup(&self, id: &str, app: &str, kind: StartKind, runs: u32) -> Result<StartupReport> {
