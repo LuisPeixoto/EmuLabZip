@@ -129,7 +129,7 @@
               </span>
             {/each}
           </div>
-          <p class="mt-1.5 text-[11px] text-faint">Each bar is a frame: build (blue, red when over 16.7 ms) on raster. The dashed line is 16.7 ms.</p>
+          <p class="mt-1.5 text-[11px] text-faint">Each bar is a frame: build time (purple, red when over 16.7 ms) at the bottom, raster time (teal) above it. The dashed line is 16.7 ms.</p>
         </div>
         <div class="border-t border-line px-4 py-2.5">
           <p class="mb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Slowest frames</p>

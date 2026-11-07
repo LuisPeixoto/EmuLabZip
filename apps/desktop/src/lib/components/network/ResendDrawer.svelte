@@ -26,11 +26,12 @@
       method = flow.method;
       url = flow.url;
       headers = toLines(flow.requestHeaders);
-      body = d?.request?.text ?? "";
+      body = d?.request?.raw ?? d?.request?.text ?? "";
     }
   });
 
-  const bodyEditable = $derived(!d?.request || (d.request.text != null && !d.request.label));
+  // A GraphQL body is shown as a query and variables, but it is edited as the JSON that was sent.
+  const bodyEditable = $derived(!d?.request || d.request.raw != null || (d.request.text != null && !d.request.label));
 
   function send() {
     if (!flow) return;
@@ -38,7 +39,7 @@
     if (method !== flow.method) edits.method = method;
     if (url !== flow.url) edits.url = url;
     if (headers !== toLines(flow.requestHeaders)) edits.headers = toHeaders(headers);
-    if (bodyEditable && body !== (d?.request?.text ?? "")) edits.bodyText = body;
+    if (bodyEditable && body !== (d?.request?.raw ?? d?.request?.text ?? "")) edits.bodyText = body;
     net.resend(flow.id, edits);
   }
 </script>

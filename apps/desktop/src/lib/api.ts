@@ -380,6 +380,8 @@ export interface BodyView {
   error: string | null;
   /** How the body was read when that is more than its type says: GraphQL, gRPC… */
   label: string | null;
+  /** The body as it was sent, when `text` is a reading of it (GraphQL). */
+  raw: string | null;
 }
 
 export interface WsMessage {
