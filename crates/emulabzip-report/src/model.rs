@@ -247,6 +247,25 @@ pub fn crash_section(report: &CrashReport, store: &Store) -> CrashSection {
     }
 }
 
+/// The same crash, again and again (a loop, or a retry), is one section that says how often it happened.
+fn collapse_repeats(sections: Vec<CrashSection>, notes: &mut Vec<String>) -> Vec<CrashSection> {
+    let mut out: Vec<(CrashSection, usize)> = Vec::new();
+    for c in sections {
+        match out.iter_mut().find(|(o, _)| o.kind == c.kind && o.title == c.title && o.threads == c.threads) {
+            Some((_, n)) => *n += 1,
+            None => out.push((c, 1)),
+        }
+    }
+    out.into_iter()
+        .map(|(c, n)| {
+            if n > 1 {
+                notes.push(format!("The crash \"{}\" happened {n} times; it is shown once.", c.title));
+            }
+            c
+        })
+        .collect()
+}
+
 fn facts_of(device: &Device) -> Vec<(String, String)> {
     let mut facts =
         vec![("Device".to_string(), device.name.clone()), ("Platform".to_string(), format!("{:?}", device.platform))];
@@ -303,7 +322,8 @@ impl BugReport {
             (report.requests, report.requests_total) = failed_from_har(har);
         }
         if options.include_crashes {
-            report.crashes = session.crashes.iter().map(|c| crash_section(c, store)).collect();
+            let sections = session.crashes.iter().map(|c| crash_section(c, store)).collect();
+            report.crashes = collapse_repeats(sections, &mut report.notes);
             report.app_version = session.crashes.iter().find_map(|c| c.app_version.clone());
         }
         if options.include_screenshot {
@@ -380,14 +400,17 @@ impl BugReport {
             match lab.crashes(target, app).await {
                 Ok(list) => {
                     let cutoff = now_ms().saturating_sub(30 * 60 * 1000);
-                    for summary in list.iter().filter(|c| c.time_ms.is_none_or(|t| t >= cutoff)).take(3) {
+                    let mut sections = Vec::new();
+                    for summary in list.iter().filter(|c| c.time_ms.is_none_or(|t| t >= cutoff)).take(10) {
                         if let Ok(full) = lab.crash(target, &summary.id).await {
                             if report.app_version.is_none() {
                                 report.app_version = full.app_version.clone();
                             }
-                            report.crashes.push(crash_section(&full, store));
+                            sections.push(crash_section(&full, store));
                         }
                     }
+                    report.crashes = collapse_repeats(sections, &mut report.notes);
+                    report.crashes.truncate(3);
                 }
                 Err(e) => report.notes.push(format!("No crashes could be read: {e}")),
             }
@@ -482,6 +505,27 @@ mod tests {
         let s = log_section(&[entry(1, LogLevel::Error, &"x".repeat(5000))]);
         assert_eq!(s.problems[0].message.chars().count(), MAX_MESSAGE + 1);
         assert!(s.problems[0].message.ends_with('…'));
+    }
+
+    #[test]
+    fn a_crash_that_repeats_is_shown_once() {
+        let section = |title: &str, when: &str| CrashSection {
+            kind: "Crash".into(),
+            title: title.into(),
+            process: "p".into(),
+            when: Some(when.into()),
+            threads: vec![("main (crashed)".into(), vec!["0  a".into()])],
+            readable: false,
+            applied: vec![],
+            missing: vec![],
+        };
+        let mut notes = Vec::new();
+        let out = collapse_repeats(
+            vec![section("boom", "1"), section("other", "2"), section("boom", "3"), section("boom", "4")],
+            &mut notes,
+        );
+        assert_eq!(out.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(), ["boom", "other"]);
+        assert_eq!(notes, ["The crash \"boom\" happened 3 times; it is shown once."]);
     }
 
     #[test]
