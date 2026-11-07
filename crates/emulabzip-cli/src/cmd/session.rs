@@ -18,6 +18,20 @@ pub struct RecordArgs {
     pub port: u16,
     pub screens: Option<u64>,
     pub duration: Option<u64>,
+    /// Record the screen, in pieces of this many seconds.
+    pub video: Option<u32>,
+    /// Record touches (Android).
+    pub taps: bool,
+    /// Answer the app's requests from this recording while recording the new one.
+    pub replay: Option<super::net::ReplayArgs>,
+}
+
+/// What `--video` accepts: whole seconds from 1 to 180, the longest `screenrecord` records at a time.
+pub fn parse_video_secs(text: &str) -> Result<u32, String> {
+    match text.parse::<u32>() {
+        Ok(n) if (1..=emulabzip_core::MAX_SEGMENT_SECS).contains(&n) => Ok(n),
+        _ => Err(format!("use a number of seconds from 1 to {}", emulabzip_core::MAX_SEGMENT_SECS)),
+    }
 }
 
 /// The proxy of a recording that watches the network, and the device pointed at it.
@@ -28,11 +42,16 @@ pub struct Network {
 }
 
 impl Network {
-    pub async fn start(lab: &Lab, device: &Device, port: u16) -> Result<Network> {
+    pub async fn start(
+        lab: &Lab,
+        device: &Device,
+        port: u16,
+        replay: Option<Arc<emulabzip_net::ReplaySet>>,
+    ) -> Result<Network> {
         let store = FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY);
         let ca = super::net::load_ca()?;
         let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
-        let proxy = Proxy::start(ProxyConfig { addr, ..Default::default() }, ca, store.clone())
+        let proxy = Proxy::start(ProxyConfig { addr, replay, ..Default::default() }, ca, store.clone())
             .await
             .with_context(|| format!("could not listen on {addr}. Pick another port with --port"))?;
         let target = device.target();
@@ -61,12 +80,23 @@ fn check_out(out: &Path) -> Result<()> {
 
 pub async fn record(lab: &Lab, device: Option<&str>, args: RecordArgs) -> Result<()> {
     check_out(&args.out)?;
+    if args.replay.is_some() && !args.network {
+        bail!("--replay answers the app's requests through the proxy, so it needs --network");
+    }
+    // The recording is read before any device is looked for.
+    let replay = args.replay.as_ref().map(super::net::load_replay).transpose()?;
     let device = lab.resolve(device).await?;
-    let network = if args.network { Some(Network::start(lab, &device, args.port).await?) } else { None };
+    if let Some(set) = &replay {
+        eprintln!("{}", output::dim(&super::net::replay_banner(set)));
+    }
+    let network =
+        if args.network { Some(Network::start(lab, &device, args.port, replay.clone()).await?) } else { None };
     let options = Options {
         app: args.app.clone(),
         screens_every: args.screens.map(Duration::from_secs),
         flows: network.as_ref().map(|n| n.store.clone()),
+        video: args.video,
+        taps: args.taps,
         ..Default::default()
     };
     let recorder = match Recorder::start(lab.clone(), &device, args.out.clone(), options).await {
@@ -98,7 +128,14 @@ pub async fn record(lab: &Lab, device: Option<&str>, args: RecordArgs) -> Result
             _ = &mut end => break,
             _ = tick.tick() => {
                 let s = recorder.stats();
-                eprintln!("{}", output::dim(&format!("  {} s: {} log lines, {} samples, {} crashes", started.elapsed().as_secs(), s.logs, s.samples, s.crashes)));
+                let mut line = format!("  {} s: {} log lines, {} samples, {} crashes", started.elapsed().as_secs(), s.logs, s.samples, s.crashes);
+                if args.taps {
+                    line += &format!(", {} touches", s.taps);
+                }
+                if args.video.is_some() {
+                    line += &format!(", {} video pieces", s.video_pieces);
+                }
+                eprintln!("{}", output::dim(&line));
             }
         }
     }
@@ -106,8 +143,81 @@ pub async fn record(lab: &Lab, device: Option<&str>, args: RecordArgs) -> Result
     if let Some(n) = network {
         n.stop(lab).await;
     }
+    if let Some(set) = &replay {
+        super::net::print_replay_stats(set);
+    }
     let path = written?;
     println!("Saved {}", path.display());
+    Ok(())
+}
+
+fn clock(ms: u64) -> String {
+    let total = ms / 1000;
+    format!("+{:02}:{:02}.{:03}", total / 60, total % 60, ms % 1000)
+}
+
+/// `emulabzip session timeline`: everything the session recorded, on one time axis.
+pub fn timeline(path: &Path, json: bool, lanes: &[emulabzip_session::Lane]) -> Result<()> {
+    let session = Session::open(path)?;
+    let timeline = emulabzip_session::timeline::build(&session);
+    let events = timeline.only(lanes);
+    if json {
+        let shown =
+            emulabzip_session::Timeline { events: events.iter().map(|e| (*e).clone()).collect(), ..timeline.clone() };
+        println!("{}", serde_json::to_string_pretty(&shown)?);
+        return Ok(());
+    }
+    if events.is_empty() {
+        println!("Nothing was recorded on {}.", if lanes.is_empty() { "the timeline" } else { "these lanes" });
+    }
+    for e in &events {
+        let dur = e.dur_ms.filter(|d| *d > 0).map(|d| format!("  ({d} ms)")).unwrap_or_default();
+        let line = format!("{}  {:<9} {}{dur}", clock(e.t_ms), e.lane.name(), e.label);
+        match e.severity {
+            emulabzip_session::Severity::Info => println!("{line}"),
+            _ => println!(
+                "{} {}",
+                line,
+                output::dim(if e.severity == emulabzip_session::Severity::Error { "!!" } else { "!" })
+            ),
+        }
+    }
+    let counts: Vec<String> = timeline
+        .lanes
+        .iter()
+        .map(|l| {
+            if l.shown < l.total {
+                format!("{} {} (showing {})", l.total, l.lane.name(), l.shown)
+            } else {
+                format!("{} {}", l.total, l.lane.name())
+            }
+        })
+        .collect();
+    eprintln!("{}", output::dim(&format!("{} in {}.", counts.join(", "), clock(timeline.duration_ms))));
+    if timeline.clock == emulabzip_session::ClockSource::Estimated {
+        eprintln!("{}", output::dim("This recording did not measure the device's clock, so log times are estimated."));
+    }
+    Ok(())
+}
+
+/// `emulabzip session video`: writes the pieces of the screen recording into a folder.
+pub fn video(path: &Path, out: &Path) -> Result<()> {
+    let session = Session::open(path)?;
+    if session.video.is_empty() {
+        bail!("this session has no screen recording. Record with `emulabzip session record --video`.");
+    }
+    for piece in &session.video {
+        let written = session.extract_video(&piece.file, out)?;
+        println!(
+            "{}  {}",
+            written.display(),
+            output::dim(&format!(
+                "{} to {}",
+                clock(piece.start_ms.saturating_sub(session.meta.started_ms)),
+                clock(piece.end_ms.saturating_sub(session.meta.started_ms))
+            ))
+        );
+    }
     Ok(())
 }
 

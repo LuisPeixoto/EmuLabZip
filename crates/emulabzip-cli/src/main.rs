@@ -203,6 +203,15 @@ enum Command {
         /// How much of the traffic stalls like a lost packet, in percent
         #[arg(long, value_name = "PERCENT")]
         loss: Option<f32>,
+        /// Answer from a HAR file or a recorded session, so the app never reaches the internet
+        #[arg(long, value_name = "FILE")]
+        replay: Option<PathBuf>,
+        /// With --replay: let requests that are not in the recording go to the real server (they fail by default)
+        #[arg(long, requires = "replay")]
+        passthrough: bool,
+        /// With --replay: make each answer wait as long as the server did
+        #[arg(long, requires = "replay")]
+        timing: bool,
     },
     /// Time how long an app takes to open: cold, warm or hot, several times, with the median
     Startup {
@@ -309,6 +318,24 @@ enum Command {
         /// Fail when a number got worse than the baseline by more than the tolerance
         #[arg(long)]
         fail_on_regression: bool,
+        /// Record the screen, in pieces of this many seconds (default 30)
+        #[arg(long, value_name = "SECONDS", num_args = 0..=1, default_missing_value = "30", value_parser = cmd::session::parse_video_secs)]
+        video: Option<u32>,
+        /// Record touches (Android)
+        #[arg(long)]
+        taps: bool,
+        /// Answer the app's requests from a HAR file or a session, so the run does not depend on any server (needs --network)
+        #[arg(long, value_name = "FILE")]
+        replay: Option<PathBuf>,
+        /// With --replay: let requests that are not in the recording go to the real server
+        #[arg(long, requires = "replay")]
+        passthrough: bool,
+        /// With --replay: make each answer wait as long as the server did
+        #[arg(long, requires = "replay")]
+        timing: bool,
+        /// With --replay: fail the run when the app asked for something the recording does not hold
+        #[arg(long, requires = "replay")]
+        fail_on_miss: bool,
         /// The command to run
         #[arg(last = true, required = true, value_name = "COMMAND")]
         command: Vec<String>,
@@ -381,7 +408,7 @@ enum Command {
         /// Where the issue goes: github:owner/repo, gitlab:[host/]group/project or jira:site/PROJECTID/ISSUETYPEID
         #[arg(long, value_name = "TRACKER")]
         issue: Option<String>,
-        /// Leave a part out: screenshot, logs, requests or crashes (repeat for more)
+        /// Leave a part out: screenshot, logs, requests, crashes or video (repeat for more)
         #[arg(long, value_name = "PART", value_parser = cmd::report::parse_without)]
         without: Vec<String>,
         /// Open the report (and the issue link) in the browser
@@ -577,6 +604,37 @@ enum SessionAction {
         /// Stop by itself after this many seconds
         #[arg(long, value_name = "SECONDS")]
         duration: Option<u64>,
+        /// Record the screen, in pieces of this many seconds (default 30)
+        #[arg(long, value_name = "SECONDS", num_args = 0..=1, default_missing_value = "30", value_parser = cmd::session::parse_video_secs)]
+        video: Option<u32>,
+        /// Record touches (Android: taps, long presses and swipes)
+        #[arg(long)]
+        taps: bool,
+        /// Answer the app's requests from a HAR file or a session while recording (needs --network)
+        #[arg(long, value_name = "FILE")]
+        replay: Option<PathBuf>,
+        /// With --replay: let requests that are not in the recording go to the real server
+        #[arg(long, requires = "replay")]
+        passthrough: bool,
+        /// With --replay: make each answer wait as long as the server did
+        #[arg(long, requires = "replay")]
+        timing: bool,
+    },
+    /// Everything a session recorded on one time axis: touches, log problems, requests, slow frames, GC and crashes
+    Timeline {
+        file: PathBuf,
+        #[arg(long)]
+        json: bool,
+        /// Only these lanes: taps, logs, requests, frames, gc, crashes, screens or video (repeat for more)
+        #[arg(long, value_name = "LANE", value_parser = parse_lane)]
+        lane: Vec<emulabzip_session::Lane>,
+    },
+    /// Write the pieces of a session's screen recording into a folder
+    Video {
+        file: PathBuf,
+        /// The folder to write them to
+        #[arg(short, long, value_name = "DIR", default_value = ".")]
+        output: PathBuf,
     },
     /// Summarize a session: errors, crashes, slow requests, CPU and memory
     Show {
@@ -588,6 +646,11 @@ enum SessionAction {
         #[arg(long, conflicts_with = "json")]
         markdown: bool,
     },
+}
+
+fn parse_lane(text: &str) -> Result<emulabzip_session::Lane, String> {
+    emulabzip_session::Lane::parse(text)
+        .ok_or_else(|| "use taps, logs, requests, frames, gc, crashes, screens or video".to_string())
 }
 
 fn parse_severity(text: &str) -> Result<emulabzip_core::Severity, String> {
@@ -948,6 +1011,9 @@ async fn run() -> ExitCode {
             up,
             latency,
             loss,
+            replay,
+            passthrough,
+            timing,
         } => {
             let conditions = cmd::net::ConditionArgs {
                 preset: conditions,
@@ -966,6 +1032,7 @@ async fn run() -> ExitCode {
                 http3,
                 show_h3,
                 conditions,
+                replay: replay.map(|file| cmd::net::ReplayArgs { file, passthrough, timing }),
             };
             cmd::net::run(&lab, args).await
         }
@@ -997,10 +1064,31 @@ async fn run() -> ExitCode {
             cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
         }
         Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
-        Command::Session { action: SessionAction::Record { output, app, network, port, screens, duration } } => {
-            let args = cmd::session::RecordArgs { out: output, app, network, port, screens, duration };
+        Command::Session {
+            action:
+                SessionAction::Record {
+                    output,
+                    app,
+                    network,
+                    port,
+                    screens,
+                    duration,
+                    video,
+                    taps,
+                    replay,
+                    passthrough,
+                    timing,
+                },
+        } => {
+            let replay = replay.map(|file| cmd::net::ReplayArgs { file, passthrough, timing });
+            let args =
+                cmd::session::RecordArgs { out: output, app, network, port, screens, duration, video, taps, replay };
             cmd::session::record(&lab, device, args).await
         }
+        Command::Session { action: SessionAction::Timeline { file, json, lane } } => {
+            cmd::session::timeline(&file, json, &lane)
+        }
+        Command::Session { action: SessionAction::Video { file, output } } => cmd::session::video(&file, &output),
         Command::Session { action: SessionAction::Show { file, json, markdown } } => {
             cmd::session::show(&file, json, markdown)
         }
@@ -1018,8 +1106,15 @@ async fn run() -> ExitCode {
             config,
             baseline,
             fail_on_regression,
+            video,
+            taps,
+            replay,
+            passthrough,
+            timing,
+            fail_on_miss,
             command,
         } => {
+            let replay = replay.map(|file| cmd::net::ReplayArgs { file, passthrough, timing });
             let args = cmd::ci::Args {
                 out: output,
                 app,
@@ -1031,6 +1126,10 @@ async fn run() -> ExitCode {
                 config,
                 baseline,
                 fail_on_regression,
+                video,
+                taps,
+                replay,
+                fail_on_miss,
                 command,
             };
             cmd::ci::run(&lab, device, args).await
