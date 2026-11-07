@@ -121,6 +121,22 @@ pub struct Crash {
     pub id: String,
     /// Include the report as the device wrote it (long). Default false.
     pub raw: Option<bool>,
+    /// Keep the original names, without using the mapping.txt, source maps and dSYMs stored for the app. Default false.
+    pub original: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct BugReport {
+    pub device: Option<String>,
+    /// The app the report is about (a package name or bundle id).
+    pub app: Option<String>,
+    /// Make it from a recorded session (a name from `list_sessions`) instead of the device as it is now.
+    pub session: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    /// Also return a link that opens a new issue: `github:owner/repo`, `gitlab:[host/]group/project` or
+    /// `jira:site/PROJECTID/ISSUETYPEID`.
+    pub issue: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
