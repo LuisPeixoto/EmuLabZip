@@ -1,0 +1,19 @@
+[package]
+name = "emulabzip-report"
+description = "Packs what is needed to report a bug (a screenshot, the device, the logs, the failed requests and the readable crash) into one HTML file, and opens issues"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+base64.workspace = true
+emulabzip-core.workspace = true
+emulabzip-net.workspace = true
+emulabzip-session.workspace = true
+emulabzip-symbols.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
