@@ -86,12 +86,18 @@ kept per app and version, and `--mapping` in the command line · a **bug report*
 screenshot, the device's details, the filtered logs and the failed requests, packed into one HTML file or opened as an
 issue on GitHub, GitLab or Jira.
 
-## Phase 10: Timeline and replay (v0.10)
+## Phase 10: Timeline and replay (v0.10) ✅
 
-A **timeline** that lines up taps, logs, requests, slow frames, garbage collections and crashes on one time axis ·
-**screen video** recorded into a session (`screenrecord` on Android, `simctl io recordVideo` on iOS), in step with the
-timeline, and added to bug reports · **network replay**: a session or a HAR becomes a mock server, so the app runs
-offline against recorded responses, for bugs whose backend has since changed and for deterministic CI runs.
+A **timeline** that lines up touches, log problems, requests, slow frames, garbage collections and crashes on one time
+axis, on a clock measured against the device · **screen video** recorded into a session in short pieces (`screenrecord`
+on Android, `simctl io recordVideo` on iOS), in step with the timeline in the desktop app, and the clip around the crash
+added to bug reports · **network replay**: a session or a HAR file answers the app's requests, so it runs offline against
+recorded responses, for bugs whose backend has since changed and for deterministic CI runs (`--replay`,
+`--fail-on-miss`).
+
+Left for later from this phase: touches on iOS (the simulator gives them to nothing outside it), per-frame jank on iOS,
+replaying WebSockets and gRPC calls (a HAR file does not hold their messages and trailers), and matching a request
+that carries a timestamp or a random id.
 
 ## Phase 11: App state as data (v0.11)
 
