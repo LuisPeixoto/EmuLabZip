@@ -1,0 +1,17 @@
+[package]
+name = "emulabzip-audit"
+description = "Quality audits for EmuLabZip: security and privacy, package size and visual regression"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+emulabzip-core.workspace = true
+png.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zip.workspace = true
