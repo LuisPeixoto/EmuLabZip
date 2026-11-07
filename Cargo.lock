@@ -1203,6 +1203,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulabzip-audit"
+version = "0.11.0"
+dependencies = [
+ "emulabzip-core",
+ "png",
+ "regex",
+ "serde",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
 name = "emulabzip-cli"
 version = "0.11.0"
 dependencies = [
