@@ -102,7 +102,14 @@ async fn a_state_is_saved_to_one_file_that_says_what_it_is() {
 
     let opened = snapshot::open(&out).unwrap();
     assert_eq!(opened.meta, meta);
-    assert!(opened.schemas_json().unwrap().is_none(), "the schema scan is not wired in yet");
+    // The file carries a description of what is inside, to compare snapshots with. The fake sandbox has `prefs.xml`.
+    let schemas: emulabzip_storage::schema::Schemas =
+        serde_json::from_slice(&opened.schemas_json().unwrap().unwrap()).unwrap();
+    assert_eq!(
+        schemas.files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>(),
+        Vec::<&str>::new(),
+        "a bare <map/> has no keys to describe, and databases/app.db is not a database"
+    );
     let files = opened.extract(&dir.join("x")).unwrap();
     let names: Vec<_> = tarball::check(&files.data).unwrap().into_iter().map(|e| e.path).collect();
     assert!(names.contains(&"databases/app.db".to_string()) && !names.iter().any(|n| n.starts_with("cache")));
@@ -180,5 +187,28 @@ fn what_is_not_a_state_file_is_explained() {
     assert!(snapshot::open(&dir.join("missing.ezstate")).is_err());
     std::fs::write(dir.join("a.ezstate"), b"not a zip").unwrap();
     assert!(snapshot::open(&dir.join("a.ezstate")).unwrap_err().to_string().contains("not a state file"));
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[tokio::test]
+async fn two_snapshots_are_compared_by_what_is_inside_them() {
+    let (dir, lab, target, _) = rig("compare", Platform::Android);
+    let make_db = |extra: bool| {
+        let path = dir.join("sandbox/databases/app.db");
+        let _ = std::fs::remove_file(&path);
+        let conn = rusqlite::Connection::open(&path).unwrap();
+        conn.execute_batch("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);").unwrap();
+        if extra {
+            conn.execute_batch("ALTER TABLE t ADD COLUMN note TEXT;").unwrap();
+        }
+    };
+    make_db(false);
+    snapshot::save(&lab, &target, "dev.x", &dir.join("a.ezstate"), false).await.unwrap();
+    make_db(true);
+    snapshot::save(&lab, &target, "dev.x", &dir.join("b.ezstate"), false).await.unwrap();
+    let changes = snapshot::compare(&dir.join("a.ezstate"), &dir.join("b.ezstate")).unwrap();
+    let lines: Vec<String> = changes.iter().map(|c| c.line()).collect();
+    assert_eq!(lines, ["+ databases/app.db: column t.note  TEXT"]);
+    assert!(snapshot::compare(&dir.join("a.ezstate"), &dir.join("a.ezstate")).unwrap().is_empty());
     std::fs::remove_dir_all(dir).ok();
 }

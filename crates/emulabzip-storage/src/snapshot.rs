@@ -128,6 +128,17 @@ impl StateFile {
         Ok(StateFiles { data, external, app_version: self.meta.app_version.clone() })
     }
 
+    /// What is inside the snapshot: the description kept in the file, or, for a file that has none, one made from its data.
+    pub fn schemas(&self) -> Result<crate::schema::Schemas> {
+        if let Some(bytes) = self.schemas_json()? {
+            return serde_json::from_slice(&bytes).map_err(|e| bad(format!("{SCHEMAS}: {e}")));
+        }
+        let dir = scratch()?;
+        let result = self.extract(&dir).and_then(|files| crate::schema::scan(&files.data));
+        let _ = std::fs::remove_dir_all(&dir);
+        result
+    }
+
     /// The `schemas.json` of the file, when it has one.
     pub fn schemas_json(&self) -> Result<Option<Vec<u8>>> {
         let mut zip = zip::ZipArchive::new(File::open(&self.path)?).map_err(|e| bad(e.to_string()))?;
@@ -146,6 +157,11 @@ impl StateFile {
 fn unique() -> u64 {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+/// What changed between two snapshots: databases, tables, columns, indexes and preference keys.
+pub fn compare(before: &Path, after: &Path) -> Result<Vec<crate::schema::Difference>> {
+    Ok(crate::schema::diff(&open(before)?.schemas()?, &open(after)?.schemas()?))
 }
 
 fn scratch() -> Result<PathBuf> {
