@@ -11,8 +11,12 @@ use std::collections::HashMap;
 use crate::a11y::{Audit, Finding, Image, Severity, contrast_ratio, decode_png};
 use crate::layout::{Bounds, LayoutSnapshot, UiNode};
 
-/// A box whose end is this close to the room it was given counts as having used all of it, in dp.
-const FILLS_ROOM_DP: f32 = 12.0;
+/// A box whose end is this close to the end of the container it was held to counts as having used all the room, in dp.
+/// It is more than the gap before a neighbour, because containers have padding.
+const FILLS_ROOM_DP: f32 = 20.0;
+/// The gap before the next view in the row that still counts as being held back by it, in dp. Wider gaps are spacing the
+/// layout chose, which a label that hugs its text has too.
+const FILLS_NEIGHBOUR_DP: f32 = 4.0;
 /// An ancestor this much wider than the box is what the box was held to; narrower ones only wrap it.
 const ROOM_DP: f32 = 24.0;
 
@@ -163,7 +167,8 @@ fn uses_all_its_room(node: &UiNode, path: &[&UiNode], snapshot: &LayoutSnapshot)
         .map(|s| s.bounds.x)
         .min()
         .unwrap_or(i32::MAX);
-    container_end.min(next_start) - end <= (FILLS_ROOM_DP * density) as i32
+    container_end - end <= (FILLS_ROOM_DP * density) as i32
+        || next_start.saturating_sub(end) <= (FILLS_NEIGHBOUR_DP * density) as i32
 }
 
 /// Whether there is ink in the last few pixels of the box: a label that ends well inside its box leaves them empty, and
@@ -197,7 +202,8 @@ fn runs_to_the_edge(image: &Image, snapshot: &LayoutSnapshot, bounds: Bounds) ->
     let Some((_, bg)) = buckets.values().max_by_key(|(n, p)| (*n, p[0], p[1], p[2])).copied() else { return false };
     let ink = |x: u32, y: u32| contrast_ratio(image.pixel(x, y), bg) > 1.8;
 
-    let strip = (((8.0 * f64::from(snapshot.screen.density) * sx) as u32).max(3)).min((x1 - x0) / 4).max(3);
+    // An ellipsis stops a glyph or two short of the edge, so the strip is wider than a few pixels.
+    let strip = (((20.0 * f64::from(snapshot.screen.density) * sx) as u32).max(3)).min((x1 - x0) / 4).max(3);
     let (mut inked, mut seen) = (0u32, 0u32);
     for y in top..bottom {
         for x in (x1 - strip)..x1 {
@@ -216,7 +222,7 @@ fn runs_to_the_edge(image: &Image, snapshot: &LayoutSnapshot, bounds: Bounds) ->
             }
         }
     }
-    seen > 0 && inked * 100 >= seen * 12 && body > 8
+    seen > 0 && inked * 100 >= seen * 3 && body > 8
 }
 
 /// In a right-to-left language the text of a screen sits on the right. When most of it still hugs the left edge, the layout
@@ -355,9 +361,12 @@ mod tests {
         // A label held back by the icon beside it is cut at the icon.
         let mut row = node("LinearLayout", (0, 0, 400, 400));
         row.children.push(text("TextView", (20, 100, 300, 30), "Order confirmation details"));
-        row.children.push(node("ImageView", (330, 100, 40, 30)));
-        let beside = check(&snap(row, shot(319)), Options::default());
+        row.children.push(node("ImageView", (322, 100, 40, 30)));
+        let beside = check(&snap(row.clone(), shot(319)), Options::default());
         assert_eq!(rules(&beside), ["text-cut-off"], "{:?}", beside.findings);
+        // The same label with room to spare before its neighbour is only hugging its text.
+        row.children[1] = node("ImageView", (360, 100, 30, 30));
+        assert!(check(&snap(row, shot(319)), Options::default()).findings.is_empty());
 
         // A box with several lines of text is not a single line, so it is left alone.
         let mut root = node("FrameLayout", (0, 0, 400, 400));
