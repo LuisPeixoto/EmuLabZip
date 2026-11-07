@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand, ValueEnum};
 use emulabzip_android::AndroidBackend;
 use emulabzip_apple::AppleBackend;
-use emulabzip_core::{Control, CrashKind, Lab, LogLevel, PerfettoPreset};
+use emulabzip_core::{BootOptions, Control, CrashKind, Lab, LogLevel, PerfettoPreset, Platform, SnapshotAction};
 
 #[derive(Parser)]
 #[command(
@@ -63,6 +63,9 @@ enum Command {
     /// List running emulators, simulators and attached devices
     #[command(visible_alias = "ls")]
     Devices {
+        /// Include emulators and simulators that are not running
+        #[arg(short, long)]
+        all: bool,
         /// Print JSON instead of a table
         #[arg(long)]
         json: bool,
@@ -437,6 +440,31 @@ enum Command {
         #[command(subcommand)]
         action: CaAction,
     },
+    /// Save an app's data to one file, put it back, look inside a file, or compare two
+    State {
+        #[command(subcommand)]
+        action: StateAction,
+    },
+    /// Android emulators (AVDs): list, create, start, stop, wipe and delete
+    Avd {
+        #[command(subcommand)]
+        action: LifeAction,
+    },
+    /// iOS simulators: list, create, start, stop, erase and delete
+    Sim {
+        #[command(subcommand)]
+        action: LifeAction,
+    },
+    /// An emulator's own snapshots of its whole state (the running emulator, `-d` to pick it)
+    Snapshot {
+        #[command(subcommand)]
+        action: SnapshotCmd,
+    },
+    /// Change an app's data: a row, a preference, a property list value. The app is stopped and the old file kept
+    Edit {
+        #[command(subcommand)]
+        action: EditAction,
+    },
     /// Inspect one of an app's SQLite databases: tables, rows or a read-only query
     Db {
         app: String,
@@ -456,6 +484,219 @@ enum Command {
         offset: u64,
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum StateAction {
+    /// Save an app's data (databases, preferences, files; not caches) to a .ezstate file
+    Save {
+        app: String,
+        #[arg(short, long)]
+        output: PathBuf,
+        /// Also keep the app's folder on shared storage (Android)
+        #[arg(long)]
+        external: bool,
+    },
+    /// Replace an app's data with a saved state. The data it replaces is saved first
+    Restore {
+        file: PathBuf,
+        /// Yes, replace the data
+        #[arg(long)]
+        yes: bool,
+    },
+    /// What a state file holds
+    Show {
+        file: PathBuf,
+        #[arg(long)]
+        json: bool,
+    },
+    /// What changed in the structure of the data: tables, columns, indexes and keys. Without a second file, against the device now
+    Diff {
+        a: PathBuf,
+        b: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum LifeAction {
+    /// The devices, running or not
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    /// What a device can be made from: images and device types (Android), runtimes and types (iOS)
+    Options {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Make a device
+    Create {
+        name: String,
+        /// Android: a system image like `system-images;android-35;google_apis;x86_64`. iOS: a runtime identifier
+        #[arg(long)]
+        image: String,
+        /// Android: a device definition like `pixel_6`. iOS: a device type identifier
+        #[arg(long)]
+        model: String,
+    },
+    /// Start a device that is not running
+    Boot {
+        /// Name or id
+        device: String,
+        /// Start from factory state, and throw the data away (Android)
+        #[arg(long)]
+        wipe: bool,
+        /// Do not resume the quick-boot snapshot (Android)
+        #[arg(long)]
+        cold: bool,
+        /// No window (Android)
+        #[arg(long)]
+        headless: bool,
+        /// Yes, with --wipe
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Stop a running device
+    Shutdown { device: String },
+    /// Throw a device's data away (an iOS simulator is erased)
+    #[command(alias = "erase")]
+    Wipe {
+        device: String,
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Remove a device for good
+    Delete {
+        device: String,
+        #[arg(long)]
+        yes: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum SnapshotCmd {
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    Save {
+        name: String,
+    },
+    /// Go back to a snapshot; the emulator's current state is lost
+    Load {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
+    Delete {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
+}
+
+#[derive(clap::Args)]
+struct EditTarget {
+    app: String,
+    /// The file, relative to the storage root
+    path: String,
+    #[arg(short, long)]
+    root: Option<String>,
+    /// Yes, change it
+    #[arg(long)]
+    yes: bool,
+}
+
+#[derive(clap::Args)]
+struct RowArgs {
+    #[arg(short, long)]
+    table: String,
+    /// The row's rowid
+    #[arg(long)]
+    rowid: Option<i64>,
+    /// A primary key column of the row, as column=value (for tables without a rowid)
+    #[arg(long)]
+    pk: Vec<String>,
+}
+
+#[derive(clap::Args)]
+struct Assignments {
+    /// column=value; a whole number or a decimal is stored as one, anything else as text
+    #[arg(long)]
+    set: Vec<String>,
+    /// column=value, stored as text
+    #[arg(long)]
+    text: Vec<String>,
+    /// A column to set to NULL
+    #[arg(long)]
+    null: Vec<String>,
+}
+
+#[derive(Subcommand)]
+enum EditAction {
+    /// Change columns of one row of a SQLite table
+    Cell {
+        #[command(flatten)]
+        target: EditTarget,
+        #[command(flatten)]
+        row: RowArgs,
+        #[command(flatten)]
+        values: Assignments,
+    },
+    /// Add a row
+    Insert {
+        #[command(flatten)]
+        target: EditTarget,
+        #[arg(short, long)]
+        table: String,
+        #[command(flatten)]
+        values: Assignments,
+    },
+    /// Delete one row
+    Delete {
+        #[command(flatten)]
+        target: EditTarget,
+        #[command(flatten)]
+        row: RowArgs,
+    },
+    /// Set a SharedPreferences value
+    PrefSet {
+        #[command(flatten)]
+        target: EditTarget,
+        key: String,
+        /// string, int, long, float, boolean or set (items separated by commas)
+        #[arg(long = "as", default_value = "string")]
+        kind: String,
+        value: String,
+    },
+    PrefRemove {
+        #[command(flatten)]
+        target: EditTarget,
+        key: String,
+    },
+    /// Set a value in a property list; a nested key is written as `a/b`
+    PlistSet {
+        #[command(flatten)]
+        target: EditTarget,
+        key: String,
+        /// string, integer, real, boolean, date or data
+        #[arg(long = "as", default_value = "string")]
+        kind: String,
+        value: String,
+    },
+    PlistRemove {
+        #[command(flatten)]
+        target: EditTarget,
+        key: String,
+    },
+    /// Put back the files an edit replaced (the folder an edit printed)
+    Undo {
+        folder: PathBuf,
+        #[arg(long)]
+        yes: bool,
     },
 }
 
@@ -533,6 +774,17 @@ enum RnAction {
         /// How many levels to print
         #[arg(long, default_value_t = 14)]
         depth: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    /// The app's state: Redux, React Query, React contexts and named stores. `--watch` follows Redux actions
+    State {
+        app: String,
+        #[arg(long, default_value_t = cmd::frameworks::DEFAULT_METRO)]
+        metro: u16,
+        /// Keep watching: print each Redux action and what changed (wraps `dispatch` until you stop)
+        #[arg(long)]
+        watch: bool,
         #[arg(long)]
         json: bool,
     },
@@ -950,6 +1202,50 @@ async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> 
 /// before anything runs. The command runs on a thread with room to spare, on every platform.
 const STACK_BYTES: usize = 16 * 1024 * 1024;
 
+async fn run_life(lab: &Lab, platform: Platform, action: LifeAction) -> anyhow::Result<()> {
+    use cmd::lifecycle as life;
+    match action {
+        LifeAction::List { json } => life::list(lab, platform, json).await,
+        LifeAction::Options { json } => life::options(lab, platform, json).await,
+        LifeAction::Create { name, image, model } => life::create(lab, platform, &name, &image, &model).await,
+        LifeAction::Boot { device, wipe, cold, headless, yes } => {
+            life::boot(lab, platform, &device, BootOptions { wipe, cold, headless }, yes).await
+        }
+        LifeAction::Shutdown { device } => life::shutdown(lab, platform, &device).await,
+        LifeAction::Wipe { device, yes } => life::wipe(lab, platform, &device, yes).await,
+        LifeAction::Delete { device, yes } => life::delete(lab, platform, &device, yes).await,
+    }
+}
+
+async fn run_edit(lab: &Lab, device: Option<&str>, action: EditAction) -> anyhow::Result<()> {
+    use cmd::edit;
+    fn target(t: &EditTarget) -> edit::Target<'_> {
+        edit::Target { app: &t.app, path: &t.path, root: t.root.as_deref() }
+    }
+    let assign = |v: Assignments| edit::Assign { set: v.set, text: v.text, null: v.null };
+    match action {
+        EditAction::Cell { target: t, row, values } => {
+            let r = edit::Row { table: &row.table, rowid: row.rowid, pk: &row.pk };
+            edit::cell(lab, device, target(&t), r, assign(values), t.yes).await
+        }
+        EditAction::Insert { target: t, table, values } => {
+            edit::insert(lab, device, target(&t), &table, assign(values), t.yes).await
+        }
+        EditAction::Delete { target: t, row } => {
+            edit::delete(lab, device, target(&t), &row.table, row.rowid, &row.pk, t.yes).await
+        }
+        EditAction::PrefSet { target: t, key, kind, value } => {
+            edit::pref_set(lab, device, target(&t), &key, &kind, &value, t.yes).await
+        }
+        EditAction::PrefRemove { target: t, key } => edit::pref_remove(lab, device, target(&t), &key, t.yes).await,
+        EditAction::PlistSet { target: t, key, kind, value } => {
+            edit::plist_set(lab, device, target(&t), &key, &kind, &value, t.yes).await
+        }
+        EditAction::PlistRemove { target: t, key } => edit::plist_remove(lab, device, target(&t), &key, t.yes).await,
+        EditAction::Undo { folder, yes } => edit::undo_edit(lab, device, &folder, yes).await,
+    }
+}
+
 fn main() -> ExitCode {
     let runner = std::thread::Builder::new().name("emulabzip".into()).stack_size(STACK_BYTES).spawn(|| {
         match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
@@ -977,7 +1273,7 @@ async fn run() -> ExitCode {
     let device = cli.device.as_deref();
 
     let result = match cli.command {
-        Command::Devices { json } => cmd::devices::run(&lab, json).await,
+        Command::Devices { all, json } => cmd::devices::run(&lab, all, json).await,
         Command::Info { json } => cmd::info::run(&lab, device, json).await,
         Command::Apps { all, running, json } => cmd::apps::run(&lab, device, all, running, json).await,
         Command::Logs { app, level, tag, grep, regex, tail, json } => {
@@ -1048,6 +1344,9 @@ async fn run() -> ExitCode {
         }
         Command::Rn { action: RnAction::Tree { app, metro, depth, json } } => {
             cmd::frameworks::rn_tree(&app, metro, depth, json).await
+        }
+        Command::Rn { action: RnAction::State { app, metro, watch, json } } => {
+            cmd::frameworks::rn_state(&app, metro, watch, json).await
         }
         Command::Rn { action: RnAction::Heap { app, metro, json } } => {
             cmd::frameworks::rn_heap(&app, metro, json).await
@@ -1191,6 +1490,29 @@ async fn run() -> ExitCode {
         },
         Command::Ca { action: CaAction::Install } => cmd::net::install_ca(&lab, device).await,
         Command::Ca { action: CaAction::Path } => cmd::net::path(),
+        Command::State { action } => match action {
+            StateAction::Save { app, output, external } => {
+                cmd::state::save(&lab, device, &app, &output, external).await
+            }
+            StateAction::Restore { file, yes } => cmd::state::restore(&lab, device, &file, yes).await,
+            StateAction::Show { file, json } => cmd::state::show(&file, json),
+            StateAction::Diff { a, b, json } => cmd::state::diff(&lab, device, &a, b.as_deref(), json).await,
+        },
+        Command::Avd { action } => run_life(&lab, Platform::Android, action).await,
+        Command::Sim { action } => run_life(&lab, Platform::Ios, action).await,
+        Command::Snapshot { action } => match action {
+            SnapshotCmd::List { json } => cmd::lifecycle::snapshots(&lab, device, json).await,
+            SnapshotCmd::Save { name } => {
+                cmd::lifecycle::snapshot(&lab, device, SnapshotAction::Save, &name, true).await
+            }
+            SnapshotCmd::Load { name, yes } => {
+                cmd::lifecycle::snapshot(&lab, device, SnapshotAction::Load, &name, yes).await
+            }
+            SnapshotCmd::Delete { name, yes } => {
+                cmd::lifecycle::snapshot(&lab, device, SnapshotAction::Delete, &name, yes).await
+            }
+        },
+        Command::Edit { action } => run_edit(&lab, device, action).await,
         Command::Db { app, path, root, table, query, limit, offset, json } => {
             let args = cmd::files::DbArgs { app, path, root, table, query, limit, offset, json };
             cmd::files::db(&lab, device, args).await
