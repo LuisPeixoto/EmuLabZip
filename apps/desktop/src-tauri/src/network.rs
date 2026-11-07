@@ -44,6 +44,8 @@ pub struct NetState {
     pub conditions: Conditions,
     /// The `.proto` folder gRPC messages are decoded with.
     pub protos: Option<ProtosInfo>,
+    /// The recording requests are answered from, and how it is going.
+    pub replay: Option<emulabzip_net::ReplayStats>,
 }
 
 #[derive(Serialize, Clone)]
@@ -78,6 +80,7 @@ fn snapshot(rt: &NetRuntime) -> NetState {
             files: p.file_count(),
             services: p.service_count(),
         }),
+        replay: rt.replay.as_ref().map(|r| r.stats()),
     }
 }
 
@@ -94,6 +97,7 @@ async fn start(state: &AppState, rt: &mut NetRuntime, port: u16) -> CmdResult<()
         http3: rt.http3,
         hide_http3: rt.hide_http3,
         conditions: rt.conditions.clone(),
+        replay: rt.replay.clone(),
         ..Default::default()
     };
     let handle = Proxy::start(config, ca, state.flows.clone())
@@ -498,6 +502,52 @@ pub async fn net_set_hide_http3(state: State<'_, AppState>, hide: bool) -> CmdRe
     rt.hide_http3 = hide;
     if let Some(proxy) = &rt.proxy {
         proxy.set_hide_http3(hide);
+    }
+    Ok(snapshot(&rt))
+}
+
+// ---------------------------------------------------------------------------------------------
+// Replaying a recording
+// ---------------------------------------------------------------------------------------------
+
+/// Starts answering from a recording: a HAR file or a session, given by `path` or asked for. A request that is not in
+/// it fails with a 504 unless `passthrough` lets it reach the server. `None` when the file dialog is cancelled.
+#[tauri::command]
+pub async fn net_replay_load(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    path: Option<String>,
+    passthrough: bool,
+) -> CmdResult<Option<NetState>> {
+    let path = match path {
+        Some(p) => std::path::PathBuf::from(p),
+        None => {
+            match ask_open_path(&app, ("Recording to replay", &["har", "json", emulabzip_session::EXTENSION])).await {
+                Some(p) => p,
+                None => return Ok(None),
+            }
+        }
+    };
+    let set = tokio::task::spawn_blocking(move || emulabzip_session::replay::load(&path, passthrough, false))
+        .await
+        .map_err(err)?
+        .map_err(err)?;
+    let set = Arc::new(set);
+    let mut rt = state.net.lock().await;
+    rt.replay = Some(set.clone());
+    if let Some(proxy) = &rt.proxy {
+        proxy.set_replay_set(Some(set));
+    }
+    Ok(Some(snapshot(&rt)))
+}
+
+/// Goes back to asking the real servers.
+#[tauri::command]
+pub async fn net_replay_stop(state: State<'_, AppState>) -> CmdResult<NetState> {
+    let mut rt = state.net.lock().await;
+    rt.replay = None;
+    if let Some(proxy) = &rt.proxy {
+        proxy.set_replay_set(None);
     }
     Ok(snapshot(&rt))
 }

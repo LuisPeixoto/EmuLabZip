@@ -90,11 +90,31 @@ class NetStore {
   #index = new Map<number, number>();
   #session: number | null = null;
   #selecting = 0;
+  #watch: ReturnType<typeof setInterval> | undefined;
+
+  /** While a recording is replayed its numbers change, so they are read again every moment. */
+  #syncWatch() {
+    const on = !!this.state?.replay;
+    if (on && !this.#watch) {
+      this.#watch = setInterval(async () => {
+        try {
+          this.state = await api.netState();
+        } catch {
+          /* the next tick tries again */
+        }
+        this.#syncWatch();
+      }, 1500);
+    } else if (!on && this.#watch) {
+      clearInterval(this.#watch);
+      this.#watch = undefined;
+    }
+  }
 
   async init() {
     if (this.#session != null) return;
     try {
       this.state = await api.netState();
+      this.#syncWatch();
       this.#session = await api.netSubscribe((b) => this.#apply(b));
       this.rules = await api.netRulesGet();
       this.presets = await api.netConditionPresets();
@@ -291,6 +311,23 @@ class NetStore {
   async setConditions(conditions: Conditions) {
     const state = await app.attempt(() => api.netSetConditions(conditions));
     if (state) this.state = state;
+  }
+
+  /** Answers from a HAR file or a session (asked for when `path` is null). True when it started. */
+  async replayLoad(path: string | null, passthrough: boolean): Promise<boolean> {
+    const state = await app.attempt(() => api.netReplayLoad(path, passthrough));
+    if (!state) return false;
+    this.state = state;
+    this.#syncWatch();
+    app.toast(`Replaying ${state.replay?.entries ?? 0} recorded requests. ${passthrough ? "Others go to the real server." : "Others fail, and never reach the internet."}`, "ok");
+    return true;
+  }
+
+  async replayStop() {
+    const state = await app.attempt(() => api.netReplayStop());
+    if (!state) return;
+    this.state = state;
+    this.#syncWatch();
   }
 
   async pickProtos() {

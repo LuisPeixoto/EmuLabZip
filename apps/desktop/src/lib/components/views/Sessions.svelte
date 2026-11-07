@@ -7,6 +7,7 @@
   import { bytes, clock, dateTime, kb } from "../../format";
   import LineChart from "../charts/LineChart.svelte";
   import Icon from "../Icon.svelte";
+  import Timeline from "../sessions/Timeline.svelte";
 
   onMount(() => {
     sessions.init();
@@ -57,7 +58,7 @@
   const samples = $derived(v?.perf ?? []);
   const cpu = $derived([{ label: "App CPU", color: "var(--series-1)", values: samples.map((s) => s.appCpu) }]);
   const mem = $derived([{ label: "App memory", color: "var(--series-2)", values: samples.map((s) => (s.appMemoryKb == null ? null : s.appMemoryKb / 1024)) }]);
-  const crashOffsets = $derived((v?.crashes ?? []).filter((c) => c.timeMs != null).map((c) => ({ ...c, at: Math.max(0, (c.timeMs ?? 0) - (v?.meta.startedMs ?? 0)) })));
+  const laneTotal = (lane: string) => v?.timeline.lanes.find((l) => l.lane === lane)?.total ?? 0;
 
   const button = "flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40";
 </script>
@@ -73,12 +74,18 @@
       <span class="flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-3 py-1.5 text-[12px]">
         <span class="live-dot size-2 rounded-full bg-err"></span>
         <b class="font-medium">Recording {status.device}</b>
-        <span class="mono text-muted">{clock(status.seconds * 1000)} · {status.logs.toLocaleString()} lines · {status.samples} samples · {status.crashes} crashes</span>
+        <span class="mono text-muted">{clock(status.seconds * 1000)} · {status.logs.toLocaleString()} lines · {status.samples} samples · {status.crashes} crashes{status.taps ? ` · ${status.taps} touches` : ""}{status.videoPieces ? ` · ${status.videoPieces} video` : ""}</span>
       </span>
       <button onclick={() => sessions.stop()} disabled={sessions.busy === "stop"} class="flex h-8 items-center gap-1.5 rounded-lg bg-err px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50"><Icon name="stop" size={12} />Stop and save</button>
     {:else}
       <label class="flex items-center gap-1.5 text-[12px] text-muted" title="Needs the device connected in Network">
         <input type="checkbox" bind:checked={sessions.network} class="accent-[var(--accent)]" /> Network
+      </label>
+      <label class="flex items-center gap-1.5 text-[12px] text-muted" title="Record the screen in pieces of 30 seconds, so the one around a crash can go in a bug report">
+        <input type="checkbox" checked={sessions.videoSecs > 0} onchange={(e) => (sessions.videoSecs = e.currentTarget.checked ? 30 : 0)} class="accent-[var(--accent)]" /> Video
+      </label>
+      <label class="flex items-center gap-1.5 text-[12px] text-muted" title="Taps, long presses and swipes. Android: touches on the emulator window, or sent through the emulator console">
+        <input type="checkbox" bind:checked={sessions.taps} class="accent-[var(--accent)]" /> Touches
       </label>
       <select bind:value={sessions.screensEvery} aria-label="Screenshots" class="mono h-8 rounded-lg border border-line bg-panel-2 px-2 text-[12px] outline-none focus:border-accent">
         <option value={0}>No screenshots</option>
@@ -131,6 +138,9 @@
             <p class="truncate text-[13px] font-semibold">{v.summary.device.name}{v.summary.app ? ` · ${v.summary.app}` : ""}</p>
             <p class="mono truncate text-[11px] text-faint">{dateTime(v.meta.startedMs / 1000)} · {duration(v.summary.durationMs)}{v.summary.partial ? " · cut short" : ""} · <span title={v.path}>{v.path.split(/[\\/]/).pop()}</span></p>
           </div>
+          {#if v.meta.network && v.requests.length}
+            <button onclick={() => sessions.replayNetwork(v.path)} class={button} title="Answer the app's requests from this recording, so it runs without the internet"><Icon name="repeat" size={14} />Replay network</button>
+          {/if}
           <button onclick={() => (app.report = { session: v.path })} class={button} title="A bug report made from this recording"><Icon name="bug" size={14} />Bug report</button>
           <button onclick={() => sessions.close()} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close"><Icon name="x" size={14} /></button>
         </div>
@@ -147,7 +157,7 @@
         <div class="min-h-0 flex-1 overflow-y-auto">
           {#if sessions.tab === "overview"}
             <div class="grid grid-cols-2 gap-3 p-4 lg:grid-cols-4">
-              {#each [["Crashes", v.summary.crashes.length ? String(v.summary.crashes.length) : "none", v.summary.crashes.length ? "text-err" : "text-ok"], ["Log errors", String(v.summary.logs.errors), v.summary.logs.errors ? "text-warn" : "text-ok"], ["Requests", v.summary.network ? `${v.summary.network.requests} (${v.summary.network.failed} failed)` : "not recorded", ""], ["CPU peak", v.summary.perf?.cpuPeak != null ? `${v.summary.perf.cpuPeak.toFixed(0)}%` : "—", ""], ["Memory peak", kb(v.summary.perf?.memoryPeakKb), ""], ["Frame rate", v.summary.perf?.fpsAvg != null ? `${v.summary.perf.fpsAvg.toFixed(0)} fps` : "—", ""], ["Log lines", v.summary.logs.total.toLocaleString(), ""], ["Screenshots", String(v.summary.screens), ""]] as [label, value, cls] (label)}
+              {#each [["Crashes", v.summary.crashes.length ? String(v.summary.crashes.length) : "none", v.summary.crashes.length ? "text-err" : "text-ok"], ["Log errors", String(v.summary.logs.errors), v.summary.logs.errors ? "text-warn" : "text-ok"], ["Requests", v.summary.network ? `${v.summary.network.requests} (${v.summary.network.failed} failed)` : "not recorded", ""], ["CPU peak", v.summary.perf?.cpuPeak != null ? `${v.summary.perf.cpuPeak.toFixed(0)}%` : "—", ""], ["Memory peak", kb(v.summary.perf?.memoryPeakKb), ""], ["Frame rate", v.summary.perf?.fpsAvg != null ? `${v.summary.perf.fpsAvg.toFixed(0)} fps` : "—", ""], ["Log lines", v.summary.logs.total.toLocaleString(), ""], ["Screenshots", String(v.summary.screens), ""], ["Touches", laneTotal("taps") ? String(laneTotal("taps")) : "not recorded", ""], ["Slow-frame bursts", laneTotal("frames") ? String(laneTotal("frames")) : "—", laneTotal("frames") ? "text-warn" : ""], ["Garbage collections", laneTotal("gc") ? String(laneTotal("gc")) : "—", ""], ["Screen video", v.video.length ? `${v.video.length} ${v.video.length === 1 ? "piece" : "pieces"}` : "not recorded", ""]] as [label, value, cls] (label)}
                 <div class="rounded-xl border border-line bg-panel p-3">
                   <p class="text-[11px] text-muted">{label}</p>
                   <p class="mono mt-1 text-[15px] font-semibold {cls}">{value}</p>
@@ -216,20 +226,13 @@
               {/if}
             {/if}
           {:else if sessions.tab === "timeline"}
-            {#if !samples.length}
-              <p class="px-4 py-12 text-center text-[12.5px] text-muted">No samples were recorded.</p>
-            {:else}
-              <div class="grid gap-4 p-4 lg:grid-cols-2">
+            <Timeline view={v} />
+            {#if samples.length}
+              <div class="grid gap-4 px-4 pb-2 lg:grid-cols-2">
                 <LineChart title="CPU, share of the device" series={cpu} max={100} format={(x) => `${x.toFixed(0)}%`} />
                 <LineChart title="Memory" series={mem} format={(x) => `${x.toFixed(0)} MB`} />
               </div>
-              <p class="px-4 text-[11.5px] text-muted">{samples.length} samples over {duration(samples.at(-1)?.tMs ?? 0)}.</p>
-              {#if crashOffsets.length}
-                <h3 class="px-4 pt-3 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Crashes on the timeline</h3>
-                <ul class="px-4 pb-4">
-                  {#each crashOffsets as c (c.id)}<li class="flex gap-3 py-1 text-[12.5px]"><span class="mono w-16 shrink-0 text-err">{duration(c.at)}</span><span class="min-w-0">{c.title}</span></li>{/each}
-                </ul>
-              {/if}
+              <p class="px-4 pb-4 text-[11.5px] text-muted">{samples.length} samples over {duration(samples.at(-1)?.tMs ?? 0)}.</p>
             {/if}
           {:else}
             {#if !v.screens.length}

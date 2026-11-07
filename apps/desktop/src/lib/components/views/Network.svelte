@@ -114,6 +114,9 @@
   let menu = $state(false);
   let conditionsMenu = $state(false);
   let showDns = $state(false);
+  let replayMenu = $state(false);
+  let passthrough = $state(false);
+  let showMissed = $state(false);
   const shaped = $derived(!!net.state?.conditions && (net.state.conditions.offline || net.state.conditions.downKbps != null || net.state.conditions.upKbps != null || net.state.conditions.latencyMs > 0 || net.state.conditions.lossPercent > 0));
   const grpcNames = ["OK", "CANCELLED", "UNKNOWN", "INVALID_ARGUMENT", "DEADLINE_EXCEEDED", "NOT_FOUND", "ALREADY_EXISTS", "PERMISSION_DENIED", "RESOURCE_EXHAUSTED", "FAILED_PRECONDITION", "ABORTED", "OUT_OF_RANGE", "UNIMPLEMENTED", "INTERNAL", "UNAVAILABLE", "DATA_LOSS", "UNAUTHENTICATED"];
   // The numbers a custom network is typed as: empty means no limit.
@@ -220,6 +223,27 @@
     </div>
   {/if}
 
+  {#if net.state?.replay}
+    {@const r = net.state.replay}
+    <div class="shrink-0 border-b border-accent/30 bg-accent-soft px-4 py-2 text-[12px]">
+      <div class="flex items-center gap-2">
+        <Icon name="repeat" size={14} class="shrink-0 text-accent" />
+        <span class="min-w-0 flex-1 truncate">
+          Replaying <span class="mono font-medium">{r.source}</span>: {r.entries} requests · <b class="font-semibold">{r.hits}</b> answered ·
+          <b class="font-semibold {r.misses ? 'text-err' : ''}">{r.misses}</b> not in the recording.
+          <span class="text-muted">{r.passthrough ? "Those go to the real server." : "Those fail with 504, and nothing reaches the internet."}</span>
+        </span>
+        {#if r.missed.length}<button onclick={() => (showMissed = !showMissed)} class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 hover:bg-hover">Not recorded<Icon name={showMissed ? "chevronDown" : "chevronRight"} size={12} /></button>{/if}
+        <button onclick={() => net.replayStop()} class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 font-medium hover:bg-hover">Stop replay</button>
+      </div>
+      {#if showMissed && r.missed.length}
+        <div class="mono selectable mt-2 max-h-[120px] overflow-y-auto rounded-lg border border-line bg-panel px-3 py-1.5 text-[11.5px]">
+          {#each r.missed as line (line)}<div class="py-0.5">{line}</div>{/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <!-- Filters -->
   <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
     <label class="relative flex min-w-[220px] flex-1 items-center">
@@ -277,6 +301,26 @@
             <p class="text-[11.5px] leading-relaxed text-muted">Without your <span class="mono">.proto</span> files, messages are shown with field numbers only.</p>
             <button onclick={() => net.pickProtos()} class="mt-1.5 h-7 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line">Choose the .proto folder…</button>
           {/if}
+        </div>
+      {/if}
+    </div>
+    <div class="relative">
+      <button onclick={() => (replayMenu = !replayMenu)} title="Answer from a recording, so the app runs without the internet" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium hover:bg-hover {net.state?.replay ? 'bg-accent-soft text-accent' : 'text-muted hover:text-fg'}">
+        <Icon name="repeat" size={14} />Replay
+      </button>
+      {#if replayMenu}
+        <button class="fixed inset-0 z-30 cursor-default" aria-label="Close" onclick={() => (replayMenu = false)}></button>
+        <div class="shadow-pop absolute top-9 right-0 z-40 w-[330px] rounded-xl border border-line bg-elevated p-3">
+          <p class="text-[12px] leading-relaxed text-muted">Answer the app's requests from a HAR file or a recorded session. The servers are not asked, so a run does not depend on a backend that has changed or is down.</p>
+          <label class="mt-2.5 flex items-start gap-2.5 text-[12px]">
+            <input type="checkbox" bind:checked={passthrough} class="mt-0.5 accent-[var(--accent)]" />
+            <span>Let requests that are not in the recording reach the real server<span class="mt-0.5 block text-[11px] text-faint">Off: they fail with 504, so a test sees what the app asked for that it did not expect.</span></span>
+          </label>
+          <div class="mt-2.5 flex gap-1.5">
+            <button onclick={async () => { if (await net.replayLoad(null, passthrough)) replayMenu = false; }} class="h-7 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">Choose a file…</button>
+            {#if net.state?.replay}<button onclick={() => { net.replayStop(); replayMenu = false; }} class="h-7 rounded-lg px-3 text-[12px] text-muted hover:bg-hover hover:text-fg">Stop replay</button>{/if}
+          </div>
+          <p class="mt-2 text-[11px] leading-relaxed text-faint">WebSockets, gRPC calls and connections the proxy cannot decode are refused while a recording is replayed. Start the proxy and connect the device as usual.</p>
         </div>
       {/if}
     </div>
