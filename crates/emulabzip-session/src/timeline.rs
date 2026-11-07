@@ -130,10 +130,14 @@ pub fn build(session: &Session) -> Timeline {
     let rel = |epoch_ms: i64| (epoch_ms - start as i64).max(0) as u64;
 
     for (i, tap) in session.input.iter().enumerate() {
-        let label = match tap.kind {
-            InputKind::Tap => format!("Tap ({}, {})", tap.x, tap.y),
-            InputKind::LongPress => format!("Long press ({}, {})", tap.x, tap.y),
-            InputKind::Swipe => format!("Swipe ({}, {}) to ({}, {})", tap.x, tap.y, tap.x2, tap.y2),
+        let label = match (tap.kind, tap.positioned) {
+            (InputKind::Tap, true) => format!("Tap ({}, {})", tap.x, tap.y),
+            (InputKind::LongPress, true) => format!("Long press ({}, {})", tap.x, tap.y),
+            (InputKind::Swipe, true) => format!("Swipe ({}, {}) to ({}, {})", tap.x, tap.y, tap.x2, tap.y2),
+            // The position of a touch that repeated the place of the one before it is not in what the device says.
+            (InputKind::Tap, false) => "Tap".to_string(),
+            (InputKind::LongPress, false) => "Long press".to_string(),
+            (InputKind::Swipe, false) => "Swipe".to_string(),
         };
         add(Event {
             t_ms: rel(tap.t_ms as i64),

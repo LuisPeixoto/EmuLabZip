@@ -54,6 +54,14 @@ pub struct InputEvent {
     pub y2: u32,
     /// How long the finger stayed down.
     pub duration_ms: u32,
+    /// Whether the position is known. The kernel reports an axis only when it changes, so a touch at exactly the
+    /// place of the one before it, as the first touch of a recording can be, says nothing about where it was.
+    #[serde(default = "known")]
+    pub positioned: bool,
+}
+
+fn known() -> bool {
+    true
 }
 
 /// A frame the app took too long to draw.
