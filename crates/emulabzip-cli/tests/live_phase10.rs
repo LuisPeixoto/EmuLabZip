@@ -68,7 +68,8 @@ fn start_the_demo() {
     pause(3.0);
 }
 
-/// A finger on the screen, through the emulator's console, which reaches the touch device like a real one.
+/// A finger on the screen, through the emulator's console, which reaches the touch device like a real one. The app only
+/// takes it for a click when there is pressure.
 fn touch(x: u32, y: u32) {
     let send = |args: &[&str]| {
         let out = Command::new("adb").args(["-s", &device(), "emu", "event", "send"]).args(args).output().unwrap();
@@ -78,11 +79,12 @@ fn touch(x: u32, y: u32) {
         "EV_ABS:ABS_MT_TRACKING_ID:9",
         &format!("EV_ABS:ABS_MT_POSITION_X:{}", x * 32767 / 1080),
         &format!("EV_ABS:ABS_MT_POSITION_Y:{}", y * 32767 / 2400),
+        "EV_ABS:ABS_MT_PRESSURE:600",
         "EV_KEY:BTN_TOUCH:1",
         "EV_SYN:0:0",
     ]);
     pause(0.12);
-    send(&["EV_ABS:ABS_MT_TRACKING_ID:-1", "EV_KEY:BTN_TOUCH:0", "EV_SYN:0:0"]);
+    send(&["EV_ABS:ABS_MT_TRACKING_ID:-1", "EV_ABS:ABS_MT_PRESSURE:0", "EV_KEY:BTN_TOUCH:0", "EV_SYN:0:0"]);
 }
 
 #[test]
@@ -112,6 +114,7 @@ fn video_touches_and_requests_land_on_one_timeline() {
     };
     let taps = lane("taps");
     assert!(taps.len() >= 2, "both touches are on the timeline: {taps:?}");
+    assert!(!lane("requests").is_empty() || !t["lanes"].as_array().unwrap().is_empty());
     // The first touch was five seconds in, give or take the time the recorder took to start.
     let first = taps[0]["tMs"].as_u64().unwrap();
     assert!((3_000..9_000).contains(&first), "{first} ms");
