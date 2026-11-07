@@ -11,6 +11,16 @@ pub enum FileKind {
     /// Binary or XML property list.
     Plist,
     Json,
+    /// A Preferences DataStore (`*.preferences_pb`).
+    DataStore,
+    /// A Proto DataStore: protobuf under `datastore/`.
+    ProtoDataStore,
+    /// An MMKV data file (under `mmkv/`).
+    Mmkv,
+    /// A Realm file.
+    Realm,
+    /// React Native's AsyncStorage on iOS: a `manifest.json` in `RCTAsyncLocalStorage_V1`.
+    AsyncStorage,
     Image,
     Text,
     Binary,
@@ -18,10 +28,30 @@ pub enum FileKind {
 
 const SQLITE_MAGIC: &[u8] = b"SQLite format 3\0";
 
+/// What a file is, from its bytes and its name. Give the path relative to the root where there is one: the folder says
+/// what `mmkv/default` and `datastore/x.pb` are.
 pub fn detect(name: &str, bytes: &[u8]) -> FileKind {
     let lower = name.to_ascii_lowercase();
     if bytes.starts_with(SQLITE_MAGIC) {
         return FileKind::Sqlite;
+    }
+    // A Realm file has its mnemonic after the two top references.
+    if bytes.len() >= 24 && &bytes[16..20] == b"T-DB" {
+        return FileKind::Realm;
+    }
+    if lower.ends_with(".preferences_pb") {
+        return FileKind::DataStore;
+    }
+    if lower.contains("/datastore/") && lower.ends_with(".pb")
+        || lower.starts_with("datastore/") && lower.ends_with(".pb")
+    {
+        return FileKind::ProtoDataStore;
+    }
+    if (lower.contains("/mmkv/") || lower.starts_with("mmkv/")) && !lower.ends_with(".crc") && !bytes.is_empty() {
+        return FileKind::Mmkv;
+    }
+    if lower.contains("rctasynclocalstorage") && lower.ends_with("manifest.json") {
+        return FileKind::AsyncStorage;
     }
     if bytes.starts_with(b"bplist00") {
         return FileKind::Plist;
@@ -93,5 +123,20 @@ mod tests {
         assert_eq!(detect("data", b"{\"a\": 1}"), FileKind::Json);
         assert_eq!(detect("notes.txt", b"hello\nworld"), FileKind::Text);
         assert_eq!(detect("blob", &[0, 1, 2, 3, 255]), FileKind::Binary);
+    }
+
+    #[test]
+    fn detects_what_apps_keep_by_name_and_place() {
+        assert_eq!(detect("files/datastore/demo.preferences_pb", &[0x0a, 0x00]), FileKind::DataStore);
+        assert_eq!(detect("files/datastore/state.pb", &[0x08, 0x01]), FileKind::ProtoDataStore);
+        assert_eq!(detect("datastore/state.pb", &[0x08, 0x01]), FileKind::ProtoDataStore);
+        assert_eq!(detect("files/mmkv/mmkv.default", &[1, 0, 0, 0, 1]), FileKind::Mmkv);
+        assert_eq!(detect("files/mmkv/mmkv.default.crc", &[1, 2, 3]), FileKind::Binary);
+        assert_eq!(detect("Library/RCTAsyncLocalStorage_V1/manifest.json", b"{}"), FileKind::AsyncStorage);
+        let mut realm = vec![0u8; 64];
+        realm[16..20].copy_from_slice(b"T-DB");
+        assert_eq!(detect("default.realm", &realm), FileKind::Realm);
+        // A file called pb elsewhere is not one of them.
+        assert_eq!(detect("notes/other.pb", &[0, 1, 2]), FileKind::Binary);
     }
 }

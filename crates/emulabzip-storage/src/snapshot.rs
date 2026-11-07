@@ -141,8 +141,15 @@ impl StateFile {
     }
 }
 
+/// A number that is different every time it is asked for, in this process: two things made in the same millisecond must
+/// not share a folder or a file name.
+fn unique() -> u64 {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 fn scratch() -> Result<PathBuf> {
-    let dir = std::env::temp_dir().join(format!("emulabzip-state-{}-{:x}", std::process::id(), now_ms()));
+    let dir = std::env::temp_dir().join(format!("emulabzip-state-{}-{:x}-{}", std::process::id(), now_ms(), unique()));
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }
@@ -238,7 +245,7 @@ pub async fn restore_with_backup(
     let dir = scratch()?;
     let result = async {
         std::fs::create_dir_all(backups)?;
-        let backup = backups.join(format!("{app}-{}.{EXTENSION}", now_ms()));
+        let backup = backups.join(format!("{app}-{}-{}.{EXTENSION}", now_ms(), unique()));
         save(lab, target, &app, &backup, state.meta.external).await.map_err(|e| {
             Error::failed(format!("The data as it is now could not be saved first, so nothing was replaced: {e}"))
         })?;
