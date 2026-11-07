@@ -30,7 +30,10 @@ pub use backend::{Backend, DeviceIo, DeviceStream, Lab, LogOptions, is_log_needl
 pub use buffer::RingBuffer;
 pub use compare::{DiffRow, diff};
 pub use control::{Appearance, Control, ControlInfo, Grant, PermissionState, StatusBar};
-pub use crash::{CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, Hint, Language, ThreadTrace};
+pub use crash::{
+    CrashKind, CrashReport, CrashSummary, Frame, FrameOrigin, Hint, JsFrame, Language, ThreadTrace, js_thread,
+    parse_js_frame,
+};
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use energy::{EnergyComponent, EnergyReport, Wakelock};
 pub use error::{Error, Result};

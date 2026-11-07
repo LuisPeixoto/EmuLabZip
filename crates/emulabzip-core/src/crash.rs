@@ -142,6 +142,82 @@ pub struct CrashReport {
     pub raw: String,
 }
 
+/// A frame of a JavaScript stack, as the engine printed it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JsFrame {
+    pub function: Option<String>,
+    /// The file as printed, usually the bundle. Empty when the engine printed only the position, as Hermes does for
+    /// bytecode: `name@1:12345`.
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+}
+
+/// Reads one line of a Hermes, V8 or JavaScriptCore stack:
+///
+/// ```text
+///     at onPress (address at index.android.bundle:1:123456)
+///     at foo (index.android.bundle:10:20)
+///     foo@index.ios.bundle:10:20
+///     foo@1:12345
+///     @index.ios.bundle:10:20
+/// ```
+pub fn parse_js_frame(line: &str) -> Option<JsFrame> {
+    let t = line.trim();
+    if let Some(rest) = t.strip_prefix("at ") {
+        let (function, place) = match rest.rsplit_once(" (") {
+            Some((f, p)) => (Some(f.trim()), p.strip_suffix(')')?),
+            None => (None, rest),
+        };
+        let place = place.strip_prefix("address at ").unwrap_or(place);
+        let (file, line_no, column) = position(place)?;
+        let function = function.filter(|f| !f.is_empty() && *f != "anonymous" && *f != "?");
+        return Some(JsFrame { function: function.map(str::to_string), file, line: line_no, column });
+    }
+    // JavaScriptCore and React Native's own format: `name@file:line:column` or `name@line:column`.
+    let (function, place) = t.split_once('@')?;
+    if function.contains(' ') {
+        return None;
+    }
+    let (file, line_no, column) = position(place)?;
+    Some(JsFrame { function: Some(function.to_string()).filter(|f| !f.is_empty()), file, line: line_no, column })
+}
+
+/// `file:line:column`, `line:column`, where the file may itself hold colons (`http://host/index.bundle`).
+fn position(place: &str) -> Option<(String, u32, u32)> {
+    let (rest, column) = place.rsplit_once(':')?;
+    let column = column.parse().ok()?;
+    match rest.rsplit_once(':') {
+        Some((file, line)) => match line.parse() {
+            Ok(line) => Some((file.to_string(), line, column)),
+            Err(_) => None,
+        },
+        None => Some((String::new(), rest.parse().ok()?, column)),
+    }
+}
+
+/// The JavaScript stack in a crash report, as a thread, when the report holds one. React Native writes it into the
+/// message of the exception it throws (`JavascriptException`, `RCTFatalException`), so it is found by its shape.
+pub fn js_thread(text: &str) -> Option<ThreadTrace> {
+    let mut frames: Vec<Frame> = Vec::new();
+    let mut seen: Vec<JsFrame> = Vec::new();
+    for line in text.lines() {
+        let Some(js) = parse_js_frame(line) else { continue };
+        // The same stack is often printed twice, in the message and in the cause: one copy is enough.
+        if seen.first() == Some(&js) && !seen.is_empty() {
+            break;
+        }
+        let index = frames.len() as u32;
+        let image = Some(js.file.clone()).filter(|f| !f.is_empty());
+        let location = Some(format!("{}:{}", js.line, js.column));
+        let mut frame = Frame::new(index, js.function.clone().unwrap_or_default(), image, location, FrameOrigin::App);
+        frame.language = Some(Language::Js);
+        frames.push(frame);
+        seen.push(js);
+    }
+    (!frames.is_empty()).then(|| ThreadTrace { name: "JavaScript".into(), crashed: true, frames })
+}
+
 /// Longest crash id accepted.
 const MAX_ID: usize = 200;
 
@@ -194,5 +270,47 @@ mod tests {
         with.language = Some(Language::Native);
         let json = serde_json::to_value(&with).unwrap();
         assert_eq!((json["buildId"].as_str(), json["language"].as_str()), (Some("ab12"), Some("native")));
+    }
+
+    #[test]
+    fn reads_the_frames_each_engine_prints() {
+        let f = parse_js_frame("    at onPress (address at index.android.bundle:1:123456)").unwrap();
+        assert_eq!(
+            (f.function.as_deref(), f.file.as_str(), f.line, f.column),
+            (Some("onPress"), "index.android.bundle", 1, 123456)
+        );
+        let f = parse_js_frame("at foo (http://localhost:8081/index.bundle:10:20)").unwrap();
+        assert_eq!((f.file.as_str(), f.line, f.column), ("http://localhost:8081/index.bundle", 10, 20));
+        let f = parse_js_frame("    at index.android.bundle:3:4").unwrap();
+        assert_eq!((f.function, f.file.as_str()), (None, "index.android.bundle"));
+        let f = parse_js_frame("anonymous@index.ios.bundle:10:20").unwrap();
+        assert_eq!((f.function.as_deref(), f.line), (Some("anonymous"), 10));
+        let f = parse_js_frame("@index.ios.bundle:10:20").unwrap();
+        assert_eq!(f.function, None);
+        let f = parse_js_frame("crashDeep@1:12345").unwrap();
+        assert_eq!((f.function.as_deref(), f.file.as_str(), f.line, f.column), (Some("crashDeep"), "", 1, 12345));
+        for not in [
+            "",
+            "Error: boom",
+            "    at native",
+            "    at foo (native)",
+            "at foo (a:b:c)",
+            "x@y",
+            "mail me at a b@c.d:1:2",
+            "\tat com.x.Y.m(Y.java:12)",
+        ] {
+            assert_eq!(parse_js_frame(not), None, "{not:?}");
+        }
+    }
+
+    #[test]
+    fn finds_the_javascript_stack_in_a_report_and_keeps_one_copy() {
+        let text = "Process: dev.rn\n\ncom.facebook.react.common.JavascriptException: Error: boom, js engine: hermes, stack:\ncrashDeep@1:12345\nonPress@1:23456\n\n\tat com.facebook.react.X.run(X.java:10)\nCaused by: com.facebook.react.common.JavascriptException: Error: boom, js engine: hermes, stack:\ncrashDeep@1:12345\nonPress@1:23456\n";
+        let t = js_thread(text).unwrap();
+        assert_eq!((t.name.as_str(), t.crashed, t.frames.len()), ("JavaScript", true, 2));
+        assert_eq!(t.frames[0].symbol, "crashDeep");
+        assert_eq!((t.frames[0].location.as_deref(), t.frames[0].language), (Some("1:12345"), Some(Language::Js)));
+        assert_eq!(t.frames[1].index, 1);
+        assert!(js_thread("java.lang.RuntimeException: boom\n\tat a.B.c(B.java:1)").is_none());
     }
 }
