@@ -44,6 +44,49 @@ pub fn resolve(root: &Path, rel: &str) -> Result<PathBuf> {
     if full.starts_with(&root) { Ok(full) } else { Err(Error::invalid("path", rel)) }
 }
 
+/// Where a file that may not exist yet goes inside `root`. The deepest folder that does exist has to be inside the root
+/// once links are followed, so a symbolic link cannot carry a write out of it.
+pub fn resolve_for_write(root: &Path, rel: &str) -> Result<PathBuf> {
+    let root = root.canonicalize()?;
+    if rel.is_empty() {
+        return Err(Error::invalid("file", rel));
+    }
+    let full = root.join(rel);
+    let mut existing = full.as_path();
+    while !existing.exists() {
+        existing = existing.parent().ok_or_else(|| Error::invalid("path", rel))?;
+    }
+    if !existing.canonicalize()?.starts_with(&root) {
+        return Err(Error::invalid("path", rel));
+    }
+    // The file itself must not be a link that leaves the root either.
+    if let Ok(meta) = std::fs::symlink_metadata(&full)
+        && meta.file_type().is_symlink()
+        && !full.canonicalize().map(|c| c.starts_with(&root)).unwrap_or(false)
+    {
+        return Err(Error::invalid("path", rel));
+    }
+    Ok(full)
+}
+
+pub async fn write(root: &Path, rel: &str, bytes: &[u8]) -> Result<()> {
+    let path = resolve_for_write(root, rel)?;
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    tokio::fs::write(&path, bytes).await?;
+    Ok(())
+}
+
+pub async fn remove(root: &Path, rel: &str) -> Result<()> {
+    let path = resolve_for_write(root, rel)?;
+    match tokio::fs::remove_file(&path).await {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
 pub async fn list(root: &Path, rel: &str) -> Result<Vec<FileEntry>> {
     let dir = resolve(root, rel)?;
     let mut entries = Vec::new();
@@ -86,6 +129,38 @@ mod tests {
         std::fs::write(dir.join("Documents/notes.txt"), b"hello").unwrap();
         std::fs::write(dir.join("Library.plist"), b"x").unwrap();
         dir
+    }
+
+    #[test]
+    fn a_write_may_make_new_folders_but_not_leave_the_root() {
+        let root = temp_root("write");
+        assert!(resolve_for_write(&root, "Documents/new/deeper/file.db").is_ok());
+        assert!(resolve_for_write(&root, "../escape").is_err());
+        assert!(resolve_for_write(&root, "").is_err());
+        #[cfg(unix)]
+        {
+            let outside = std::env::temp_dir().join(format!("emulabzip-outside-{}", std::process::id()));
+            std::fs::create_dir_all(&outside).unwrap();
+            std::os::unix::fs::symlink(&outside, root.join("Escape")).unwrap();
+            assert!(resolve_for_write(&root, "Escape/file").is_err(), "a link out of the root is refused");
+            std::os::unix::fs::symlink(outside.join("target"), root.join("Documents/ln")).unwrap();
+            assert!(resolve_for_write(&root, "Documents/ln").is_err(), "so is a file that is such a link");
+            std::fs::remove_dir_all(outside).ok();
+        }
+        std::fs::remove_dir_all(root).ok();
+    }
+
+    #[tokio::test]
+    async fn a_file_is_written_and_removed_inside_the_root() {
+        let root = temp_root("wr");
+        write(&root, "Documents/sub/a.txt", b"one").await.unwrap();
+        assert_eq!(std::fs::read(root.join("Documents/sub/a.txt")).unwrap(), b"one");
+        write(&root, "Documents/sub/a.txt", b"two").await.unwrap();
+        assert_eq!(std::fs::read(root.join("Documents/sub/a.txt")).unwrap(), b"two");
+        remove(&root, "Documents/sub/a.txt").await.unwrap();
+        assert!(!root.join("Documents/sub/a.txt").exists());
+        remove(&root, "Documents/sub/a.txt").await.unwrap();
+        std::fs::remove_dir_all(root).ok();
     }
 
     #[test]
