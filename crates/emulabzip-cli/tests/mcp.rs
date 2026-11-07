@@ -61,6 +61,7 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "control_locale",
         "control_font_scale",
         "control_display_size",
+        "simulate_color_blindness",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }
