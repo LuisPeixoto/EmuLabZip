@@ -176,3 +176,14 @@ fn a_sweep_checks_its_arguments_before_looking_for_a_device() {
     }
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn an_unknown_kind_of_colour_blindness_is_refused_before_looking_for_a_device() {
+    let dir = scratch("vision");
+    let o = run(&dir, &["a11y", "--simulate", "purple"]);
+    assert!(!o.status.success());
+    assert!(err(&o).contains("protanopia, deuteranopia, tritanopia or achromatopsia"), "{}", err(&o));
+    // A file to write only makes sense with a simulation.
+    assert!(!run(&dir, &["a11y", "-o", "x.png"]).status.success());
+    std::fs::remove_dir_all(dir).ok();
+}

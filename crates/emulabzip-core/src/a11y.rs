@@ -253,6 +253,14 @@ pub struct Image {
 }
 
 impl Image {
+    pub(crate) fn from_rgba(width: u32, height: u32, rgba: Vec<u8>) -> Image {
+        Image { width, height, rgba }
+    }
+
+    pub(crate) fn rgba(&self) -> &[u8] {
+        &self.rgba
+    }
+
     pub(crate) fn pixel(&self, x: u32, y: u32) -> [u8; 3] {
         let i = ((y * self.width + x) * 4) as usize;
         [self.rgba[i], self.rgba[i + 1], self.rgba[i + 2]]

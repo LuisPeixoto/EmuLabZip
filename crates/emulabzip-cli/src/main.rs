@@ -279,6 +279,13 @@ enum Command {
     },
     /// Check the screen for missing labels, small touch targets and low contrast
     A11y {
+        /// Show the screen as someone with colour blindness sees it, and list the text that stops being readable:
+        /// protanopia, deuteranopia, tritanopia or achromatopsia
+        #[arg(long, value_name = "KIND", value_parser = parse_vision)]
+        simulate: Option<emulabzip_core::Vision>,
+        /// With --simulate: write the changed screenshot to this file
+        #[arg(short, long, requires = "simulate")]
+        output: Option<PathBuf>,
         #[arg(long)]
         json: bool,
         /// Exit with an error when something at least this serious is found: note, warning or error
@@ -945,6 +952,12 @@ fn parse_lane(text: &str) -> Result<emulabzip_session::Lane, String> {
         .ok_or_else(|| "use taps, logs, requests, frames, gc, crashes, screens or video".to_string())
 }
 
+fn parse_vision(text: &str) -> Result<emulabzip_core::Vision, String> {
+    emulabzip_core::Vision::parse(text).ok_or_else(|| {
+        format!("`{text}` is not a kind of colour blindness: use protanopia, deuteranopia, tritanopia or achromatopsia")
+    })
+}
+
 fn parse_severity(text: &str) -> Result<emulabzip_core::Severity, String> {
     emulabzip_core::Severity::parse(text).ok_or_else(|| "use note, warning or error".to_string())
 }
@@ -1450,7 +1463,10 @@ async fn run() -> ExitCode {
             let args = cmd::i18n::SweepArgs { locales, scales, app, settle_ms, json, fail_on_worse };
             cmd::i18n::sweep(&lab, device, args).await
         }
-        Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
+        Command::A11y { simulate: Some(vision), output, json, fail_on } => {
+            cmd::layout::simulate(&lab, device, vision, output, json, fail_on).await
+        }
+        Command::A11y { simulate: None, json, fail_on, .. } => cmd::layout::a11y(&lab, device, json, fail_on).await,
         Command::Session {
             action:
                 SessionAction::Record {

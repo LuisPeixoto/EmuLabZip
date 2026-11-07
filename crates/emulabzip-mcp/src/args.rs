@@ -221,6 +221,13 @@ pub struct Locale {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct ColorBlindness {
+    pub device: Option<String>,
+    /// `protanopia` (no red), `deuteranopia` (no green), `tritanopia` (no blue) or `achromatopsia` (no colour).
+    pub vision: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct FontScale {
     pub device: Option<String>,
     /// The text size as a percentage of normal: 100 is normal, 130 and 200 are common accessibility settings (50 to 300).
