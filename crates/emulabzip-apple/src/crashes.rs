@@ -123,6 +123,27 @@ fn frames_of(thread: &Value, images: &[Value]) -> Vec<Frame> {
         .unwrap_or_default()
 }
 
+/// The strings of the report that carry a JavaScript stack, as text with real line breaks.
+fn js_text_of(value: &Value) -> String {
+    fn walk(value: &Value, out: &mut String, depth: usize) {
+        if depth > 8 {
+            return;
+        }
+        match value {
+            Value::String(s) if s.contains("js engine:") || s.contains("RCTFatalException") => {
+                out.push_str(s);
+                out.push('\n');
+            }
+            Value::Array(items) => items.iter().for_each(|v| walk(v, out, depth + 1)),
+            Value::Object(map) => map.values().for_each(|v| walk(v, out, depth + 1)),
+            _ => {}
+        }
+    }
+    let mut out = String::new();
+    walk(value, &mut out, 0);
+    out
+}
+
 fn thread_name(thread: &Value, index: usize) -> String {
     text(thread, "name")
         .or_else(|| text(thread, "queue"))
@@ -220,6 +241,11 @@ fn parse_with_path(text_: &str, file_name: &str) -> Result<(CrashReport, String)
                 frames: frames_of(&holder, &images),
             },
         );
+    }
+
+    // A React Native app that fails in JavaScript terminates with an exception whose reason holds the JavaScript stack.
+    if let Some(js) = emulabzip_core::js_thread(&js_text_of(&body)) {
+        traces.insert(0, js);
     }
 
     let mut details = Vec::new();
@@ -400,6 +426,18 @@ mod tests {
         assert!(r.details.iter().any(|(k, v)| k == "App version" && v == "1.0 (1)"));
         assert!(r.hints.iter().any(|h| h.command.as_deref() == Some("emulabzip logs --app dev.emulabzip.crashy")));
         assert_eq!(r.app_version.as_deref(), Some("1.0 (1)"));
+    }
+
+    #[test]
+    fn a_react_native_crash_has_its_javascript_stack_first() {
+        let body = serde_json::json!({
+            "asi": { "CoreFoundation": ["*** Terminating app due to uncaught exception 'RCTFatalException: Unhandled JS Exception: Error: boom', reason: 'Unhandled JS Exception: Error: boom, js engine: hermes, stack:\ncrashDeep@1:12345\nonPress@1:23456\n'. terminating"] }
+        });
+        let text = js_text_of(&body);
+        let t = emulabzip_core::js_thread(&text).expect("the stack is found");
+        assert_eq!((t.frames.len(), t.frames[0].symbol.as_str()), (2, "crashDeep"));
+        assert_eq!(t.frames[0].language, Some(Language::Js));
+        assert!(js_text_of(&serde_json::json!({ "asi": { "x": ["plain failure"] } })).is_empty());
     }
 
     #[test]
