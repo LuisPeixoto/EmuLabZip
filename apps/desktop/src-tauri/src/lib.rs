@@ -4,6 +4,8 @@
 mod commands;
 mod controls;
 mod crashes;
+mod devices;
+mod edit;
 mod files;
 mod frameworks;
 mod layout;
@@ -13,6 +15,7 @@ mod profiling;
 mod report;
 mod sessions;
 mod state;
+mod states;
 mod traces;
 
 use tauri::{Manager, RunEvent};
@@ -65,6 +68,30 @@ pub fn run() {
             files::sqlite_rows,
             files::sqlite_query,
             files::save_file,
+            files::sqlite_keyed_rows,
+            files::realm_rows,
+            files::coredata_rows,
+            edit::edit_cells,
+            edit::edit_insert,
+            edit::edit_delete,
+            edit::edit_pref,
+            edit::edit_plist,
+            edit::edit_undo,
+            states::state_save,
+            states::state_pick,
+            states::state_info,
+            states::state_restore,
+            states::state_compare,
+            states::state_compare_now,
+            devices::devices_all,
+            devices::device_options,
+            devices::device_create,
+            devices::device_boot,
+            devices::device_shutdown,
+            devices::device_wipe,
+            devices::device_delete,
+            devices::emulator_snapshots,
+            devices::emulator_snapshot,
             layout::layout_read,
             sessions::session_status,
             sessions::session_start,
@@ -110,6 +137,9 @@ pub fn run() {
             frameworks::rn_tree,
             frameworks::rn_heap,
             frameworks::rn_console,
+            frameworks::rn_state,
+            frameworks::rn_state_watch,
+            frameworks::rn_state_stop,
             network::net_import_pcap,
             controls::controls_info,
             controls::control_apply,

@@ -2,7 +2,9 @@
 
 use emulabzip_core::{Framework, Target};
 use emulabzip_frameworks::flutter::{self, FlutterMemory, FrameStats, VmUri, WidgetNode};
-use emulabzip_frameworks::react_native::{self, ConsoleLine, HermesHeap, METRO_PORT, ReactNode};
+use emulabzip_frameworks::react_native::{
+    self, ConsoleLine, DispatchedAction, HermesHeap, METRO_PORT, ReactNode, ReactState, StateChange, diff_states,
+};
 use serde::Serialize;
 use tauri::State;
 
@@ -97,4 +99,47 @@ pub async fn rn_console(app: String, port: Option<u16>, seconds: u64) -> CmdResu
     }
     let rn = react_native::connect_app(&app, metro(port)).await.map_err(err)?;
     rn.console(seconds).await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn rn_state(app: String, port: Option<u16>) -> CmdResult<ReactState> {
+    let rn = react_native::connect_app(&app, metro(port)).await.map_err(err)?;
+    rn.state().await.map_err(err)
+}
+
+#[derive(Serialize)]
+pub struct StateUpdate {
+    pub state: ReactState,
+    /// What changed since the `before` the interface sent.
+    pub changes: Vec<StateChange>,
+    pub actions: Vec<DispatchedAction>,
+    /// Redux stores whose `dispatch` is being followed.
+    pub watching: bool,
+}
+
+/// One look while watching: the state, what changed from `before`, and the Redux actions after `since`. `start` wraps
+/// `dispatch` first (development builds only).
+#[tauri::command]
+pub async fn rn_state_watch(
+    app: String,
+    port: Option<u16>,
+    before: Option<ReactState>,
+    since: u64,
+    start: bool,
+) -> CmdResult<StateUpdate> {
+    let rn = react_native::connect_app(&app, metro(port)).await.map_err(err)?;
+    if start {
+        rn.watch_actions().await.map_err(err)?;
+    }
+    let (watching, actions) = rn.actions_since(since).await.map_err(err)?;
+    let state = rn.state().await.map_err(err)?;
+    let changes = before.map(|b| diff_states(&b, &state)).unwrap_or_default();
+    Ok(StateUpdate { state, changes, actions, watching })
+}
+
+/// Puts each store's `dispatch` back and drops the log.
+#[tauri::command]
+pub async fn rn_state_stop(app: String, port: Option<u16>) -> CmdResult<()> {
+    let rn = react_native::connect_app(&app, metro(port)).await.map_err(err)?;
+    rn.stop_actions().await.map_err(err)
 }
