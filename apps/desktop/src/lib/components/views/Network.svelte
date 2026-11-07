@@ -246,7 +246,7 @@
 
   <!-- Filters -->
   <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
-    <label class="relative flex min-w-[220px] flex-1 items-center">
+    <label class="relative flex min-w-[150px] flex-1 items-center">
       <Icon name="search" size={13} class="pointer-events-none absolute left-2.5 text-faint" />
       <input bind:this={searchEl} bind:value={net.filter.text} spellcheck="false" placeholder="Filter by URL, operation, method or status  (⌘F)" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-3 pl-8 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel" />
     </label>
