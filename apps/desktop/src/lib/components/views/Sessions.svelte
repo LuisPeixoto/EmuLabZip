@@ -131,6 +131,7 @@
             <p class="truncate text-[13px] font-semibold">{v.summary.device.name}{v.summary.app ? ` · ${v.summary.app}` : ""}</p>
             <p class="mono truncate text-[11px] text-faint">{dateTime(v.meta.startedMs / 1000)} · {duration(v.summary.durationMs)}{v.summary.partial ? " · cut short" : ""} · <span title={v.path}>{v.path.split(/[\\/]/).pop()}</span></p>
           </div>
+          <button onclick={() => (app.report = { session: v.path })} class={button} title="A bug report made from this recording"><Icon name="bug" size={14} />Bug report</button>
           <button onclick={() => sessions.close()} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close"><Icon name="x" size={14} /></button>
         </div>
         <div class="flex shrink-0 gap-1 border-b border-line px-3" role="tablist">
