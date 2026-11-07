@@ -270,3 +270,97 @@ fn analytics_arguments_are_checked_before_the_proxy_starts() {
     assert!(err(&o).contains("segment, amplitude, mixpanel or firebase"), "{}", err(&o));
     std::fs::remove_dir_all(dir).ok();
 }
+
+fn zip_file(path: &Path, files: &[(&str, usize)]) {
+    use std::io::Write;
+    let mut w = zip::ZipWriter::new(std::fs::File::create(path).unwrap());
+    let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+    for (name, size) in files {
+        w.start_file(*name, opts).unwrap();
+        let mut bytes = vec![0u8; *size];
+        if name.ends_with(".dex") {
+            bytes[..8].copy_from_slice(b"dex\n035\0");
+            bytes[0x58..0x5c].copy_from_slice(&500u32.to_le_bytes());
+            bytes[0x60..0x64].copy_from_slice(&40u32.to_le_bytes());
+        }
+        w.write_all(&bytes).unwrap();
+    }
+    w.finish().unwrap();
+}
+
+#[test]
+fn a_build_is_broken_down_compared_and_held_to_a_budget_without_a_device() {
+    let dir = scratch("size");
+    let (a, b) = (dir.join("a.apk"), dir.join("b.apk"));
+    zip_file(
+        &a,
+        &[("AndroidManifest.xml", 100), ("classes.dex", 4000), ("lib/arm64-v8a/libx.so", 3000), ("assets/a.bin", 1000)],
+    );
+    zip_file(
+        &b,
+        &[
+            ("AndroidManifest.xml", 100),
+            ("classes.dex", 4000),
+            ("lib/arm64-v8a/libx.so", 3000),
+            ("assets/a.bin", 1000),
+            ("assets/new.bin", 50_000),
+        ],
+    );
+
+    let shown = run(&dir, &["size", "show", a.to_str().unwrap()]);
+    assert!(shown.status.success(), "{}", err(&shown));
+    let text = out(&shown);
+    assert!(
+        text.contains("APK") && text.contains("dex") && text.contains("arm64-v8a") && text.contains("500"),
+        "{text}"
+    );
+    let json = run(&dir, &["size", "show", a.to_str().unwrap(), "--json"]);
+    let v: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!((v["format"].as_str(), v["methods"].as_u64()), (Some("apk"), Some(500)));
+
+    let d = run(&dir, &["size", "diff", a.to_str().unwrap(), b.to_str().unwrap()]);
+    assert!(d.status.success() && out(&d).contains("assets/new.bin") && out(&d).contains("added"), "{}", out(&d));
+    let grew = run(&dir, &["size", "diff", a.to_str().unwrap(), b.to_str().unwrap(), "--fail-on-growth", "10"]);
+    assert_eq!(grew.status.code(), Some(1));
+    assert!(err(&grew).contains("grew"), "{}", err(&grew));
+
+    // A budget: [size] in an emulabzip.toml.
+    let config = dir.join("emulabzip.toml");
+    std::fs::write(&config, "[size]\nmax_total_mb = 1\nmax_methods = 100\nmax_growth_percent = 10\n").unwrap();
+    let c = config.to_str().unwrap();
+    let over = run(&dir, &["size", "show", a.to_str().unwrap(), "--budget", "--config", c]);
+    assert_eq!(over.status.code(), Some(1), "{}{}", out(&over), err(&over));
+    assert!(out(&over).contains("methods"), "{}", out(&over));
+    // Growth needs a baseline, and says so.
+    assert!(out(&over).contains("no baseline build was given"), "{}", out(&over));
+    let grown =
+        run(&dir, &["size", "show", b.to_str().unwrap(), "--budget", "--config", c, "--baseline", a.to_str().unwrap()]);
+    assert!(out(&grown).contains("growth since the baseline"), "{}", out(&grown));
+    std::fs::write(&config, "[size]\nmax_total_mb = 5\nmax_methods = 1000\n").unwrap();
+    assert!(run(&dir, &["size", "show", a.to_str().unwrap(), "--budget", "--config", c]).status.success());
+
+    let junk = dir.join("junk.apk");
+    std::fs::write(&junk, b"not a zip").unwrap();
+    assert!(!run(&dir, &["size", "show", junk.to_str().unwrap()]).status.success());
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn ci_and_audit_check_their_arguments_before_a_device_is_looked_for() {
+    let dir = scratch("ci12");
+    for (args, said) in [
+        (vec!["ci", "-o", "x.ezsession", "--fail-on-security", "warning", "--", "true"], "--app"),
+        (vec!["ci", "-o", "x.ezsession", "--size-baseline", "a.apk", "--", "true"], "--size"),
+        (vec!["ci", "-o", "x.ezsession", "--size", "a.apk", "--", "true"], "[size]"),
+        (vec!["audit", "security", "a b"], "package name"),
+        (vec!["audit", "security", "com.example", "--only", "wifi"], "not an area"),
+        (vec!["size", "show", "missing.apk", "--budget"], "emulabzip.toml"),
+    ] {
+        let o = run(&dir, &args);
+        assert!(!o.status.success(), "{args:?}");
+        assert!(err(&o).contains(said), "{args:?}: {}", err(&o));
+    }
+    // --fail-on-visual only makes sense with --visual: the parser says so.
+    assert!(!run(&dir, &["ci", "-o", "x.ezsession", "--fail-on-visual", "--", "true"]).status.success());
+    std::fs::remove_dir_all(dir).ok();
+}
