@@ -63,6 +63,49 @@ impl ConditionArgs {
     }
 }
 
+/// A recording to answer from, and how.
+#[derive(Debug, Clone)]
+pub struct ReplayArgs {
+    pub file: PathBuf,
+    pub passthrough: bool,
+    pub timing: bool,
+}
+
+/// Reads the recording. Called before any proxy starts or device is looked for.
+pub fn load_replay(args: &ReplayArgs) -> Result<Arc<emulabzip_net::ReplaySet>> {
+    let set = emulabzip_session::replay::load(&args.file, args.passthrough, args.timing)?;
+    Ok(Arc::new(set))
+}
+
+/// A line that says what is being replayed and what happens to everything else.
+pub fn replay_banner(set: &emulabzip_net::ReplaySet) -> String {
+    format!(
+        "Replaying {}: {} requests. {}",
+        set.source(),
+        set.len(),
+        if set.is_strict() {
+            "A request that is not in it fails with 504 and never reaches the internet."
+        } else {
+            "A request that is not in it goes to the real server."
+        }
+    )
+}
+
+/// What a replay did, for the end of a run: how many were answered and which requests were not in the recording.
+pub fn print_replay_stats(set: &emulabzip_net::ReplaySet) {
+    let s = set.stats();
+    eprintln!(
+        "{}",
+        output::dim(&format!(
+            "Replay of {}: {} answered from the recording, {} not in it.",
+            s.source, s.hits, s.misses
+        ))
+    );
+    for line in &s.missed {
+        eprintln!("  {}", output::dim(&format!("not recorded: {line}")));
+    }
+}
+
 pub struct NetArgs {
     pub device: Option<String>,
     pub port: u16,
@@ -73,6 +116,7 @@ pub struct NetArgs {
     pub http3: bool,
     pub show_h3: bool,
     pub conditions: ConditionArgs,
+    pub replay: Option<ReplayArgs>,
 }
 
 /// Reads rules from a JSON file: a list, or an object with a `rules` list. Breakpoints are left
@@ -104,6 +148,7 @@ fn load_rules(path: &std::path::Path) -> Result<(Arc<RuleSet>, Vec<String>)> {
 pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
     // Checked before the proxy starts or any device is looked for.
     let conditions = args.conditions.build()?;
+    let replay = args.replay.as_ref().map(load_replay).transpose()?;
     let ca = load_ca()?;
     let store = FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY);
     let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
@@ -117,6 +162,12 @@ pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
             eprintln!("{}", output::dim(&format!("{} rules from {}.", rules.rules().len(), path.display())));
         }
         config.rules = rules;
+    }
+    if let Some(set) = &replay {
+        if !args.json {
+            eprintln!("{}", output::dim(&replay_banner(set)));
+        }
+        config.replay = Some(set.clone());
     }
     if let Some(c) = &conditions {
         config.conditions = c.clone();
@@ -156,6 +207,11 @@ pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
     let result = stream(&store, args.json).await;
     finish(lab, target.as_ref()).await;
     drop(proxy);
+    if let Some(set) = &replay
+        && !args.json
+    {
+        print_replay_stats(set);
+    }
 
     if let Some(path) = &args.har {
         let har = to_har(&store.all());

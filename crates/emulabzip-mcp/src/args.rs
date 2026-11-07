@@ -153,6 +153,16 @@ pub struct Session {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct SessionTimeline {
+    /// A name from `list_sessions`.
+    pub id: String,
+    /// Only these lanes: taps, logs, requests, frames, gc, crashes, screens or video. All of them when left out.
+    pub lanes: Option<Vec<String>>,
+    /// At most this many events, oldest first (default 200, at most 2000).
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Recording {
     /// An id from `list_traces`.
     pub id: String,

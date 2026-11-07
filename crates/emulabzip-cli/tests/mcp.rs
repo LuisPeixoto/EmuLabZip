@@ -47,6 +47,7 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "audit_accessibility",
         "list_sessions",
         "session_summary",
+        "session_timeline",
         "create_bug_report",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
@@ -162,5 +163,69 @@ fn a_bug_report_checks_its_arguments_before_asking_for_a_device() {
         assert_eq!(r["result"]["isError"], true, "{args}: {r}");
         let text = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.contains(word), "{args}: {text}");
+    }
+}
+
+fn plant_timeline_session(name: &str) {
+    let dir = Server::home().join("sessions").join(format!("{name}.ezsession.partial"));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("session.json"),
+        r#"{"version":2,"tool":"EmuLabZip test","device":{"id":"emulator-5554","name":"Test Pixel","platform":"android","osVersion":"14","model":null},"app":"com.example.app","startedMs":1000,"endedMs":9000,"network":false,"screensEverySecs":null,"logsDropped":0,"clock":{"offsetMs":0,"tzMinutes":0,"bootEpochMs":0}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("input.jsonl"),
+        "{\"tMs\":3000,\"kind\":\"tap\",\"x\":10,\"y\":20,\"x2\":10,\"y2\":20,\"durationMs\":80}\n{\"tMs\":5000,\"kind\":\"swipe\",\"x\":1,\"y\":2,\"x2\":300,\"y2\":2,\"durationMs\":200}\n",
+    )
+    .unwrap();
+    std::fs::write(dir.join("frames.jsonl"), "{\"tMs\":4000,\"durationMs\":120.0}\n").unwrap();
+    let file = Server::home().join("sessions").join(format!("{name}.ezsession"));
+    emulabzip_session::format::pack(&dir, &file).unwrap();
+}
+
+#[test]
+fn a_timeline_is_read_from_a_recorded_session() {
+    plant_timeline_session("timeline-me");
+    let mut s = Server::start_session();
+    let r = s.call(2, "tools/call", json!({ "name": "session_timeline", "arguments": { "id": "timeline-me" } }));
+    assert_eq!(r["result"]["isError"], false, "{r}");
+    let v: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    let times: Vec<u64> = v["events"].as_array().unwrap().iter().map(|e| e["tMs"].as_u64().unwrap()).collect();
+    assert_eq!(times, vec![2000, 3000, 4000], "oldest first, from the start of the recording: {v}");
+    assert_eq!((v["eventsTotal"].as_u64(), v["truncated"].as_bool()), (Some(3), Some(false)));
+    assert_eq!(v["events"][0]["lane"], "taps");
+
+    // Lanes and a limit narrow it down.
+    let r = s.call(
+        3,
+        "tools/call",
+        json!({ "name": "session_timeline", "arguments": { "id": "timeline-me", "lanes": ["frames", "taps"], "limit": 2 } }),
+    );
+    let v: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        (v["events"].as_array().unwrap().len(), v["eventsTotal"].as_u64(), v["truncated"].as_bool()),
+        (2, Some(3), Some(true))
+    );
+    let r = s.call(
+        4,
+        "tools/call",
+        json!({ "name": "session_timeline", "arguments": { "id": "timeline-me", "lanes": ["frames"] } }),
+    );
+    let v: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(v["events"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn a_timeline_checks_its_arguments_before_opening_anything() {
+    let mut s = Server::start_session();
+    for (args, word) in [
+        (json!({ "id": "no-such-session", "lanes": ["nope"] }), "not a lane"),
+        (json!({ "id": "../../etc" }), "not a session name"),
+        (json!({ "id": "no-such-session" }), "no session called"),
+    ] {
+        let r = s.call(2, "tools/call", json!({ "name": "session_timeline", "arguments": args }));
+        assert_eq!(r["result"]["isError"], true, "{args}: {r}");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains(word), "{args}: {r}");
     }
 }

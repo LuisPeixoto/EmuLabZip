@@ -36,6 +36,11 @@ pub struct Args {
     /// An earlier session to compare with.
     pub baseline: Option<PathBuf>,
     pub fail_on_regression: bool,
+    pub video: Option<u32>,
+    pub taps: bool,
+    pub replay: Option<super::net::ReplayArgs>,
+    /// Fail the run when the app asked for something the replayed recording does not hold.
+    pub fail_on_miss: bool,
     pub command: Vec<String>,
 }
 
@@ -72,6 +77,13 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
     if args.out.exists() {
         bail!("{} exists already. Pick another name, or delete it.", args.out.display());
     }
+    if args.replay.is_some() && !args.network {
+        bail!("--replay answers the app's requests through the proxy, so it needs --network");
+    }
+    if args.fail_on_miss && args.replay.is_none() {
+        bail!("--fail-on-miss needs --replay <recording> to check against");
+    }
+    let replay = args.replay.as_ref().map(super::net::load_replay).transpose()?;
     let (config, baseline_summary) = settings(&args)?;
     let device = lab.resolve(device).await?;
     // The start time is measured first, so the openings are not part of the recording.
@@ -87,12 +99,18 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         }
         _ => None,
     };
-    let network = if args.network { Some(Network::start(lab, &device, args.port).await?) } else { None };
+    if let Some(set) = &replay {
+        eprintln!("{}", output::dim(&super::net::replay_banner(set)));
+    }
+    let network =
+        if args.network { Some(Network::start(lab, &device, args.port, replay.clone()).await?) } else { None };
     let options = Options {
         app: args.app.clone(),
         screens_every: args.screens.map(Duration::from_secs),
         flows: network.as_ref().map(|n| n.store.clone()),
         startup,
+        video: args.video,
+        taps: args.taps,
         ..Default::default()
     };
     let recorder = match Recorder::start(lab.clone(), &device, args.out.clone(), options).await {
@@ -161,8 +179,21 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         notes.iter().map(|n| format!(", {n}")).collect::<String>()
     );
 
+    if let Some(set) = &replay {
+        super::net::print_replay_stats(set);
+    }
     if code != 0 {
         return Err(Exit(code.clamp(1, 255) as u8).into());
+    }
+    if args.fail_on_miss
+        && let Some(set) = &replay
+        && set.stats().misses > 0
+    {
+        eprintln!(
+            "error: the app asked for {} thing(s) that are not in the recording, so the run fails (--fail-on-miss).",
+            set.stats().misses
+        );
+        return Err(Exit(1).into());
     }
     if args.fail_on_crash && !crashed.is_empty() {
         eprintln!("error: {} crash(es) happened during the run, so it fails (--fail-on-crash).", crashed.len());

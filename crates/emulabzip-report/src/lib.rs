@@ -11,4 +11,6 @@ pub mod issue;
 pub mod markdown;
 pub mod model;
 
-pub use model::{BugReport, CrashSection, FailedRequest, LogLine, LogSection, Options};
+pub use model::{
+    BugReport, CrashSection, FailedRequest, LogLine, LogSection, Options, Strip, StripMark, VIDEO_FILE, VideoClip,
+};

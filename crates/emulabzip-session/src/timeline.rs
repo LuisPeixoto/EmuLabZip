@@ -13,6 +13,8 @@ use crate::reader::Session;
 
 /// The most events kept for each lane. The counts of what was left out are in [`LaneSummary`].
 const LANE_CAP: usize = 3000;
+/// Slow frames closer than this are one burst.
+const BURST_GAP_MS: u64 = 250;
 /// Longest label kept, in characters.
 const LABEL_MAX: usize = 140;
 
@@ -205,13 +207,34 @@ pub fn build(session: &Session) -> Timeline {
         }
     }
 
-    for frame in &session.slow_frames {
+    // A scroll that stutters makes dozens of slow frames in a row. They are one event: a burst.
+    let mut frames: Vec<&emulabzip_core::SlowFrame> = session.slow_frames.iter().collect();
+    frames.sort_by_key(|f| f.t_ms);
+    let mut bursts: Vec<Vec<&emulabzip_core::SlowFrame>> = Vec::new();
+    for frame in frames {
+        match bursts.last_mut() {
+            Some(burst)
+                if burst.last().is_some_and(|l| frame.t_ms <= l.t_ms + l.duration_ms.round() as u64 + BURST_GAP_MS) =>
+            {
+                burst.push(frame);
+            }
+            _ => bursts.push(vec![frame]),
+        }
+    }
+    for burst in bursts {
+        let (first, last) = (burst[0], burst[burst.len() - 1]);
+        let worst = burst.iter().map(|f| f.duration_ms).fold(0.0f32, f32::max);
+        let span = (last.t_ms + last.duration_ms.round() as u64).saturating_sub(first.t_ms);
         add(Event {
-            t_ms: rel(frame.t_ms as i64),
-            dur_ms: Some(frame.duration_ms.round() as u64),
+            t_ms: rel(first.t_ms as i64),
+            dur_ms: Some(span),
             lane: Lane::Frames,
-            severity: if frame.duration_ms >= 100.0 { Severity::Error } else { Severity::Warning },
-            label: format!("Slow frame, {:.0} ms", frame.duration_ms),
+            severity: if worst >= 100.0 { Severity::Error } else { Severity::Warning },
+            label: if burst.len() == 1 {
+                format!("Slow frame, {worst:.0} ms")
+            } else {
+                format!("{} slow frames, worst {worst:.0} ms", burst.len())
+            },
             detail: None,
             index: None,
         });

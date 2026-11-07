@@ -21,6 +21,9 @@ pub struct ReportRequest {
     pub logs: bool,
     pub requests: bool,
     pub crashes: bool,
+    /// The piece of the screen recording around the crash, when the session has one. Only a session has video.
+    #[serde(default)]
+    pub video: bool,
     /// `github:owner/repo`, `gitlab:[host/]group/project` or `jira:site/PROJECTID/ISSUETYPEID`; empty for none.
     pub issue: String,
     /// A recorded session's file, to make the report from it instead of from the device as it is now.
@@ -57,6 +60,7 @@ pub async fn report_save(
         include_logs: request.logs,
         include_requests: request.requests,
         include_crashes: request.crashes,
+        include_video: request.video,
     };
     let mut report = match &request.session {
         Some(path) => {
@@ -85,6 +89,10 @@ pub async fn report_save(
         return Ok(None);
     };
     tokio::fs::write(&path, html::html(&report)).await.map_err(err)?;
+    // A clip too big to be part of the file goes next to it, under the name the file refers to.
+    if let Some(clip) = report.video_sidecar() {
+        tokio::fs::write(path.with_file_name(emulabzip_report::VIDEO_FILE), clip).await.map_err(err)?;
+    }
     let issue_url = tracker.map(|t| issue_url(&t, &report.title, &markdown::markdown(&report)));
     if let Some(url) = &issue_url {
         app.opener().open_url(url, None::<&str>).map_err(err)?;

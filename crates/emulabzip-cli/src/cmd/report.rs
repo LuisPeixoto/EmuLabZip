@@ -24,8 +24,10 @@ pub struct Args {
 
 pub fn parse_without(text: &str) -> Result<String, String> {
     match text {
-        "screenshot" | "logs" | "requests" | "crashes" => Ok(text.to_string()),
-        other => Err(format!("`{other}` is not a part of the report: use screenshot, logs, requests or crashes")),
+        "screenshot" | "logs" | "requests" | "crashes" | "video" => Ok(text.to_string()),
+        other => {
+            Err(format!("`{other}` is not a part of the report: use screenshot, logs, requests, crashes or video"))
+        }
     }
 }
 
@@ -38,6 +40,7 @@ fn options(args: &Args) -> Options {
             "screenshot" => o.include_screenshot = false,
             "logs" => o.include_logs = false,
             "requests" => o.include_requests = false,
+            "video" => o.include_video = false,
             _ => o.include_crashes = false,
         }
     }
@@ -80,6 +83,12 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
     }
     std::fs::write(&args.output, html::html(&report))?;
     println!("{} {}", output::heading("Report written to"), args.output.display());
+    // A clip too big to be part of the file goes next to it, under the name the file refers to.
+    if let Some(clip) = report.video_sidecar() {
+        let side = args.output.with_file_name(emulabzip_report::VIDEO_FILE);
+        std::fs::write(&side, clip)?;
+        println!("{} {} (keep it next to the report)", output::heading("Video written to"), side.display());
+    }
     for n in &report.notes {
         println!("  {}", output::dim(n));
     }

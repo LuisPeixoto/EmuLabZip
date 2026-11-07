@@ -155,3 +155,27 @@ fn a_crowded_lane_is_cut_but_keeps_its_errors() {
     assert!(t.events.iter().any(|e| e.severity == Severity::Error && e.label.contains("the real problem")));
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn a_run_of_slow_frames_is_one_burst() {
+    let dir = scratch("burst");
+    let clock = r#","clock":{"offsetMs":0,"tzMinutes":0,"bootEpochMs":0}"#;
+    let session = write(&dir, meta(clock), &[]);
+    // `write` leaves one slow frame at 2.5 s. Add a scroll: 5 frames within 100 ms of each other, then one much later.
+    let mut frames = std::fs::read_to_string(dir.join("frames.jsonl")).unwrap();
+    for i in 0..5u64 {
+        frames += &format!("\n{{\"tMs\":{},\"durationMs\":{}}}", START + 10_000 + i * 50, 40 + i * 30);
+    }
+    frames += &format!("\n{{\"tMs\":{},\"durationMs\":60.0}}", START + 15_000);
+    drop(session);
+    std::fs::write(dir.join("frames.jsonl"), frames).unwrap();
+    let t = timeline::build(&Session::open(&dir).unwrap());
+    let bursts: Vec<_> = t.events.iter().filter(|e| e.lane == Lane::Frames).collect();
+    assert_eq!(bursts.len(), 3, "{bursts:?}");
+    assert_eq!(bursts[0].label, "Slow frame, 120 ms");
+    assert_eq!(bursts[1].label, "5 slow frames, worst 160 ms");
+    assert_eq!((bursts[1].t_ms, bursts[1].severity), (10_000, Severity::Error));
+    assert_eq!(bursts[1].dur_ms, Some(360));
+    assert_eq!(bursts[2].label, "Slow frame, 60 ms");
+    std::fs::remove_dir_all(dir).ok();
+}
