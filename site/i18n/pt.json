@@ -134,7 +134,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Para onde o EmuLabZip está indo",
-    "lead": "Oito fases já foram concluídas. As duas próximas levam a uma versão 1.0 estável.",
+    "lead": "Oito fases já foram concluídas. As oito próximas levam a uma versão 1.0 estável.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
       { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
@@ -142,8 +142,14 @@
       { "state": "done", "version": "v0.6", "title": "Ferramentas avançadas", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, acessibilidade, sessões e CI." },
       { "state": "done", "version": "v0.7", "title": "Desempenho e qualidade", "text": "Tempo de abertura, energia, detector de vazamentos e orçamentos de desempenho no CI." },
       { "state": "done", "version": "v0.8", "title": "Por dentro dos frameworks", "text": "Flutter, React Native, Compose e SwiftUI; gRPC e GraphQL." },
-      { "state": "next", "version": "v0.9", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas da Apple." },
-      { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios compartilháveis, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
+      { "state": "next", "version": "v0.9", "title": "Stacks legíveis e relatórios de bug", "text": "Falhas simbolizadas (R8, dSYMs, source maps) e relatórios de bug com um clique." },
+      { "state": "later", "version": "v0.10", "title": "Linha do tempo e replay", "text": "Uma linha do tempo de toques, logs e requisições, vídeo da tela e replay de rede." },
+      { "state": "later", "version": "v0.11", "title": "O estado do app como dado", "text": "Snapshots do sandbox e dos emuladores, modo de escrita no Storage e mais visualizadores." },
+      { "state": "later", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
+      { "state": "later", "version": "v0.13", "title": "Automação e apps híbridos", "text": "WebViews, entrada e fluxos gravados, testes de deep links e regras programáveis." },
+      { "state": "later", "version": "v0.14", "title": "IA com contexto", "text": "A linha do tempo, o replay e os snapshots como ferramentas MCP, e prompts para perguntas comuns." },
+      { "state": "later", "version": "v0.15", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas Apple." },
+      { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios para compartilhar, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
     ]
   },
   "faq": {
