@@ -1,7 +1,11 @@
 //! `emulabzip crashes` and `emulabzip crash`
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use emulabzip_core::{CrashKind, CrashReport, CrashSummary, FrameOrigin, Lab};
+use emulabzip_symbols::store::Store;
+use emulabzip_symbols::symbolicate::{Source, Symbolicated, symbolicate};
 
 use crate::output;
 
@@ -132,15 +136,67 @@ fn print_report(r: &CrashReport, all_threads: bool) {
     println!("{}", output::dim("\n● app  ○ framework  · native  ▪ kernel"));
 }
 
-pub async fn show(lab: &Lab, device: Option<&str>, id: &str, raw: bool, json: bool, all_threads: bool) -> Result<()> {
+/// The files that fit a crash: the ones named, then the ones stored for its app and version.
+fn sources_for(report: &CrashReport, named: &[PathBuf]) -> Result<Vec<Source>> {
+    let mut sources = named.iter().map(|p| Source::detect(p)).collect::<Result<Vec<_>, _>>()?;
+    if let Some(app) = &report.summary.app {
+        sources.extend(Store::default().find(app, report.app_version.as_deref()).iter().map(Source::from));
+    }
+    Ok(sources)
+}
+
+fn print_notes(s: &Symbolicated) {
+    for a in &s.applied {
+        println!(
+            "{}",
+            output::dim(&format!(
+                "Made readable with {} ({}, {} frames). `--raw` shows the original.",
+                a.source,
+                a.kind.label(),
+                a.frames
+            ))
+        );
+    }
+    for m in &s.missing {
+        println!("{}", output::dim(m));
+    }
+}
+
+pub async fn show(
+    lab: &Lab,
+    device: Option<&str>,
+    id: &str,
+    raw: bool,
+    json: bool,
+    all_threads: bool,
+    mappings: &[PathBuf],
+) -> Result<()> {
+    if raw && !mappings.is_empty() {
+        anyhow::bail!("--raw shows the report as the device wrote it, so --mapping has nothing to do");
+    }
+    // A file that cannot be read is found before the device is.
+    for m in mappings {
+        Source::detect(m)?;
+    }
     let device = lab.resolve(device).await?;
     let report = lab.crash(&device.target(), id).await?;
     if raw {
         println!("{}", report.raw);
-    } else if json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+    let sources = sources_for(&report, mappings)?;
+    let s = symbolicate(&report, &sources);
+    if json {
+        let mut value = serde_json::to_value(&s.report)?;
+        value["symbolication"] = serde_json::json!({
+            "applied": s.applied.iter().map(|a| serde_json::json!({"kind": a.kind.label(), "source": a.source, "frames": a.frames})).collect::<Vec<_>>(),
+            "missing": s.missing,
+        });
+        println!("{}", serde_json::to_string_pretty(&value)?);
     } else {
-        print_report(&report, all_threads);
+        print_report(&s.report, all_threads);
+        println!();
+        print_notes(&s);
     }
     Ok(())
 }
