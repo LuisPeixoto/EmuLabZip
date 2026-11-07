@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod apps;
 pub mod ci;
 pub mod compare;
