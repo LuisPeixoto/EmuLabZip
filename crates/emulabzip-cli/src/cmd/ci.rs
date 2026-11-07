@@ -41,7 +41,40 @@ pub struct Args {
     pub replay: Option<super::net::ReplayArgs>,
     /// Fail the run when the app asked for something the replayed recording does not hold.
     pub fail_on_miss: bool,
+    /// A build (APK, AAB or IPA) to hold to the `[size]` limits of emulabzip.toml.
+    pub size: Option<PathBuf>,
+    /// An earlier build to measure growth against.
+    pub size_baseline: Option<PathBuf>,
+    /// Audit the app's security and privacy after the command, and fail on a finding at least this serious.
+    pub fail_on_security: Option<emulabzip_core::Severity>,
+    /// Compare the screen after the command with this baseline.
+    pub visual: Option<String>,
+    pub fail_on_visual: bool,
     pub command: Vec<String>,
+}
+
+/// A build's size, checked before anything runs: a file that cannot be read should not cost a test run.
+fn size_check(args: &Args, config: &Config) -> Result<Option<Vec<emulabzip_audit::package::Breach>>> {
+    let Some(file) = &args.size else { return Ok(None) };
+    let Some(limits) = &config.size else {
+        bail!("--size checks the limits of the [size] section of emulabzip.toml, and there is none");
+    };
+    let package = emulabzip_audit::package::analyze_file(file)?;
+    let baseline = args.size_baseline.as_deref().map(emulabzip_audit::package::analyze_file).transpose()?;
+    let limits = super::size::limits(limits);
+    Ok(Some(emulabzip_audit::package::check(&package, &limits, baseline.as_ref())))
+}
+
+/// The requests the proxy recorded, as the security audit reads them.
+fn requests_of(flows: &[emulabzip_net::flow::Flow]) -> Vec<emulabzip_audit::security::traffic::Request> {
+    flows
+        .iter()
+        .map(|f| emulabzip_audit::security::traffic::Request {
+            method: f.method.clone(),
+            url: f.url.clone(),
+            body: std::str::from_utf8(&f.request_body).ok().map(str::to_string),
+        })
+        .collect()
 }
 
 /// The settings of the project, and the session to compare with: both read before any device is touched.
@@ -55,6 +88,15 @@ fn settings(args: &Args) -> Result<(Config, Option<emulabzip_session::Summary>)>
     };
     if config.startup.is_some() && args.app.is_none() {
         bail!("emulabzip.toml asks for the start time to be measured, which needs the app: pass --app");
+    }
+    if args.fail_on_security.is_some() && args.app.is_none() {
+        bail!("--fail-on-security audits an app, so it needs --app");
+    }
+    if args.fail_on_visual && args.visual.is_none() {
+        bail!("--fail-on-visual needs --visual <baseline name> to compare with");
+    }
+    if args.size_baseline.is_some() && args.size.is_none() {
+        bail!("--size-baseline needs --size <build> to measure");
     }
     if args.fail_on_regression && args.baseline.is_none() {
         bail!("--fail-on-regression needs --baseline <earlier.ezsession> to compare with");
@@ -85,6 +127,15 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
     }
     let replay = args.replay.as_ref().map(super::net::load_replay).transpose()?;
     let (config, baseline_summary) = settings(&args)?;
+    let size_breaches = size_check(&args, &config)?;
+    let visual_settings = match &args.visual {
+        Some(name) => {
+            let s = super::visual::settings(None, None, args.config.as_deref())?;
+            let baseline = emulabzip_audit::visual::load_baseline(&s.dir, name)?;
+            Some((s, baseline))
+        }
+        None => None,
+    };
     let device = lab.resolve(device).await?;
     // The start time is measured first, so the openings are not part of the recording.
     let startup = match (&config.startup, &args.app) {
@@ -140,6 +191,28 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         Err(_) => 127,
     };
     let crashed = recorder.new_crashes();
+    // What the checks after the run look at is read while the device and the proxy are still in place.
+    let flows = network.as_ref().map(|n| n.store.all()).unwrap_or_default();
+    let security = match (args.fail_on_security, &args.app) {
+        (Some(_), Some(app)) => {
+            let input = emulabzip_audit::collect::collect(
+                lab,
+                &device.target(),
+                app,
+                emulabzip_audit::collect::Sources::all(network.as_ref().map(|_| requests_of(&flows))),
+            )
+            .await;
+            Some(emulabzip_audit::security::audit(&input))
+        }
+        _ => None,
+    };
+    let visual = match &visual_settings {
+        Some((s, baseline)) => match lab.screenshot(&device.target()).await {
+            Ok(shot) => Some(emulabzip_audit::visual::compare(baseline, &shot, &s.options).map(|c| c.comparison)),
+            Err(e) => Some(Err(e)),
+        },
+        None => None,
+    };
     let written = recorder.finish().await;
     if let Some(n) = network {
         n.stop(lab).await;
@@ -154,10 +227,11 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
     let changes = baseline_summary.as_ref().map(|b| baseline::compare(b, &summary, tolerance)).unwrap_or_default();
     let regressions = baseline::regressions(&changes).len();
     let report = format!(
-        "{}{}{}",
+        "{}{}{}{}",
         markdown(&summary),
         budget::markdown(&violations, budget::count(&config.budget)),
-        baseline::markdown(&changes, tolerance)
+        baseline::markdown(&changes, tolerance),
+        quality_markdown(size_breaches.as_deref(), security.as_ref(), visual.as_ref())
     );
     let mut notes = Vec::new();
     if let Some(file) = &args.summary {
@@ -214,6 +288,45 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         }
         return Err(Exit(1).into());
     }
+    if let Some(breaches) = size_breaches.as_deref().filter(|b| !b.is_empty()) {
+        eprintln!("error: the build is over {} size limit(s) of emulabzip.toml:", breaches.len());
+        for b in breaches {
+            eprintln!("  {}: allowed {}, was {}", b.what, b.limit, b.actual);
+        }
+        return Err(Exit(1).into());
+    }
+    if let (Some(level), Some(audit)) = (args.fail_on_security, &security)
+        && audit.fails(level)
+    {
+        let bad: Vec<_> = audit.findings.iter().filter(|f| f.severity >= level).collect();
+        eprintln!(
+            "error: the security audit found {} problem(s) at {} or worse (--fail-on-security):",
+            bad.len(),
+            level.label()
+        );
+        for f in bad {
+            eprintln!("  {}: {}", f.rule, f.message);
+        }
+        return Err(Exit(1).into());
+    }
+    if args.fail_on_visual
+        && let (Some(name), Some((s, _))) = (&args.visual, &visual_settings)
+    {
+        match &visual {
+            Some(Ok(c)) if c.exceeds(s.threshold) => {
+                eprintln!(
+                    "error: the screen differs from the baseline {name}: {:.3}% changed, the limit is {}% (--fail-on-visual).",
+                    c.percent, s.threshold
+                );
+                return Err(Exit(1).into());
+            }
+            Some(Err(e)) => {
+                eprintln!("error: the screen could not be compared with the baseline {name}: {e}");
+                return Err(Exit(1).into());
+            }
+            _ => {}
+        }
+    }
     if args.fail_on_regression && regressions > 0 {
         eprintln!(
             "error: {regressions} number(s) got worse than the baseline by more than {tolerance:.0}% (--fail-on-regression):"
@@ -229,4 +342,44 @@ pub async fn run(lab: &Lab, device: Option<&str>, args: Args) -> Result<()> {
         return Err(Exit(1).into());
     }
     Ok(())
+}
+
+/// The checks after the run, for the summary: only the ones that were asked for.
+fn quality_markdown(
+    size: Option<&[emulabzip_audit::package::Breach]>,
+    security: Option<&emulabzip_audit::Audit>,
+    visual: Option<&emulabzip_core::Result<emulabzip_audit::visual::Comparison>>,
+) -> String {
+    let mut out = String::new();
+    if let Some(breaches) = size {
+        out.push_str("\n### Build size\n\n");
+        if breaches.is_empty() {
+            out.push_str("Within every `[size]` limit.\n");
+        } else {
+            out.push_str("| Limit | Allowed | Actual |\n|---|---|---|\n");
+            for b in breaches {
+                out.push_str(&format!("| {} | {} | {} |\n", b.what, b.limit, b.actual));
+            }
+        }
+    }
+    if let Some(audit) = security {
+        out.push_str("\n### Security and privacy\n\n");
+        if audit.findings.is_empty() {
+            out.push_str("Nothing found.\n");
+        } else {
+            out.push_str("| Severity | Rule | What |\n|---|---|---|\n");
+            for f in audit.findings.iter().take(30) {
+                out.push_str(&format!("| {} | {} | {} |\n", f.severity.label(), f.rule, f.message.replace('|', "\\|")));
+            }
+        }
+    }
+    if let Some(result) = visual {
+        out.push_str("\n### Visual comparison\n\n");
+        match result {
+            Ok(c) if c.changed == 0 => out.push_str("The screen is identical to the baseline.\n"),
+            Ok(c) => out.push_str(&format!("{:.3}% of the screen changed ({} pixels).\n", c.percent, c.changed)),
+            Err(e) => out.push_str(&format!("Could not compare: {e}\n")),
+        }
+    }
+    out
 }
