@@ -69,6 +69,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
   slow frames, garbage collections and crashes, with the screen recording that follows it; the clip around a crash goes
   in the bug report; and a session or a HAR file can be [replayed](docs/replay.md), so an app runs offline against what
   the servers said once, for bugs whose backend has changed and for CI runs that must not vary.
+- **App state as data.** [Save an app's data](docs/app-state.md) to one file, restore it, and see what a migration
+  changed; [make, start, stop, wipe and snapshot](docs/devices.md) emulators and simulators; [edit rows and
+  preferences](docs/storage-editing.md) with a confirmation and Undo; read DataStore, MMKV, AsyncStorage, Core Data and
+  Realm files; and read [Redux, React Query and context state](docs/react-native-state.md) from a React Native app.
 - **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
   the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
   slower.
@@ -235,6 +239,8 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | Sessions, CI mode and comparing two devices | ✅ | ✅ |
 | Readable crashes (R8 `mapping.txt`, React Native source maps, dSYM) and one-click bug reports | ✅ | ✅ (dSYM needs a Mac) |
 | Timeline, screen video in sessions and reports, and network replay | ✅ | ✅ (no touches, no slow frames or GC) |
+| App state snapshots, editing data, the device lifecycle and the new viewers | ✅ (debuggable apps) | ✅ |
+| React Native state (Redux, React Query, context, registered stores) | ✅ | ✅ |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
 
@@ -314,6 +320,10 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Readable stacks](docs/symbolication.md) | `mapping.txt`, source maps and dSYMs, kept per app and version |
 | [Bug reports](docs/bug-reports.md) | One HTML file, and a pre-filled issue for GitHub, GitLab or Jira |
 | [Timeline and screen video](docs/timeline.md) | One time axis for touches, log problems, requests, slow frames, GC and crashes, and the video that follows it |
+| [App state](docs/app-state.md) | Save, restore and compare what an app keeps; the schema diff |
+| [Changing an app's data](docs/storage-editing.md) | Edit mode: rows and preferences, with a confirmation, a backup and Undo |
+| [Devices](docs/devices.md) | Make, start, stop, wipe, delete and snapshot emulators and simulators |
+| [React Native state](docs/react-native-state.md) | Redux, React Query, context and registered stores, and a Redux action log |
 | [Replaying a recording](docs/replay.md) | Answer an app's requests from a session or a HAR file, offline and the same every time |
 | [Mocks and breakpoints](docs/mocks.md) | Rules that answer, delay, block or hold requests |
 | [WebSocket messages](docs/websockets.md) | Reading frames, compression, limits |

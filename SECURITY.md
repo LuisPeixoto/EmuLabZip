@@ -55,6 +55,19 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   written only where you save it (or to the `reports` folder for an assistant). "Open issue" is a link that your
   browser opens: EmuLabZip does not talk to GitHub, GitLab or Jira and stores no token. Everything in the file is
   HTML-escaped and it contains no script. Look at it before you attach it to an issue others can see.
+- **Writes.** Most of EmuLabZip reads. These change a device and each needs a confirmation (`--yes`, or a dialog):
+  editing rows, preferences and property lists; restoring an app's state; wiping, erasing and deleting emulators and
+  simulators; loading or deleting an emulator snapshot. Every file written to an app goes through `Lab`, which checks
+  the path (no `..`, no absolute paths), and on iOS through a resolver that refuses a symbolic link out of the container.
+  An edit keeps the file it replaces so it can be undone; a restore saves the data it replaces first.
+- **State files** (`.ezstate`) hold everything an app stores: tokens, databases, preferences. Treat one like the data it
+  came from, and do not attach it to an issue. Opening one checks every tar entry before anything is written: no
+  absolute paths, `..`, hard links, devices or symbolic links that leave the app's folder.
+- **Device names** given to `avdmanager`, `emulator` and `simctl` are letters, digits, `.`, `_` and `-` only.
+- **Assistants** (MCP) can save states and compare them, start and stop devices, and save emulator snapshots. They
+  cannot restore, edit, wipe, delete or load: those need a person.
+- React Native state is read through Metro's debugger and can contain whatever the app keeps in memory. Watching Redux
+  actions wraps `dispatch` for as long as you watch, and puts it back.
 - A session can hold a **screen recording**, touches, and the requests and bodies of a run. A video can show anything
   that was on the screen: messages, email, a password being typed. Sessions and reports are written only where you
   save them (or to EmuLabZip's own folders), and nothing is sent anywhere. Watch a recording before you attach it to an

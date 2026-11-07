@@ -68,6 +68,9 @@ emulabzip rn console com.example.app --seconds 20
 - **Hermes heap** and the version of Hermes.
 - **Console**: what the app writes with `console.log` and friends while you listen.
 
+The **State** tab (and `emulabzip rn state`) reads Redux, React Query, React context and your own registered stores:
+see [React Native state](react-native-state.md).
+
 **Metro lets one debugger connect to an app at a time.** Reading from EmuLabZip can close React Native DevTools or
 Chrome's inspector, and the other way round. Release builds have no Metro and no hook.
 
