@@ -17,12 +17,14 @@ pub mod events;
 pub mod files;
 pub mod frameworks;
 pub mod layout;
+pub mod lifecycle;
 pub mod log;
 pub mod memory;
 pub mod network;
 pub mod paths;
 pub mod perf;
 pub mod startup;
+pub mod state;
 pub mod stream;
 pub mod trace;
 
@@ -42,11 +44,16 @@ pub use events::{DeviceClock, InputEvent, InputKind, MAX_SEGMENT_SECS, SlowFrame
 pub use files::{FileEntry, StorageRoot};
 pub use frameworks::Framework;
 pub use layout::{Bounds, LayoutSnapshot, Screen, UiNode};
+pub use lifecycle::{
+    BootOptions, Choice, CreateDevice, DeviceOptions, EmulatorSnapshot, SnapshotAction, avd_name, is_device_name,
+    is_device_ref, is_image_id,
+};
 pub use log::{LogEntry, LogFilter, LogLevel, LogMatcher};
 pub use memory::{CategoryDelta, HeapDump, LeakGroup, MemoryCategory, MemoryReport, NativeLeaks};
 pub use network::{ANDROID_SECURITY_CONFIG, CaInstall, CaKind, NetworkStatus};
 pub use paths::data_dir;
 pub use perf::{PerfOptions, PerfSample};
 pub use startup::{StartKind, StartupReport, StartupRun};
+pub use state::{DATA_TAR, EXTERNAL_TAR, MAX_WRITE_BYTES, StateFiles, is_safe_entry};
 pub use stream::Stream;
 pub use trace::{PerfettoPreset, TraceFile, TraceFormat, TraceRequest};

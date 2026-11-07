@@ -26,6 +26,9 @@ pub enum Error {
     Parse { what: &'static str, detail: String },
     #[error("invalid {what}: `{value}`")]
     Invalid { what: &'static str, value: String },
+    /// An action that changes or removes data on a device, asked for without being confirmed.
+    #[error("{0} changes or removes data on the device, so it has to be confirmed first")]
+    NeedsConfirmation(&'static str),
     /// Something went wrong that no other variant describes. The message is for the user.
     #[error("{0}")]
     Failed(String),
