@@ -6,8 +6,39 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-07
+
+Phase 9: readable stacks and one-click bug reports.
+
+### Added
+
+- **Readable crashes.** A new `emulabzip-symbols` crate restores what a release build hides:
+  - Java and Kotlin names from the R8 or ProGuard `mapping.txt`, with inlined calls given back as frames of their own;
+  - React Native JavaScript from source maps, including Hermes' composed maps (`1:608617` becomes `App.tsx 17:14`);
+  - iOS addresses from the `.dSYM`, with `atos` on a Mac, after checking the UUID.
+  Crashes now carry the app's version, the image and address of native frames, and a **JavaScript** thread read from
+  React Native's exception text (Android and iOS).
+- **Mappings kept per app and version**, and only used for their own version. `emulabzip mappings add|list|remove`,
+  `emulabzip crash <id> --mapping <file>`, and `emulabzip symbolicate <stack> --mapping <file>` for a stack from a log
+  or CI. In the desktop app, **Crashes** has **Readable** and **Original**, says what was used and what is missing, and
+  offers **Add mapping or source map…** and **Add dSYM…**.
+- **Bug reports in one click.** `emulabzip report`, **Report a bug** in the desktop app, **Bug report** in an open
+  session, and the `create_bug_report` tool write one self-contained HTML file with a screenshot, the device, warnings
+  and errors of the log, failed requests and the readable crashes (a crash that repeats is shown once). `--issue
+  github:…|gitlab:…|jira:…` builds a pre-filled issue link, with no token stored and nothing sent.
+- `get_crash` reads crashes with the stored files and says which it used.
+- Test apps: a release build of the Compose demo with R8, the iOS crash app with `--stripped` and its dSYM, and a Crash
+  button and release build in the React Native demo.
+
+### Fixed
+
+- Frameworks: the panels kept losing their results whenever the list of devices refreshed.
+- Network: a GraphQL body can be edited when a request is sent again.
+- Frameworks: the colours in the caption of the frames chart.
+
 ### Documentation
 
+- New guides, [Readable stacks](docs/symbolication.md) and [Bug reports](docs/bug-reports.md).
 - The roadmap lists Phases 9 to 16, up to 1.0: readable stacks and bug reports, timeline and replay, app state as data,
   quality beyond performance, automation and hybrid apps, AI with context, devices and platforms, and the team and
   ecosystem features that close 1.0.
@@ -225,7 +256,8 @@ Phase 1: connect and observe.
 - Documentation: getting started, Android, iOS Simulator, logs, CLI, architecture, troubleshooting, distribution, the
   roadmap and a write-up of how Instruments and the Android Studio profilers collect their data.
 
-[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/LuisPeixoto/EmuLabZip/compare/v0.5.0...v0.6.0
