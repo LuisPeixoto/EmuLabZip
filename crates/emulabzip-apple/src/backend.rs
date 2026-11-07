@@ -10,7 +10,7 @@ use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, state, storage, trace, video};
+use crate::{apps, controls, crashes, lifecycle, memory, network, oslog, perf, simctl, state, storage, trace, video};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -218,6 +218,38 @@ impl Backend for AppleBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.root_path(id, app, root).await?, path).await
+    }
+
+    async fn all_devices(&self) -> Result<Vec<Device>> {
+        Ok(self.simulators().await?.iter().map(SimDevice::to_device).collect())
+    }
+
+    async fn device_options(&self) -> Result<emulabzip_core::DeviceOptions> {
+        lifecycle::options().await
+    }
+
+    async fn create_device(&self, request: &emulabzip_core::CreateDevice) -> Result<Device> {
+        let udid = lifecycle::create(request).await?;
+        Ok(self.simulator(&udid).await?.to_device())
+    }
+
+    async fn boot_device(&self, id: &str, _options: &emulabzip_core::BootOptions) -> Result<Device> {
+        lifecycle::boot(id).await?;
+        Ok(self.simulator(id).await?.to_device())
+    }
+
+    async fn shutdown_device(&self, id: &str) -> Result<()> {
+        lifecycle::shutdown(id).await
+    }
+
+    async fn wipe_device(&self, id: &str) -> Result<()> {
+        lifecycle::require_stopped(&self.simulator(id).await?)?;
+        lifecycle::erase(id).await
+    }
+
+    async fn delete_device(&self, id: &str) -> Result<()> {
+        lifecycle::require_stopped(&self.simulator(id).await?)?;
+        lifecycle::delete(id).await
     }
 
     async fn stop_app(&self, id: &str, app: &str) -> Result<()> {

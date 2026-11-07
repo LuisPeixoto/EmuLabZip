@@ -189,6 +189,11 @@ fn auth_token() -> Result<String> {
 
 /// Sends commands to the emulator console and waits for each answer.
 async fn console(port: u16, commands: &[String]) -> Result<()> {
+    console_lines(port, commands).await.map(|_| ())
+}
+
+/// [`console`], returning what the commands printed before their `OK`.
+pub(crate) async fn console_lines(port: u16, commands: &[String]) -> Result<Vec<String>> {
     let work = async {
         let stream = TcpStream::connect(("127.0.0.1", port))
             .await
@@ -200,23 +205,26 @@ async fn console(port: u16, commands: &[String]) -> Result<()> {
         let token = auth_token()?;
         write.write_all(format!("auth {token}\n").as_bytes()).await?;
         wait_ok(&mut lines).await?;
+        let mut printed = Vec::new();
         for c in commands {
             write.write_all(format!("{c}\n").as_bytes()).await?;
-            wait_ok(&mut lines).await?;
+            printed.extend(wait_ok(&mut lines).await?);
         }
         let _ = write.write_all(b"quit\n").await;
-        Ok(())
+        Ok(printed)
     };
     tokio::time::timeout(Duration::from_secs(8), work)
         .await
         .map_err(|_| Error::failed("The emulator console did not answer in time."))?
 }
 
-async fn wait_ok(lines: &mut tokio::io::Lines<BufReader<tokio::net::tcp::OwnedReadHalf>>) -> Result<()> {
+/// Reads until `OK`, and returns the lines before it.
+async fn wait_ok(lines: &mut tokio::io::Lines<BufReader<tokio::net::tcp::OwnedReadHalf>>) -> Result<Vec<String>> {
+    let mut printed = Vec::new();
     while let Some(line) = lines.next_line().await? {
         let line = line.trim();
         if line == "OK" {
-            return Ok(());
+            return Ok(printed);
         }
         if let Some(reason) = line.strip_prefix("KO") {
             return Err(Error::failed(format!(
@@ -224,6 +232,7 @@ async fn wait_ok(lines: &mut tokio::io::Lines<BufReader<tokio::net::tcp::OwnedRe
                 reason.trim_start_matches(':').trim()
             )));
         }
+        printed.push(line.to_string());
     }
     Err(Error::failed("The emulator console closed the connection."))
 }
