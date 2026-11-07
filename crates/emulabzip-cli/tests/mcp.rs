@@ -49,6 +49,15 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "session_summary",
         "session_timeline",
         "create_bug_report",
+        "list_all_devices",
+        "boot_device",
+        "shutdown_device",
+        "save_state",
+        "list_states",
+        "diff_state",
+        "list_emulator_snapshots",
+        "save_emulator_snapshot",
+        "react_state",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }
@@ -228,4 +237,27 @@ fn a_timeline_checks_its_arguments_before_opening_anything() {
         assert_eq!(r["result"]["isError"], true, "{args}: {r}");
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains(word), "{args}: {r}");
     }
+}
+
+#[test]
+fn state_tools_never_offer_what_destroys_data_and_refuse_paths() {
+    let mut s = Server::start_session();
+    let tools = s.call(2, "tools/list", json!({}));
+    let names: Vec<&str> =
+        tools["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
+    for withheld in
+        ["restore_state", "wipe_device", "delete_device", "edit_row", "write_file", "load_emulator_snapshot"]
+    {
+        assert!(!names.contains(&withheld), "{withheld} must not be offered to assistants");
+    }
+    for bad in ["../../etc/passwd", "a/b", "", "nothing-by-this-name"] {
+        let r = s.call(3, "tools/call", json!({ "name": "diff_state", "arguments": { "before": bad, "after": bad } }));
+        assert_eq!(r["result"]["isError"], true, "{bad}: {r}");
+    }
+    let list = s.call(4, "tools/call", json!({ "name": "list_states", "arguments": {} }));
+    assert_eq!(list["result"]["isError"], false, "{list}");
+    let boot =
+        s.call(5, "tools/call", json!({ "name": "boot_device", "arguments": { "device": "x", "platform": "plan9" } }));
+    assert_eq!(boot["result"]["isError"], true);
+    assert!(boot["result"]["content"][0]["text"].as_str().unwrap().contains("not a platform"));
 }

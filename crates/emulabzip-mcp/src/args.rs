@@ -272,3 +272,46 @@ pub struct RunPlugin {
     /// For a streaming plugin: how long to listen, in seconds (default 5, up to 60). A one-shot plugin runs to its end.
     pub seconds: Option<u64>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct BootDevice {
+    /// The emulator or simulator to start, by name or id. `list_all_devices` shows the ones that are not running.
+    pub device: String,
+    /// "android" or "ios", when both have a device by that name.
+    pub platform: Option<String>,
+    /// No window (Android only).
+    pub headless: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ShutdownDevice {
+    /// The running emulator or simulator to stop, by name or id.
+    pub device: String,
+    /// "android" or "ios", when both have a device by that name.
+    pub platform: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SaveState {
+    pub device: Option<String>,
+    /// The app: a package name or bundle id. Android needs a debuggable app.
+    pub app: String,
+    /// A name for the saved state (letters, digits, `.`, `_`, `-`). Default: the app and the time.
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DiffState {
+    /// A saved state, by the name `list_states` shows.
+    pub before: String,
+    /// Another saved state to compare it with. Without it, the app as it is on the device now.
+    pub after: Option<String>,
+    pub device: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct EmulatorSnapshot {
+    pub device: Option<String>,
+    /// The snapshot's name (letters, digits, `.`, `_`, `-`).
+    pub name: String,
+}
