@@ -187,3 +187,77 @@ fn an_unknown_kind_of_colour_blindness_is_refused_before_looking_for_a_device() 
     assert!(!run(&dir, &["a11y", "-o", "x.png"]).status.success());
     std::fs::remove_dir_all(dir).ok();
 }
+
+fn png_file(path: &Path, w: u32, h: u32, paint: impl Fn(u32, u32) -> [u8; 3]) {
+    let mut out = Vec::new();
+    {
+        let mut enc = png::Encoder::new(&mut out, w, h);
+        enc.set_color(png::ColorType::Rgb);
+        enc.set_depth(png::BitDepth::Eight);
+        let mut wr = enc.write_header().unwrap();
+        let mut data = Vec::new();
+        for y in 0..h {
+            for x in 0..w {
+                data.extend_from_slice(&paint(x, y));
+            }
+        }
+        wr.write_image_data(&data).unwrap();
+    }
+    std::fs::write(path, out).unwrap();
+}
+
+#[test]
+fn two_screenshots_are_compared_without_a_device() {
+    let dir = scratch("visual");
+    let (a, b, c) = (dir.join("a.png"), dir.join("b.png"), dir.join("c.png"));
+    png_file(&a, 60, 40, |_, _| [255, 255, 255]);
+    png_file(&b, 60, 40, |x, y| if x < 6 && y < 4 { [0, 0, 0] } else { [255, 255, 255] });
+    png_file(&c, 30, 40, |_, _| [255, 255, 255]);
+    let same = run(&dir, &["visual", "diff", a.to_str().unwrap(), a.to_str().unwrap()]);
+    assert!(same.status.success() && out(&same).contains("identical"), "{}", out(&same));
+
+    let diff_png = dir.join("d.png");
+    let changed =
+        run(&dir, &["visual", "diff", a.to_str().unwrap(), b.to_str().unwrap(), "-o", diff_png.to_str().unwrap()]);
+    assert_eq!(changed.status.code(), Some(1), "{}{}", out(&changed), err(&changed));
+    assert!(
+        out(&changed).contains("1.000% of the screen changed") && out(&changed).contains("6×4 area at 0,0"),
+        "{}",
+        out(&changed)
+    );
+    assert!(diff_png.exists());
+    // Within a looser limit it passes.
+    assert!(
+        run(&dir, &["visual", "diff", a.to_str().unwrap(), b.to_str().unwrap(), "--threshold", "5"]).status.success()
+    );
+    let json = run(&dir, &["visual", "diff", a.to_str().unwrap(), b.to_str().unwrap(), "--json", "--threshold", "5"]);
+    let v: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!((v["comparison"]["changed"].as_u64(), v["exceeds"].as_bool()), (Some(24), Some(false)));
+    // Another size is explained, not compared.
+    let size = run(&dir, &["visual", "diff", a.to_str().unwrap(), c.to_str().unwrap()]);
+    assert!(!size.status.success() && err(&size).contains("not the same size"), "{}", err(&size));
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn baselines_are_named_and_replacing_one_needs_a_yes_before_any_device() {
+    let dir = scratch("baseline");
+    for (args, said) in [
+        (vec!["visual", "capture", "../x"], "baseline name"),
+        (vec!["visual", "capture", "a b"], "baseline name"),
+        (vec!["visual", "update", "home"], "--yes"),
+        (vec!["visual", "compare", "home", "--threshold", "150"], "percentage"),
+        (vec!["visual", "compare", "missing", "--dir", dir.to_str().unwrap()], "no baseline called missing"),
+    ] {
+        let o = run(&dir, &args);
+        assert!(!o.status.success(), "{args:?}");
+        assert!(err(&o).contains(said), "{args:?}: {}", err(&o));
+    }
+    // A baseline that exists is not captured over.
+    png_file(&dir.join("home.png"), 8, 8, |_, _| [1, 2, 3]);
+    let o = run(&dir, &["visual", "capture", "home", "--dir", dir.to_str().unwrap()]);
+    assert!(!o.status.success() && err(&o).contains("exists already"), "{}", err(&o));
+    let listed = run(&dir, &["visual", "list", "--dir", dir.to_str().unwrap()]);
+    assert!(out(&listed).contains("home"), "{}", out(&listed));
+    std::fs::remove_dir_all(dir).ok();
+}

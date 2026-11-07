@@ -292,6 +292,11 @@ enum Command {
         #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
         fail_on: Option<emulabzip_core::Severity>,
     },
+    /// Compare screenshots with a baseline, to see when the screen changes
+    Visual {
+        #[command(subcommand)]
+        action: VisualAction,
+    },
     /// Find text that does not fit: cut off, off screen or not mirrored; on this screen or across languages and text sizes
     I18n {
         #[command(subcommand)]
@@ -494,6 +499,85 @@ enum Command {
         limit: u64,
         #[arg(long, default_value_t = 0)]
         offset: u64,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum VisualAction {
+    /// Save the screen as a new baseline
+    Capture {
+        /// A name: letters, digits, . _ and -
+        name: String,
+        /// Where baselines are kept (default: `visual`, or `[visual] baseline_dir` of emulabzip.toml)
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// Show a clean status bar (9:41, full battery and signal) for the shot, so the clock does not differ
+        #[arg(long)]
+        status_bar: bool,
+    },
+    /// Replace a baseline with the screen as it is now
+    Update {
+        name: String,
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        #[arg(long)]
+        status_bar: bool,
+        /// Yes, replace it
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Compare the screen with a baseline. Exits with an error over the limit, and draws the difference
+    Compare {
+        name: String,
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// How much of the screen may change, in percent (default 0.1, or `[visual] threshold_percent`)
+        #[arg(long)]
+        threshold: Option<f64>,
+        /// An emulabzip.toml to read `[visual]` from
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Where to draw the difference (default: `<dir>/diffs/<name>.png`)
+        #[arg(long)]
+        diff: Option<PathBuf>,
+        #[arg(long)]
+        status_bar: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List the baselines
+    List {
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compare two screenshot files
+    Diff {
+        a: PathBuf,
+        b: PathBuf,
+        #[arg(long)]
+        threshold: Option<f64>,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compare the screenshots of two recorded sessions (`session record --screens`), in order
+    Session {
+        a: PathBuf,
+        b: PathBuf,
+        #[arg(long)]
+        threshold: Option<f64>,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// A folder to draw the differences in
+        #[arg(short, long)]
+        output: Option<PathBuf>,
         #[arg(long)]
         json: bool,
     },
@@ -1456,6 +1540,24 @@ async fn run() -> ExitCode {
         Command::Layout { json, png, depth, app } => {
             cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
         }
+        Command::Visual { action } => match action {
+            VisualAction::Capture { name, dir, status_bar } => {
+                cmd::visual::capture(&lab, device, &name, dir, status_bar, false).await
+            }
+            VisualAction::Update { name, dir, status_bar, yes } => {
+                cmd::visual::update(&lab, device, &name, dir, status_bar, yes).await
+            }
+            VisualAction::Compare { name, dir, threshold, config, diff, status_bar, json } => {
+                cmd::visual::compare(&lab, device, &name, dir, threshold, config, diff, status_bar, json).await
+            }
+            VisualAction::List { dir, json } => cmd::visual::list(dir, json),
+            VisualAction::Diff { a, b, threshold, config, output, json } => {
+                cmd::visual::files(&a, &b, threshold, config, output, json)
+            }
+            VisualAction::Session { a, b, threshold, config, output, json } => {
+                cmd::visual::sessions(&a, &b, threshold, config, output, json)
+            }
+        },
         Command::I18n { action: I18nAction::Check { rtl, json, fail_on } } => {
             cmd::i18n::check(&lab, device, rtl, json, fail_on).await
         }
