@@ -30,6 +30,8 @@ class AppStore {
   host = $state<HostInfo | null>(null);
   settings = $state<Settings>(load("settings", defaultSettings));
   settingsOpen = $state(false);
+  /** The bug report dialog: open, and the session file it is made from (none for the device as it is now). */
+  report = $state<{ session: string | null } | null>(null);
   view = $state<View>(loadValue<View>("view", "overview"));
 
   devices = $state<Device[]>([]);

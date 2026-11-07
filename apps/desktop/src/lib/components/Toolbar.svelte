@@ -28,6 +28,15 @@
     <Icon name="camera" size={15} /> <span class="hidden xl:inline">Screenshot</span>
   </button>
 
+  <button
+    onclick={() => (app.report = { session: null })}
+    disabled={!app.online}
+    title="Pack a screenshot, the log, failed requests and crashes into a bug report"
+    class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40 disabled:hover:bg-transparent"
+  >
+    <Icon name="bug" size={15} /> <span class="hidden xl:inline">Report a bug</span>
+  </button>
+
   <div data-tauri-drag-region class="h-full flex-1"></div>
 
   <button
