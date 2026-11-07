@@ -40,9 +40,12 @@ pub struct BackedUp {
     pub existed: bool,
 }
 
+/// A name part that is different every time, in this process and across them: the time, and a counter for two asked for
+/// in the same instant.
 fn stamp() -> String {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_nanos());
-    format!("{nanos:x}")
+    format!("{nanos:x}-{}", NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }
 
 impl Backup {
