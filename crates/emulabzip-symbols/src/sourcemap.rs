@@ -238,48 +238,7 @@ impl SourceMap {
     }
 }
 
-/// A frame of a JavaScript stack, as the engine printed it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct JsFrame {
-    pub function: Option<String>,
-    /// The file as printed: usually the bundle.
-    pub file: String,
-    pub line: u32,
-    pub column: u32,
-}
-
-/// Reads one line of a Hermes, V8 or JavaScriptCore stack:
-///
-/// ```text
-///     at onPress (address at index.android.bundle:1:123456)
-///     at foo (index.android.bundle:10:20)
-///     foo@index.ios.bundle:10:20
-///     @index.ios.bundle:10:20
-/// ```
-pub fn parse_js_frame(line: &str) -> Option<JsFrame> {
-    let t = line.trim();
-    if let Some(rest) = t.strip_prefix("at ") {
-        let (function, place) = match rest.rsplit_once(" (") {
-            Some((f, p)) => (Some(f.trim()), p.strip_suffix(')')?),
-            None => (None, rest),
-        };
-        let place = place.strip_prefix("address at ").unwrap_or(place);
-        let (file, line_no, column) = position(place)?;
-        let function = function.filter(|f| !f.is_empty() && *f != "anonymous" && *f != "?");
-        return Some(JsFrame { function: function.map(str::to_string), file, line: line_no, column });
-    }
-    // JavaScriptCore: `name@file:line:column`
-    let (function, place) = t.split_once('@')?;
-    let (file, line_no, column) = position(place)?;
-    Some(JsFrame { function: Some(function.to_string()).filter(|f| !f.is_empty()), file, line: line_no, column })
-}
-
-/// `file:line:column`, where the file may itself hold colons (`http://host/index.bundle`).
-fn position(place: &str) -> Option<(String, u32, u32)> {
-    let (rest, column) = place.rsplit_once(':')?;
-    let (file, line) = rest.rsplit_once(':')?;
-    Some((file.to_string(), line.parse().ok()?, column.parse().ok()?))
-}
+pub use emulabzip_core::{JsFrame, parse_js_frame};
 
 #[cfg(test)]
 mod tests {
@@ -383,26 +342,6 @@ mod tests {
         assert!(SourceMap::parse(r#"{"mappings":"D"}"#).is_err(), "a negative column");
         assert!(SourceMap::parse(r#"{"mappings":"AADD"}"#).is_err(), "a line before the start");
         assert!(SourceMap::parse("{}").unwrap_err().to_string().contains("not a source map"));
-    }
-
-    #[test]
-    fn reads_the_frames_each_engine_prints() {
-        let f = parse_js_frame("    at onPress (address at index.android.bundle:1:123456)").unwrap();
-        assert_eq!(
-            (f.function.as_deref(), f.file.as_str(), f.line, f.column),
-            (Some("onPress"), "index.android.bundle", 1, 123456)
-        );
-        let f = parse_js_frame("at foo (http://localhost:8081/index.bundle:10:20)").unwrap();
-        assert_eq!((f.file.as_str(), f.line, f.column), ("http://localhost:8081/index.bundle", 10, 20));
-        let f = parse_js_frame("    at index.android.bundle:3:4").unwrap();
-        assert_eq!((f.function, f.file.as_str()), (None, "index.android.bundle"));
-        let f = parse_js_frame("anonymous@index.ios.bundle:10:20").unwrap();
-        assert_eq!((f.function.as_deref(), f.line), (Some("anonymous"), 10));
-        let f = parse_js_frame("@index.ios.bundle:10:20").unwrap();
-        assert_eq!(f.function, None);
-        for not in ["", "Error: boom", "    at native", "    at foo (native)", "at foo (a:b:c)", "x@y"] {
-            assert_eq!(parse_js_frame(not), None, "{not:?}");
-        }
     }
 
     #[test]
