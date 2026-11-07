@@ -10,7 +10,7 @@
 use std::time::Duration;
 
 use emulabzip_core::{Error, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -255,7 +255,7 @@ pub fn actions_remove_script() -> String {
 }
 
 /// One piece of state: a Redux store, a React Query cache, a context or a named store.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StateStore {
     /// `redux`, `query`, `context` or `store`.
@@ -267,7 +267,7 @@ pub struct StateStore {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReactState {
     pub stores: Vec<StateStore>,
 }
