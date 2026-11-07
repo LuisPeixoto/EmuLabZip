@@ -87,21 +87,26 @@ pub async fn collect(lab: &Lab, target: &Target, app: &str, what: Sources) -> In
 async fn read_log(lab: &Lab, target: &Target, app: &str) -> emulabzip_core::Result<Vec<String>> {
     let mut stream = lab.logs(target, LogOptions { tail: 1500, verbose: true }).await?;
     let mut entries = Vec::new();
-    let _ = tokio::time::timeout(Duration::from_millis(1500), async {
-        while let Some(e) = stream.next().await {
-            entries.push(e);
-            if entries.len() >= 8000 {
-                break;
+    // The replay can start slowly and can take a while: wait for the first line, then until the log goes quiet.
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+    let mut wait = Duration::from_secs(4);
+    while entries.len() < 8000 && tokio::time::Instant::now() < deadline {
+        match tokio::time::timeout(wait, stream.next()).await {
+            Ok(Some(e)) => {
+                entries.push(e);
+                wait = Duration::from_millis(700);
             }
+            _ => break,
         }
-    })
-    .await;
+    }
+    // The app's own lines are the ones from its process, and the ones that mention it; the rest is the system talking.
+    let pid = lab.apps(target).await.ok().and_then(|apps| apps.into_iter().find(|a| a.id == app)).and_then(|a| a.pid);
     let mine: Vec<String> = entries
         .iter()
-        .filter(|e| e.message.contains(app) || e.tag.contains(app))
+        .filter(|e| pid.is_some_and(|p| e.pid == p) || e.message.contains(app) || e.tag.contains(app))
         .map(|e| format!("{}: {}", e.tag, e.message))
         .collect();
-    if mine.len() >= 10 {
+    if mine.len() >= 10 || (pid.is_some() && !mine.is_empty()) {
         return Ok(mine);
     }
     Ok(entries.iter().map(|e| format!("{}: {}", e.tag, e.message)).collect())

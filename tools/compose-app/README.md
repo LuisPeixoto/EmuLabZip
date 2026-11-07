@@ -53,3 +53,18 @@ adb shell am start -n dev.emulabzip.composedemo/.MainActivity --es data 2   # mi
 emulabzip state save dev.emulabzip.composedemo -o v2.ezstate
 emulabzip state diff v1.ezstate v2.ezstate
 ```
+
+## Something for the audits to find
+
+`--es weak 1` does what an app should not, on purpose: a bearer token and an email address in the log, a session token in
+preferences, a `password_hash` column in a plain database, a token in a URL, and analytics calls to Segment and Mixpanel over
+plain HTTP. The manifest has an exported receiver (`PingReceiver`), and the screen gets a label that cannot fit on its line.
+
+```bash
+adb shell am start -n dev.emulabzip.composedemo/.MainActivity --es weak 1
+emulabzip audit security dev.emulabzip.composedemo
+emulabzip i18n check
+emulabzip analytics          # with the proxy connected: Segment and Mixpanel events
+```
+
+Never copy any of this into an app you ship.

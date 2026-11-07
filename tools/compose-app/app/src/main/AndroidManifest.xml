@@ -12,5 +12,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Exposed on purpose, for the security audit to find (see WeakDemo.kt). -->
+        <receiver android:name=".PingReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="dev.emulabzip.composedemo.ACTION_PING" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
