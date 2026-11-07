@@ -9,7 +9,7 @@ use emulabzip_core::{
     App, Backend, Device, DeviceKind, DeviceState, Error, InfoSection, Lab, LogEntry, LogOptions, Platform, Result,
     Stream, Target,
 };
-use emulabzip_storage::edit::device::{self, Backup};
+use emulabzip_storage::edit::device::{self, Backup, Place};
 use emulabzip_storage::edit::prefs::{self, PrefValue};
 use emulabzip_storage::edit::sqlite::{Cell, RowKey};
 use rusqlite::Connection;
@@ -110,9 +110,14 @@ const PREFS: &str = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<
 async fn a_file_is_edited_checked_and_can_be_put_back() {
     let dir = scratch("file");
     let (lab, t, files, stopped) = rig(&[("shared_prefs/p.xml", PREFS.as_bytes().to_vec())], None);
-    let backup = device::edit_file(&lab, &t, "dev.x", "data", "shared_prefs/p.xml", true, &dir, |bytes| {
-        Ok(prefs::set(std::str::from_utf8(bytes).unwrap(), "launches", PrefValue::Int(4))?.into_bytes())
-    })
+    let backup = device::edit_file(
+        &lab,
+        &t,
+        Place { app: "dev.x", root: "data", path: "shared_prefs/p.xml" },
+        true,
+        &dir,
+        |bytes| Ok(prefs::set(std::str::from_utf8(bytes).unwrap(), "launches", PrefValue::Int(4))?.into_bytes()),
+    )
     .await
     .unwrap();
     assert_eq!(*stopped.lock().unwrap(), 1, "the app is stopped first");
@@ -131,17 +136,29 @@ async fn a_file_is_edited_checked_and_can_be_put_back() {
 async fn an_edit_that_does_not_work_leaves_the_device_alone() {
     let dir = scratch("fail");
     let (lab, t, files, stopped) = rig(&[("a.xml", PREFS.as_bytes().to_vec())], None);
-    let err = device::edit_file(&lab, &t, "dev.x", "data", "a.xml", true, &dir, |_| Err(Error::failed("no")))
-        .await
-        .unwrap_err();
+    let err = device::edit_file(&lab, &t, Place { app: "dev.x", root: "data", path: "a.xml" }, true, &dir, |_| {
+        Err(Error::failed("no"))
+    })
+    .await
+    .unwrap_err();
     assert_eq!(err.to_string(), "no");
     assert_eq!(*stopped.lock().unwrap(), 0, "the app was not even stopped");
     assert_eq!(files.lock().unwrap()["data/a.xml"], PREFS.as_bytes());
     // Not confirmed: refused, nothing touched.
-    let err = device::edit_file(&lab, &t, "dev.x", "data", "a.xml", false, &dir, |b| Ok(b.to_vec())).await.unwrap_err();
+    let err = device::edit_file(&lab, &t, Place { app: "dev.x", root: "data", path: "a.xml" }, false, &dir, |b| {
+        Ok(b.to_vec())
+    })
+    .await
+    .unwrap_err();
     assert!(matches!(err, Error::NeedsConfirmation(_)));
     // A file that is not there.
-    assert!(device::edit_file(&lab, &t, "dev.x", "data", "nope.xml", true, &dir, |b| Ok(b.to_vec())).await.is_err());
+    assert!(
+        device::edit_file(&lab, &t, Place { app: "dev.x", root: "data", path: "nope.xml" }, true, &dir, |b| Ok(
+            b.to_vec()
+        ))
+        .await
+        .is_err()
+    );
     std::fs::remove_dir_all(dir).ok();
 }
 
@@ -149,9 +166,11 @@ async fn an_edit_that_does_not_work_leaves_the_device_alone() {
 async fn a_write_that_did_not_take_is_noticed_and_the_old_file_stays() {
     let dir = scratch("broken");
     let (lab, t, files, _) = rig(&[("a.xml", PREFS.as_bytes().to_vec())], Some("a.xml"));
-    let err = device::edit_file(&lab, &t, "dev.x", "data", "a.xml", true, &dir, |_| Ok(b"different".to_vec()))
-        .await
-        .unwrap_err();
+    let err = device::edit_file(&lab, &t, Place { app: "dev.x", root: "data", path: "a.xml" }, true, &dir, |_| {
+        Ok(b"different".to_vec())
+    })
+    .await
+    .unwrap_err();
     assert!(err.to_string().contains("not what was written"), "{err}");
     assert_eq!(files.lock().unwrap()["data/a.xml"], PREFS.as_bytes());
     std::fs::remove_dir_all(dir).ok();
@@ -184,9 +203,14 @@ async fn a_database_is_edited_with_its_log_folded_in_and_removed_from_the_device
         &[("databases/app.db", main.clone()), ("databases/app.db-wal", wal), ("databases/app.db-shm", vec![0; 32768])],
         None,
     );
-    let backup = device::edit_database(&lab, &t, "dev.x", "data", "databases/app.db", true, &dir, |e| {
-        e.update("t", &RowKey::Rowid(2), "v", &Cell::Text("edited".into()))
-    })
+    let backup = device::edit_database(
+        &lab,
+        &t,
+        Place { app: "dev.x", root: "data", path: "databases/app.db" },
+        true,
+        &dir,
+        |e| e.update("t", &RowKey::Rowid(2), "v", &Cell::Text("edited".into())),
+    )
     .await
     .unwrap();
     {
@@ -222,16 +246,28 @@ async fn a_database_edit_that_fails_changes_nothing_on_the_device() {
     let dir = scratch("dbfail");
     let (main, _) = database_bytes(&dir, false);
     let (lab, t, files, _) = rig(&[("databases/app.db", main.clone())], None);
-    let err = device::edit_database(&lab, &t, "dev.x", "data", "databases/app.db", true, &dir, |e| {
-        e.update("t", &RowKey::Rowid(99), "v", &Cell::Text("x".into()))
-    })
+    let err = device::edit_database(
+        &lab,
+        &t,
+        Place { app: "dev.x", root: "data", path: "databases/app.db" },
+        true,
+        &dir,
+        |e| e.update("t", &RowKey::Rowid(99), "v", &Cell::Text("x".into())),
+    )
     .await
     .unwrap_err();
     assert!(err.to_string().contains("instead of one"), "{err}");
     assert_eq!(files.lock().unwrap()["data/databases/app.db"], main);
-    let err = device::edit_database(&lab, &t, "dev.x", "data", "databases/app.db", false, &dir, |_| Ok(()))
-        .await
-        .unwrap_err();
+    let err = device::edit_database(
+        &lab,
+        &t,
+        Place { app: "dev.x", root: "data", path: "databases/app.db" },
+        false,
+        &dir,
+        |_| Ok(()),
+    )
+    .await
+    .unwrap_err();
     assert!(matches!(err, Error::NeedsConfirmation(_)));
     std::fs::remove_dir_all(dir).ok();
 }

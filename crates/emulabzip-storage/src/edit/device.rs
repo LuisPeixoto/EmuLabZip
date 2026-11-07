@@ -14,6 +14,14 @@ pub fn backup_dir() -> PathBuf {
     emulabzip_core::data_dir().join("states").join("edits")
 }
 
+/// A file of an app: which app, which of its roots, and where in it.
+#[derive(Debug, Clone, Copy)]
+pub struct Place<'a> {
+    pub app: &'a str,
+    pub root: &'a str,
+    pub path: &'a str,
+}
+
 /// What an edit replaced, kept so it can be put back.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -84,13 +92,12 @@ async fn back_up(
 pub async fn edit_file(
     lab: &Lab,
     target: &Target,
-    app: &str,
-    root: &str,
-    path: &str,
+    place: Place<'_>,
     confirm: bool,
     backups: &Path,
     change: impl FnOnce(&[u8]) -> Result<Vec<u8>>,
 ) -> Result<Backup> {
+    let Place { app, root, path } = place;
     if !confirm {
         return Err(Error::NeedsConfirmation("Editing a file of the app"));
     }
@@ -114,13 +121,12 @@ pub async fn edit_file(
 pub async fn edit_database(
     lab: &Lab,
     target: &Target,
-    app: &str,
-    root: &str,
-    path: &str,
+    place: Place<'_>,
     confirm: bool,
     backups: &Path,
     change: impl FnOnce(&mut Editor) -> Result<()>,
 ) -> Result<Backup> {
+    let Place { app, root, path } = place;
     if !confirm {
         return Err(Error::NeedsConfirmation("Editing a database of the app"));
     }
