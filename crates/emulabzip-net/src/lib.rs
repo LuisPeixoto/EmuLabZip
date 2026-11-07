@@ -6,6 +6,7 @@
 //! server over a new TLS connection, and everything is recorded as a [`Flow`] in a [`FlowStore`].
 //! Connections that are not TLS, and apps that refuse our certificate, are passed through.
 
+pub mod analytics;
 pub mod breakpoints;
 pub mod ca;
 pub mod classify;
