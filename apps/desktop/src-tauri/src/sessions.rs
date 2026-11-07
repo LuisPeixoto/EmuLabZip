@@ -38,6 +38,9 @@ pub struct RecordingStatus {
     pub samples: u64,
     pub crashes: u64,
     pub screens: u64,
+    pub taps: u64,
+    pub slow_frames: u64,
+    pub video_pieces: u64,
     pub network: bool,
 }
 
@@ -51,10 +54,13 @@ fn status_of(active: Option<&Active>) -> RecordingStatus {
             samples: 0,
             crashes: 0,
             screens: 0,
+            taps: 0,
+            slow_frames: 0,
+            video_pieces: 0,
             network: false,
         },
         Some(a) => {
-            let Stats { logs, samples, crashes, screens } = a.recorder.stats();
+            let Stats { logs, samples, crashes, screens, taps, slow_frames, video_pieces } = a.recorder.stats();
             RecordingStatus {
                 recording: true,
                 device: Some(a.device.clone()),
@@ -63,6 +69,9 @@ fn status_of(active: Option<&Active>) -> RecordingStatus {
                 samples,
                 crashes,
                 screens,
+                taps,
+                slow_frames,
+                video_pieces,
                 network: a.network,
             }
         }
