@@ -31,6 +31,7 @@
     { view: "compare", icon: "columns", label: "Compare" },
   ];
   const control: Item[] = [
+    { view: "devices", icon: "smartphone", label: "Devices" },
     { view: "controls", icon: "sliders", label: "Controls" },
     { view: "plugins", icon: "zap", label: "Plugins" },
   ];
