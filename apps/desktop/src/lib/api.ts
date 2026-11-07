@@ -2,7 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 
 export type Platform = "android" | "ios";
 export type DeviceKind = "emulator" | "simulator" | "physical";
-export type DeviceState = "online" | "booting" | "offline" | "unauthorized";
+export type DeviceState = "online" | "booting" | "offline" | "unauthorized" | "shutdown";
 export type LogLevel = "verbose" | "debug" | "info" | "warn" | "error" | "fatal";
 
 export const LEVELS: LogLevel[] = ["verbose", "debug", "info", "warn", "error", "fatal"];
