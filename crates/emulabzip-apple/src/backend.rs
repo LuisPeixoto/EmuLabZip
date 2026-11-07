@@ -10,7 +10,7 @@ use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, storage, trace};
+use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, storage, trace, video};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -178,6 +178,21 @@ impl Backend for AppleBackend {
         result?;
         let png = png?;
         if png.starts_with(b"\x89PNG") { Ok(png) } else { Err(Error::Simctl("the screenshot was empty".into())) }
+    }
+
+    async fn clock(&self, _id: &str) -> Result<emulabzip_core::DeviceClock> {
+        video::clock().await
+    }
+
+    async fn record_video(
+        &self,
+        id: &str,
+        out_dir: &std::path::Path,
+        segment_secs: u32,
+        stop: tokio::sync::watch::Receiver<bool>,
+        segments: tokio::sync::mpsc::UnboundedSender<emulabzip_core::VideoSegment>,
+    ) -> Result<()> {
+        video::record(id, out_dir, segment_secs, stop, segments).await
     }
 
     async fn perf(&self, id: &str, options: PerfOptions) -> Result<Stream<PerfSample>> {

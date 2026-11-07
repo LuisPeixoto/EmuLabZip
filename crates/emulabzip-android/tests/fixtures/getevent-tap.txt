@@ -1,0 +1,8 @@
+[     134.837795] EV_ABS       ABS_MT_TRACKING_ID   00000007            
+[     134.837795] EV_ABS       ABS_MT_POSITION_X    00003e80            
+[     134.837795] EV_ABS       ABS_MT_POSITION_Y    00004e20            
+[     134.837795] EV_ABS       ABS_MT_TRACKING_ID   ffffffff            
+[     134.837795] EV_ABS       ABS_MT_TRACKING_ID   00000007            
+[     134.837795] EV_SYN       SYN_REPORT           00000000            
+[     135.022030] EV_ABS       ABS_MT_TRACKING_ID   ffffffff            
+[     135.022030] EV_SYN       SYN_REPORT           00000000            

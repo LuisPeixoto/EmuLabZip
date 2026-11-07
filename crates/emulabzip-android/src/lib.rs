@@ -7,12 +7,15 @@
 pub mod apps;
 pub mod backend;
 pub mod cert;
+pub mod clock;
 pub mod controls;
 pub mod crashes;
 pub mod energy;
+pub mod frames;
 pub mod frameworks;
 pub mod heapdump;
 pub mod info;
+pub mod input;
 pub mod layout;
 pub mod logcat;
 pub mod meminfo;
@@ -22,5 +25,6 @@ pub mod props;
 pub mod startup;
 pub mod storage;
 pub mod trace;
+pub mod video;
 
 pub use backend::AndroidBackend;

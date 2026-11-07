@@ -231,7 +231,7 @@ async fn simpleperf(
 
 /// Sends SIGINT to the `tool` process that writes `file`. The first letter in brackets keeps the
 /// pattern from matching this very command line.
-fn interrupt(tool: &str, file: &str) -> String {
+pub(crate) fn interrupt(tool: &str, file: &str) -> String {
     let pattern = format!("{tool}.*[{}]{}", &file[..1], &file[1..]);
     format!("for p in $(pgrep -f {}); do kill -INT $p; done", emulabzip_adb::quote::quote(&pattern))
 }
