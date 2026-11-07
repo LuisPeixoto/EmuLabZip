@@ -209,6 +209,36 @@ pub struct Appearance {
     pub mode: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Locale {
+    pub device: Option<String>,
+    /// A language tag such as `de-DE`, or the pseudo-locales `en-XA` (long accented text) and `ar-XB` (right to left). Leave
+    /// it out to put the language back.
+    pub locale: Option<String>,
+    /// The app. Android changes the language of one app at a time (Android 13 and newer); the iOS Simulator changes
+    /// for every app, the next time each starts.
+    pub app: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct FontScale {
+    pub device: Option<String>,
+    /// The text size as a percentage of normal: 100 is normal, 130 and 200 are common accessibility settings (50 to 300).
+    pub percent: u32,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct DisplaySize {
+    pub device: Option<String>,
+    /// Width in pixels (Android only). Give the height too.
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    /// Density in dpi (Android only).
+    pub density: Option<u32>,
+    /// Put the screen size and density back instead.
+    pub reset: Option<bool>,
+}
+
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct StatusBar {
     pub device: Option<String>,

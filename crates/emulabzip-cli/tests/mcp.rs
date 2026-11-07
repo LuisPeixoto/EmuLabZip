@@ -58,6 +58,9 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "list_emulator_snapshots",
         "save_emulator_snapshot",
         "react_state",
+        "control_locale",
+        "control_font_scale",
+        "control_display_size",
     ] {
         assert!(names.contains(&expected), "{expected} is missing from {names:?}");
     }

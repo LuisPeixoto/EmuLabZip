@@ -877,6 +877,60 @@ impl EmuLabServer {
     }
 
     #[tool(
+        description = "Show an app in another language or a pseudo-locale (en-XA for long text, ar-XB for right to left), to find text that does not fit; or put the language back. Android changes one app (Android 13+); iOS changes the whole simulator and apps pick it up when they start."
+    )]
+    async fn control_locale(&self, Parameters(a): Parameters<args::Locale>) -> CallToolResult {
+        reply(
+            async {
+                match a.locale {
+                    Some(locale) => {
+                        let said = format!("Language set to {locale}");
+                        self.control(&a.device, Control::Locale { locale, app: a.app }, &said).await
+                    }
+                    None => {
+                        self.control(&a.device, Control::ResetLocale { app: a.app }, "Language back to normal").await
+                    }
+                }
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Make the device's text bigger or smaller, as a percentage of normal (100 is normal, 130 and 200 are common accessibility settings), to find text that does not fit. Set 100 to put it back."
+    )]
+    async fn control_font_scale(&self, Parameters(a): Parameters<args::FontScale>) -> CallToolResult {
+        reply(
+            self.control(
+                &a.device,
+                Control::FontScale { percent: a.percent },
+                &format!("Text size set to {}%", a.percent),
+            )
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "Change the screen size (pixels) and density (dpi) of an Android device, or put them back with reset."
+    )]
+    async fn control_display_size(&self, Parameters(a): Parameters<args::DisplaySize>) -> CallToolResult {
+        reply(
+            async {
+                if a.reset.unwrap_or(false) {
+                    return self.control(&a.device, Control::ResetDisplay, "Display back to normal").await;
+                }
+                self.control(
+                    &a.device,
+                    Control::Display { width: a.width, height: a.height, density: a.density },
+                    "Display changed",
+                )
+                .await
+            }
+            .await,
+        )
+    }
+
+    #[tool(
         description = "Show a clean status bar (fixed time, battery and signal), for screenshots; or clear the override."
     )]
     async fn control_status_bar(&self, Parameters(a): Parameters<args::StatusBar>) -> CallToolResult {

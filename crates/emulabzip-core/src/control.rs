@@ -71,6 +71,28 @@ pub enum Control {
         charging: bool,
     },
     ResetBattery,
+    /// The language and region an app is shown in, as a BCP 47 tag such as `de-DE` or the pseudo-locales `en-XA` and
+    /// `ar-XB`. Android changes it for one app (`app` is required); the iOS Simulator changes it for the whole device,
+    /// and apps pick it up the next time they start.
+    Locale {
+        locale: String,
+        app: Option<String>,
+    },
+    /// Back to the device's own language.
+    ResetLocale {
+        app: Option<String>,
+    },
+    /// The text size as a percentage of the normal one: 100 is normal, 130 and 200 are common accessibility settings.
+    FontScale {
+        percent: u32,
+    },
+    /// The screen size in pixels and the density in dpi (Android). Give both sides of the size, or neither.
+    Display {
+        width: Option<u32>,
+        height: Option<u32>,
+        density: Option<u32>,
+    },
+    ResetDisplay,
 }
 
 /// What a device supports, and its state right now.
@@ -113,6 +135,16 @@ fn is_name(text: &str, extra: &[char]) -> bool {
     !text.is_empty()
         && text.len() <= 200
         && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || extra.contains(&c))
+}
+
+/// A BCP 47 language tag, short and made only of letters, digits and hyphens: `de`, `pt-BR`, `en-XA`, `zh-Hans-CN`.
+pub fn is_locale_tag(text: &str) -> bool {
+    let parts: Vec<&str> = text.split('-').collect();
+    (2..=24).contains(&text.len())
+        && parts.len() <= 4
+        && parts.iter().all(|p| (1..=8).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphanumeric()))
+        && parts[0].len() >= 2
+        && parts[0].chars().all(|c| c.is_ascii_alphabetic())
 }
 
 impl Control {
@@ -168,6 +200,41 @@ impl Control {
             }
             Control::Battery { level, .. } if *level > 100 => {
                 return Err(Error::invalid("battery level", level.to_string()));
+            }
+            Control::Locale { locale, app } => {
+                if !is_locale_tag(locale) {
+                    return Err(Error::invalid("locale (a tag such as de-DE or ar-XB)", locale.clone()));
+                }
+                if let Some(app) = app
+                    && !is_name(app, &[])
+                {
+                    return Err(Error::invalid("app", app.clone()));
+                }
+            }
+            Control::ResetLocale { app: Some(app) } if !is_name(app, &[]) => {
+                return Err(Error::invalid("app", app.clone()));
+            }
+            Control::FontScale { percent } if !(50..=300).contains(percent) => {
+                return Err(Error::invalid("text size (50 to 300 percent)", percent.to_string()));
+            }
+            Control::Display { width, height, density } => {
+                if width.is_some() != height.is_some() {
+                    return Err(Error::invalid("screen size", "give both the width and the height"));
+                }
+                if width.is_none() && density.is_none() {
+                    return Err(Error::invalid("display", "give a size, a density, or both"));
+                }
+                for (what, v) in [("width", *width), ("height", *height)] {
+                    if v.is_some_and(|v| !(200..=10_000).contains(&v)) {
+                        return Err(Error::invalid(
+                            "screen size in pixels (200 to 10000)",
+                            format!("{what} {}", v.unwrap_or(0)),
+                        ));
+                    }
+                }
+                if density.is_some_and(|d| !(72..=1200).contains(&d)) {
+                    return Err(Error::invalid("density (72 to 1200 dpi)", density.unwrap_or(0).to_string()));
+                }
             }
             _ => {}
         }
@@ -240,6 +307,31 @@ mod tests {
         };
         assert!(n(None).is_ok() && n(Some("{\"aps\":{\"alert\":\"hi\"}}")).is_ok());
         assert!(n(Some("not json")).is_err());
+    }
+
+    #[test]
+    fn checks_locale_text_size_and_display() {
+        let locale =
+            |l: &str, app: Option<&str>| Control::Locale { locale: l.into(), app: app.map(String::from) }.validate();
+        for ok in ["de", "pt-BR", "en-XA", "ar-XB", "zh-Hans-CN"] {
+            assert!(locale(ok, Some("com.example")).is_ok(), "{ok}");
+        }
+        for bad in ["", "d", "de_DE", "de DE", "de;reboot", "1e", "a-b-c-d-e", "toolonglanguagetagthatgoeson"] {
+            assert!(locale(bad, None).is_err(), "{bad:?}");
+        }
+        assert!(locale("de", Some("com.example; rm")).is_err());
+        assert!(Control::ResetLocale { app: Some("a b".into()) }.validate().is_err());
+        assert!(Control::ResetLocale { app: None }.validate().is_ok());
+        assert!(Control::FontScale { percent: 130 }.validate().is_ok());
+        assert!(
+            Control::FontScale { percent: 20 }.validate().is_err()
+                && Control::FontScale { percent: 400 }.validate().is_err()
+        );
+        let display = |w, h, d| Control::Display { width: w, height: h, density: d }.validate();
+        assert!(display(Some(1080), Some(2400), Some(420)).is_ok() && display(None, None, Some(320)).is_ok());
+        assert!(display(Some(1080), None, None).is_err() && display(None, None, None).is_err());
+        assert!(display(Some(100), Some(2400), None).is_err() && display(None, None, Some(5)).is_err());
+        assert!(Control::ResetDisplay.validate().is_ok());
     }
 
     #[test]
