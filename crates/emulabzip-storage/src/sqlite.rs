@@ -8,6 +8,8 @@ use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::edit::sqlite::{Cell, RowKey};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Column {
@@ -35,6 +37,20 @@ pub struct Rows {
     pub rows: Vec<Vec<Value>>,
     /// More rows exist past the limit.
     pub truncated: bool,
+}
+
+/// A page of a table with what is needed to change its rows: a key for each, when the table can be edited.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyedRows {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<Value>>,
+    /// One key per row, when `editable`.
+    pub keys: Vec<RowKey>,
+    pub truncated: bool,
+    pub editable: bool,
+    /// Why the rows cannot be edited.
+    pub reason: Option<String>,
 }
 
 fn err(e: rusqlite::Error) -> Error {
@@ -106,6 +122,80 @@ impl Database {
         self.query(&sql, limit)
     }
 
+    /// A page of a table, with a key for each row so it can be edited. A view, or a table with no way to tell its rows
+    /// apart, comes back without keys and says why.
+    pub fn rows_keyed(&self, table: &str, offset: u64, limit: u64) -> Result<KeyedRows> {
+        let limit = limit.min(10_000);
+        let (kind, sql): (String, Option<String>) = self
+            .conn
+            .query_row("SELECT type, sql FROM sqlite_master WHERE name = ?1", [table], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(|_| Error::invalid("table", table))?;
+        let plain = |reason: &str| -> Result<KeyedRows> {
+            let page = self.rows(table, offset, limit)?;
+            Ok(KeyedRows {
+                columns: page.columns,
+                rows: page.rows,
+                keys: Vec::new(),
+                truncated: page.truncated,
+                editable: false,
+                reason: Some(reason.to_string()),
+            })
+        };
+        if kind != "table" {
+            return plain("A view has no rows of its own to edit.");
+        }
+        if table.starts_with("sqlite_") {
+            return plain("SQLite's own tables are not edited.");
+        }
+        let without_rowid = sql.as_deref().is_some_and(|s| s.to_uppercase().contains("WITHOUT ROWID"));
+        if !without_rowid {
+            let query = format!("SELECT rowid, * FROM {} LIMIT {} OFFSET {}", quote_ident(table), limit + 1, offset);
+            let page = self.query(&query, limit)?;
+            let mut keys = Vec::new();
+            let mut rows = Vec::new();
+            for mut row in page.rows {
+                let id = row.remove(0).as_i64().ok_or_else(|| Error::failed("a row has no rowid"))?;
+                keys.push(RowKey::Rowid(id));
+                rows.push(row);
+            }
+            let columns = page.columns.into_iter().skip(1).collect();
+            return Ok(KeyedRows { columns, rows, keys, truncated: page.truncated, editable: true, reason: None });
+        }
+        // A table made WITHOUT ROWID is told by its primary key.
+        let mut stmt = self.conn.prepare(&format!("PRAGMA table_info({})", quote_ident(table))).map_err(err)?;
+        let mut pk: Vec<(i64, usize, String)> = stmt
+            .query_map([], |r| Ok((r.get::<_, i64>(5)?, r.get::<_, i64>(0)? as usize, r.get::<_, String>(1)?)))
+            .map_err(err)?
+            .filter_map(|r| r.ok())
+            .filter(|(order, _, _)| *order > 0)
+            .collect();
+        pk.sort();
+        if pk.is_empty() {
+            return plain("This table has no primary key to tell its rows apart.");
+        }
+        let query = format!("SELECT * FROM {} LIMIT {} OFFSET {}", quote_ident(table), limit + 1, offset);
+        let mut stmt = self.conn.prepare(&query).map_err(err)?;
+        let columns: Vec<String> = stmt.column_names().iter().map(|c| c.to_string()).collect();
+        let width = columns.len();
+        let mut rows = Vec::new();
+        let mut keys = Vec::new();
+        let mut truncated = false;
+        let mut cursor = stmt.query([]).map_err(err)?;
+        while let Some(row) = cursor.next().map_err(err)? {
+            if rows.len() as u64 >= limit {
+                truncated = true;
+                break;
+            }
+            let mut parts = Vec::new();
+            for (_, index, name) in &pk {
+                parts.push((name.clone(), cell_of(row.get_ref(*index).map_err(err)?)));
+            }
+            keys.push(RowKey::Pk(parts));
+            rows.push((0..width).map(|i| row.get_ref(i).map(to_json).map_err(err)).collect::<Result<Vec<_>>>()?);
+        }
+        Ok(KeyedRows { columns, rows, keys, truncated, editable: true, reason: None })
+    }
+
     /// Runs a read-only statement and returns up to `limit` rows.
     pub fn query(&self, sql: &str, limit: u64) -> Result<Rows> {
         let mut stmt = self.conn.prepare(sql).map_err(err)?;
@@ -129,6 +219,17 @@ impl Database {
             rows.push(values);
         }
         Ok(Rows { columns, rows, truncated })
+    }
+}
+
+fn cell_of(v: ValueRef<'_>) -> Cell {
+    use base64::Engine;
+    match v {
+        ValueRef::Null => Cell::Null,
+        ValueRef::Integer(i) => Cell::Integer(i),
+        ValueRef::Real(f) => Cell::Real(f),
+        ValueRef::Text(t) => Cell::Text(String::from_utf8_lossy(t).into_owned()),
+        ValueRef::Blob(b) => Cell::Blob(base64::engine::general_purpose::STANDARD.encode(b)),
     }
 }
 
@@ -180,6 +281,36 @@ mod tests {
                 let _ = std::fs::remove_dir_all(&self.0);
             }
         }
+    }
+
+    #[test]
+    fn pages_come_with_keys_when_the_table_can_be_edited() {
+        let (d, db) = sample();
+        let page = db.rows_keyed("users", 0, 10).unwrap();
+        assert!(page.editable && page.reason.is_none());
+        assert_eq!(page.columns, ["id", "name", "score", "avatar"]);
+        assert_eq!(page.keys, [RowKey::Rowid(1), RowKey::Rowid(2), RowKey::Rowid(3)]);
+        assert_eq!(page.rows[0][1], "ana");
+        // A view is shown without keys, and says why.
+        let view = db.rows_keyed("top", 0, 10).unwrap();
+        assert!(!view.editable && view.keys.is_empty() && view.reason.as_deref().unwrap().contains("view"));
+        assert!(!view.rows.is_empty());
+        assert!(db.rows_keyed("nope", 0, 10).is_err());
+        // A table made WITHOUT ROWID is keyed by its primary key.
+        let path = d.0.join("pk.db");
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch("CREATE TABLE kv (k TEXT, sub INTEGER, v TEXT, PRIMARY KEY (k, sub)) WITHOUT ROWID; INSERT INTO kv VALUES ('a', 1, 'x'), ('b', 2, 'y'); CREATE TABLE nokey (a, b) WITHOUT ROWID;").ok();
+        conn.execute_batch("CREATE TABLE loose (a, b);").unwrap();
+        drop(conn);
+        let db = Database::open(&path).unwrap();
+        let kv = db.rows_keyed("kv", 0, 10).unwrap();
+        assert!(kv.editable);
+        assert_eq!(
+            kv.keys[1],
+            RowKey::Pk(vec![("k".into(), Cell::Text("b".into())), ("sub".into(), Cell::Integer(2))])
+        );
+        assert_eq!(kv.rows[1], [Value::from("b"), Value::from(2), Value::from("y")]);
+        assert!(db.rows_keyed("loose", 0, 10).unwrap().editable, "an ordinary table has a rowid");
     }
 
     #[test]

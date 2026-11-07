@@ -10,6 +10,9 @@ pub struct Pref {
     /// `string`, `int`, `long`, `float`, `boolean` or `set`.
     pub kind: String,
     pub value: String,
+    /// The items of a set, one by one. Empty for everything else.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<String>,
 }
 
 /// Parses a SharedPreferences file:
@@ -33,6 +36,14 @@ pub fn parse(xml: &str) -> Result<Vec<Pref>> {
         .filter_map(|node| {
             let key = node.attribute("name")?.to_string();
             let kind = node.tag_name().name().to_string();
+            let items: Vec<String> = if kind == "set" {
+                node.children()
+                    .filter(roxmltree::Node::is_element)
+                    .map(|c| c.text().unwrap_or_default().to_string())
+                    .collect()
+            } else {
+                Vec::new()
+            };
             let value = match kind.as_str() {
                 "string" => node.text().unwrap_or_default().to_string(),
                 "set" => node
@@ -43,7 +54,7 @@ pub fn parse(xml: &str) -> Result<Vec<Pref>> {
                     .join(", "),
                 _ => node.attribute("value").unwrap_or_default().to_string(),
             };
-            Some(Pref { key, kind, value })
+            Some(Pref { key, kind, value, items })
         })
         .collect();
     prefs.sort_by_key(|p| p.key.to_lowercase());
@@ -72,6 +83,8 @@ mod tests {
         assert_eq!(get("token").value, "abc & def");
         assert_eq!((get("launches").kind.as_str(), get("launches").value.as_str()), ("int", "3"));
         assert_eq!(get("Tags").value, "a, b");
+        assert_eq!(get("Tags").items, ["a", "b"], "a set keeps its items apart");
+        assert!(get("token").items.is_empty());
         assert_eq!(get("empty").value, "");
         assert_eq!(prefs[0].key, "empty");
     }
