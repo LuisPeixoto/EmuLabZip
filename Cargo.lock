@@ -1266,6 +1266,7 @@ dependencies = [
  "base64 0.22.1",
  "emulabzip-android",
  "emulabzip-apple",
+ "emulabzip-audit",
  "emulabzip-core",
  "emulabzip-frameworks",
  "emulabzip-heap",
