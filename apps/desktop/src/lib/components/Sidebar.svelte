@@ -30,6 +30,12 @@
     { view: "sessions", icon: "history", label: "Sessions" },
     { view: "compare", icon: "columns", label: "Compare" },
   ];
+  const quality: Item[] = [
+    { view: "audit", icon: "shield", label: "Audit" },
+    { view: "size", icon: "download", label: "Build size" },
+    { view: "visual", icon: "eye", label: "Visual" },
+    { view: "analytics", icon: "activity", label: "Analytics" },
+  ];
   const control: Item[] = [
     { view: "devices", icon: "smartphone", label: "Devices" },
     { view: "controls", icon: "sliders", label: "Controls" },
@@ -61,6 +67,7 @@
     {@render section("Inspect", inspect)}
     {@render section("Profile", profile)}
     {@render section("Sessions", sessions)}
+    {@render section("Quality", quality)}
     {@render section("Control", control)}
   </nav>
   <div class="flex items-center gap-2.5 border-t border-line px-3 py-3">
