@@ -67,6 +67,7 @@ impl SimDevice {
             state: match self.state.as_str() {
                 "Booted" => DeviceState::Online,
                 "Booting" => DeviceState::Booting,
+                "Shutdown" => DeviceState::Shutdown,
                 _ => DeviceState::Offline,
             },
             os_version: self.runtime.as_ref().map(|r| r.version.clone()),

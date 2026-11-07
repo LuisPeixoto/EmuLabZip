@@ -331,3 +331,36 @@ async fn reports_the_cpu_time_an_app_used() {
     assert!(report.notes.iter().any(|n| n.contains("no battery")));
     assert!(backend.energy_end(&id, "dev.emulabzip.crashy", 3).await.is_err(), "a measurement is read once");
 }
+
+/// Makes a simulator of its own (`elz-life-<pid>`, so none of yours is touched), starts it, stops it, erases it and deletes
+/// it. Needs Xcode and an installed iOS runtime.
+#[tokio::test]
+#[ignore = "starts a simulator; takes a minute"]
+async fn makes_starts_stops_erases_and_deletes_a_simulator() {
+    use emulabzip_core::{BootOptions, CreateDevice, DeviceState};
+    let backend = emulabzip_apple::AppleBackend::new();
+    let options = backend.device_options().await.unwrap();
+    let image = options.images.iter().find(|i| i.installed).expect("an iOS runtime").id.clone();
+    let model = options.models.iter().find(|m| m.label == "iPhone 17").expect("an iPhone 17 type").id.clone();
+    let name = format!("elz-life-{}", std::process::id());
+
+    let made = backend.create_device(&CreateDevice { name: name.clone(), image, model }).await.unwrap();
+    println!("made {} ({})", made.name, made.id);
+    assert_eq!((made.name.as_str(), made.state), (name.as_str(), DeviceState::Shutdown));
+    assert!(
+        backend.all_devices().await.unwrap().iter().any(|d| d.id == made.id),
+        "it is listed though it is not running"
+    );
+    assert!(!backend.devices().await.unwrap().iter().any(|d| d.id == made.id), "and it is not among the running ones");
+
+    let booted = backend.boot_device(&made.id, &BootOptions::default()).await.unwrap();
+    assert_eq!(booted.state, DeviceState::Online);
+    // Running: it cannot be erased or deleted.
+    assert!(backend.wipe_device(&made.id).await.unwrap_err().to_string().contains("Shut it down"));
+    assert!(backend.delete_device(&made.id).await.unwrap_err().to_string().contains("Shut it down"));
+
+    backend.shutdown_device(&made.id).await.unwrap();
+    backend.wipe_device(&made.id).await.unwrap();
+    backend.delete_device(&made.id).await.unwrap();
+    assert!(!backend.all_devices().await.unwrap().iter().any(|d| d.id == made.id), "it is gone");
+}

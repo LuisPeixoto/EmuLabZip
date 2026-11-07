@@ -49,7 +49,18 @@ where
         Ok(output.stdout)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(Error::Simctl(stderr.lines().find(|l| !l.trim().is_empty()).unwrap_or("command failed").trim().to_string()))
+        Err(Error::Simctl(first_message(&stderr)))
+    }
+}
+
+/// What `simctl` complained about: its first line, and the one after it when the first only introduces it
+/// (`An error was encountered processing the command (domain=…, code=405):`).
+fn first_message(stderr: &str) -> String {
+    let mut lines = stderr.lines().map(str::trim).filter(|l| !l.is_empty());
+    let Some(first) = lines.next() else { return "command failed".to_string() };
+    match lines.next() {
+        Some(next) if first.ends_with(':') => format!("{first} {next}"),
+        _ => first.to_string(),
     }
 }
 
@@ -141,5 +152,21 @@ where
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         Err(Error::Simctl(stderr.lines().find(|l| !l.trim().is_empty()).unwrap_or("command failed").trim().to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::first_message;
+
+    #[test]
+    fn a_message_that_only_introduces_the_reason_carries_the_reason() {
+        let said = "An error was encountered processing the command (domain=com.apple.CoreSimulator.SimError, code=405):\nUnable to erase contents and settings in current state: Booted\n";
+        assert_eq!(
+            first_message(said),
+            "An error was encountered processing the command (domain=com.apple.CoreSimulator.SimError, code=405): Unable to erase contents and settings in current state: Booted"
+        );
+        assert_eq!(first_message("\n  Invalid device: x\nmore\n"), "Invalid device: x");
+        assert_eq!(first_message(""), "command failed");
     }
 }
