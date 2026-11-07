@@ -47,7 +47,8 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `react_tree` | The component tree of a React Native development app, through Metro |
 | `analyze_heap` | Takes a heap dump of an Android app and lists leaked Activities and Fragments with their paths |
 | `list_files`, `read_file` | An app's storage roots, folders and files (text, or base64 for binary; cut at 256 KB) |
-| `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints |
+| `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints, read with the [mapping, source map or dSYM](symbolication.md) kept for its app and version (`original: true` keeps the device's names) |
+| `create_bug_report` | One [HTML bug report](bug-reports.md) written to EmuLabZip's `reports` folder: path, a Markdown summary, and with `issue` a pre-filled issue link. Nothing is sent |
 | `list_traces`, `trace_summary`, `trace_query` | Recorded traces, their summary or hot functions, and PerfettoSQL |
 | `get_layout` | The views on screen as a tree, with names, sizes and positions |
 | `audit_accessibility` | Missing labels, small touch targets, low contrast and duplicate names on the screen |

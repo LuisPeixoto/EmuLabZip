@@ -172,7 +172,23 @@ Lists what differs between two devices (`--all` for what matches too, `--json`).
 
 `crashes` lists what the device recorded, newest first, with an id for each; `-a, --app` and `-k, --kind
 crash|native|anr` narrow it down. `crash` shows one with its stack and hints: `--all-threads` prints every thread,
-`--raw` prints the report as the device wrote it. Both accept `--json`. See [Crashes](crashes.md).
+`--raw` prints the report as the device wrote it, and `-m, --mapping <file>` reads it with a `mapping.txt`, a source map
+or a `.dSYM` you name, besides the ones kept for its app and version. Both accept `--json`. See
+[Crashes](crashes.md) and [Readable stacks](symbolication.md).
+
+### `emulabzip mappings` and `emulabzip symbolicate`
+
+`mappings add <app> <version> <file>` keeps a `mapping.txt`, a source map or a `.dSYM` for a build (`-k, --kind
+mapping|sourcemap|dsym` when it cannot be told from the file), `mappings list [app] [--json]` shows what is kept, and
+`mappings remove <app> <version> [-k <kind>]` forgets it. `symbolicate <stack.txt|-> -m <file>` reads a stack you
+pasted, from a file or standard input. See [Readable stacks](symbolication.md).
+
+### `emulabzip report`
+
+Writes what a bug report needs into one HTML file: `[--session <file>] [-a, --app <id>] [-o <file>] [--title <text>]
+[--description <text>] [--without screenshot|logs|requests|crashes] [--issue github:owner/repo | gitlab:[host/]group/project |
+jira:site/PROJECTID/ISSUETYPEID] [--open]`. With `--issue` it prints a link that opens the issue with a summary filled
+in, and `--open` opens it in the browser. See [Bug reports](bug-reports.md).
 
 ### `emulabzip control`
 
