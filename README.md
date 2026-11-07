@@ -61,6 +61,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
 - **Inside Flutter, React Native, Compose and SwiftUI.** The widget tree, frame times and memory of Flutter apps, the
   React tree and Hermes heap of React Native apps, Compose and SwiftUI views marked in Layout; GraphQL operations and
   gRPC calls named and decoded; requests sent again with changes; and a slow, laggy or missing network on demand.
+- **Readable crashes and one-click bug reports.** Names scrambled by R8 are restored from `mapping.txt`, React Native
+  JavaScript points at the right file and line with its source map, and iOS addresses are read with the dSYM. Then
+  [one click](docs/bug-reports.md) packs a screenshot, the device, the log, the failed requests and the readable crash
+  into one HTML file, and opens a pre-filled issue on GitHub, GitLab or Jira.
 - **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
   the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
   slower.
@@ -118,6 +122,18 @@ request, record a whole run and compare two devices. It ships as a native deskto
   <tr>
     <td width="50%"><img src="docs/images/sessions.png" alt="Sessions: the summary of a recorded run, with a crash, repeated errors and slow requests" /><br /><sub><b>Sessions</b>: a whole run in one file: errors, crashes, requests, CPU and memory.</sub></td>
     <td width="50%"><img src="docs/images/compare.png" alt="Compare: an Android emulator and an iPhone simulator side by side" /><br /><sub><b>Compare</b>: two devices, their screens, charts and differences.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/images/symbolication.png" alt="The same Android crash, readable with its mapping.txt and as the device wrote it" /><br />
+  <sub><b>Readable stacks</b>: the same crash with its <code>mapping.txt</code> (left) and as the device wrote it (right).</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/bug-report-dialog.png" alt="The Report a bug dialog" /><br /><sub><b>Report a bug</b>: choose what goes in, and where the issue opens.</sub></td>
+    <td width="50%"><img src="docs/images/bug-report-html.png" alt="The report opened in a browser" /><br /><sub><b>One file</b>: screenshot, device and the readable crash, in any browser.</sub></td>
   </tr>
 </table>
 
@@ -201,6 +217,7 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | Mocks, delays, blocks and breakpoints; WebSocket messages; HTTP/3; packet capture import | ✅ | ✅ |
 | Layout inspection and accessibility audit | ✅ | ✅ (Simulator.app open) |
 | Sessions, CI mode and comparing two devices | ✅ | ✅ |
+| Readable crashes (R8 `mapping.txt`, React Native source maps, dSYM) and one-click bug reports | ✅ | ✅ (dSYM needs a Mac) |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
 
@@ -277,6 +294,8 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Network](docs/network.md) | The proxy, the certificate, pinned apps and HAR export |
 | [Traces](docs/traces.md) | Perfetto, simpleperf and Instruments recordings, flame graphs, SQL |
 | [Crashes](docs/crashes.md) | Crashes, native crashes and ANRs with their stacks, and where the reports come from |
+| [Readable stacks](docs/symbolication.md) | `mapping.txt`, source maps and dSYMs, kept per app and version |
+| [Bug reports](docs/bug-reports.md) | One HTML file, and a pre-filled issue for GitHub, GitLab or Jira |
 | [Mocks and breakpoints](docs/mocks.md) | Rules that answer, delay, block or hold requests |
 | [WebSocket messages](docs/websockets.md) | Reading frames, compression, limits |
 | [Packet captures](docs/pcap.md) | Importing `.pcap` and `.pcapng`, capturing with `emulator -tcpdump` |
