@@ -36,6 +36,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // `--es crash 1` fails on purpose, a few calls deep, so a release build shows what R8 does to a stack.
         if (intent.getStringExtra("crash") != null) Checkout(Cart(listOf(3, 0))).total()
+        // `--es data 1` writes what the Data demo keeps; `--es data 2` migrates the database to its second version.
+        intent.getStringExtra("data")?.toIntOrNull()?.let { DemoData.write(applicationContext, it) }
         setContent { Demo() }
     }
 }
@@ -78,6 +80,8 @@ fun Demo() {
             Button(onClick = { scope.launch { said = withContext(Dispatchers.IO) { fetch("http://example.com/").take(40) } } }, Modifier.padding(start = 8.dp).testTag("fetch-other")) { Text("Fetch another page") }
         }
         Text("Server said: $said", Modifier.testTag("said"))
+        val context = androidx.compose.ui.platform.LocalContext.current
+        Button(onClick = { scope.launch(Dispatchers.IO) { DemoData.write(context.applicationContext) } }, Modifier.testTag("write-data")) { Text("Write demo data") }
         Row {
             Text("Notifications", Modifier.padding(end = 12.dp))
             Switch(checked = enabled, onCheckedChange = { enabled = it }, modifier = Modifier.testTag("switch"))

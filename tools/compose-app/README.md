@@ -39,3 +39,17 @@ emulabzip net --replay run.ezsession
 ```
 
 The app allows cleartext traffic for this. It is a demo; do not copy that setting into an app you ship.
+
+## Data to read, change, save and compare
+
+`DemoData` writes what an app keeps, for Storage and app state: a SQLite database (`shop.db`), SharedPreferences
+(`settings`), a Preferences DataStore (`demo`) and MMKV.
+
+```bash
+adb shell am start -n dev.emulabzip.composedemo/.MainActivity --es data 1   # write it (or the Write demo data button)
+emulabzip files dev.emulabzip.composedemo databases
+emulabzip state save dev.emulabzip.composedemo -o v1.ezstate
+adb shell am start -n dev.emulabzip.composedemo/.MainActivity --es data 2   # migrates shop.db: a column, an index, a table
+emulabzip state save dev.emulabzip.composedemo -o v2.ezstate
+emulabzip state diff v1.ezstate v2.ezstate
+```

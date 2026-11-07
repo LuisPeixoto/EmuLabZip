@@ -40,4 +40,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
+    // What the Data demo keeps: a Preferences DataStore and MMKV, beside SQLite and SharedPreferences.
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("com.tencent:mmkv:1.3.9")
 }
