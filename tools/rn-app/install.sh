@@ -24,6 +24,11 @@ if [ ! -d "$app" ]; then
     --skip-git-init --pm npm --skip-install >/dev/null)
   (cd "$app" && npm install --no-audit --no-fund)
 fi
+# What the State screen needs: Redux, React Query, Zustand and AsyncStorage. Installed once, also into a project made earlier.
+if [ ! -d "$app/node_modules/@reduxjs/toolkit" ]; then
+  echo "› adding the state libraries"
+  (cd "$app" && npm install --no-audit --no-fund @reduxjs/toolkit react-redux @tanstack/react-query zustand @react-native-async-storage/async-storage)
+fi
 cp "$here/App.tsx" "$app/App.tsx"
 echo "sdk.dir=$ANDROID_HOME" > "$app/android/local.properties"
 
