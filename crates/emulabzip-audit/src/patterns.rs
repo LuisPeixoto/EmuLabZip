@@ -92,7 +92,7 @@ pub fn luhn(digits: &str) -> bool {
         .enumerate()
         .map(|(i, &d)| if i % 2 == 1 { if d * 2 > 9 { d * 2 - 9 } else { d * 2 } } else { d })
         .sum();
-    sum % 10 == 0
+    sum.is_multiple_of(10)
 }
 
 /// Everything in `text` that looks like a credential or personal data. A value reported by a specific pattern (a JWT)
