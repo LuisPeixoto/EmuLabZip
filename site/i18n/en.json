@@ -17,7 +17,7 @@
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "Open source · MIT · v0.10",
+    "eyebrow": "Open source · MIT · v0.11",
     "titleLead": "The debugging lab for your",
     "titleAccent": "Android emulator and iOS simulator",
     "lead": "<strong>EmuLabZip</strong> brings logs, network traffic, performance, memory, storage, crashes and accessibility of your <strong>Android emulators and iOS simulators</strong> into one fast, native app. Nothing to install on the device.",
@@ -59,7 +59,8 @@
       { "icon": "layout", "title": "Inside Flutter and React Native", "text": "The widget tree, frame times and memory of Flutter apps, and the React tree and Hermes heap of React Native apps, read through their own debuggers." },
       { "icon": "network", "title": "GraphQL and gRPC", "text": "Operations and calls named in the request list, queries with their variables, gRPC status and streaming, and protobuf read with or without your .proto files." },
       { "icon": "rules", "title": "Send again and slow networks", "text": "Resend a request with changes, or make the network slow, laggy, lossy or offline to see how the app copes." },
-      { "icon": "sessions", "title": "Timeline, video and replay", "text": "Touches, requests, log problems, slow frames and crashes on one time axis with the screen recording beside it, and a recording of the network that answers your app offline." }
+      { "icon": "sessions", "title": "Timeline, video and replay", "text": "Touches, requests, log problems, slow frames and crashes on one time axis with the screen recording beside it, and a recording of the network that answers your app offline." },
+      { "icon": "storage", "title": "App state as data", "text": "Save an app's data to one file and restore it, see what a migration changed, edit rows and preferences with Undo, make and snapshot emulators, and read Redux, React Query and Realm." }
     ]
   },
   "showcase": {
@@ -86,7 +87,11 @@
       { "id": "report-html", "shot": "bug-report-html", "label": "One file", "title": "One HTML file with everything", "text": "A screenshot, the device, the log, the failed requests and the readable crash, in a file that opens in any browser.", "alt": "A bug report opened in a browser with the screenshot, device details and the readable crash" },
       { "id": "timeline", "shot": "timeline", "label": "Timeline", "title": "What happened, and what it looked like", "text": "Touches, requests, log problems, slow frames, garbage collections and the crash on one axis, with the screen recording that follows it.", "alt": "The timeline of a session with its screen recording at the moment of a crash" },
       { "id": "replay", "shot": "replay", "label": "Replay", "title": "Run the app without the internet", "text": "Answer the app from a recording: what is in it is served as it was, and what is not fails with a 504 and never reaches a server.", "alt": "Network view replaying a recording, with one request that is not in it" },
-      { "id": "report-video", "shot": "bug-report-video", "label": "Report with video", "title": "The clip around the crash, in the report", "text": "A bug report made from a session carries the piece of screen recording that holds the crash and a strip of the last minute, in the same file.", "alt": "A bug report in a browser with the clip of the crash and a strip of the last minute" }
+      { "id": "report-video", "shot": "bug-report-video", "label": "Report with video", "title": "The clip around the crash, in the report", "text": "A bug report made from a session carries the piece of screen recording that holds the crash and a strip of the last minute, in the same file.", "alt": "A bug report in a browser with the clip of the crash and a strip of the last minute" },
+      { "id": "state-compare", "shot": "state-compare", "label": "App state", "title": "What a migration changed", "text": "Save the app's data before and after, and see the columns, indexes and tables that were added, removed or changed.", "alt": "Two saved states compared in Storage: a column, an index and a table were added" },
+      { "id": "storage-edit", "shot": "storage-edit", "label": "Edit mode", "title": "Change a value, and take it back", "text": "Double-click a cell or a preference. The app is stopped, the old file kept, the new one read back, and Undo puts it back.", "alt": "Storage in edit mode with a cell of the cart table being changed" },
+      { "id": "storage-realm", "shot": "storage-realm", "label": "Realm and more", "title": "Realm, DataStore, MMKV, Core Data", "text": "Realm tables and rows are read from the file on the device, next to DataStore, MMKV, AsyncStorage and Core Data.", "alt": "A Realm database read from the device, with its classes and the rows of Person" },
+      { "id": "devices-manage", "shot": "devices-manage", "label": "Devices", "title": "Start, stop, wipe and snapshot", "text": "Emulators and simulators, running or not: create, start, stop, wipe, delete and keep snapshots, each destructive step behind a confirmation.", "alt": "The Devices view listing Android emulators and iOS simulators with Start, Wipe and Delete" }
     ]
   },
   "cli": {
@@ -141,7 +146,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Where EmuLabZip is going",
-    "lead": "Ten phases are done. The next six lead to a stable 1.0.",
+    "lead": "Eleven phases are done. The next five lead to a stable 1.0.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observe", "text": "Devices, logs, performance, memory, storage and the network proxy." },
       { "state": "done", "version": "v0.4", "title": "Tracing", "text": "Perfetto, simpleperf and Instruments, with flame graphs and SQL." },
@@ -151,8 +156,8 @@
       { "state": "done", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
       { "state": "done", "version": "v0.9", "title": "Readable stacks and bug reports", "text": "Symbolicated crashes (R8, dSYMs, source maps) and one-click bug reports." },
       { "state": "done", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of touches, logs and requests, screen video, and network replay." },
-      { "state": "next", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
-      { "state": "later", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
+      { "state": "done", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
+      { "state": "next", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
       { "state": "later", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },
       { "state": "later", "version": "v0.14", "title": "AI with context", "text": "The timeline, replay and snapshots as MCP tools, and prompts for common questions." },
       { "state": "later", "version": "v0.15", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
