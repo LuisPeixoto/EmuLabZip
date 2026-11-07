@@ -24,3 +24,4 @@ pub mod startup;
 pub mod state;
 pub mod symbols;
 pub mod trace;
+pub mod visual;
