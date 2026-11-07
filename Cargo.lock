@@ -1356,6 +1356,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "emulabzip-report"
+version = "0.8.0"
+dependencies = [
+ "base64 0.22.1",
+ "emulabzip-core",
+ "emulabzip-net",
+ "emulabzip-session",
+ "emulabzip-symbols",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "emulabzip-session"
 version = "0.8.0"
 dependencies = [
