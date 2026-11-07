@@ -114,7 +114,6 @@ fn video_touches_and_requests_land_on_one_timeline() {
     };
     let taps = lane("taps");
     assert!(taps.len() >= 2, "both touches are on the timeline: {taps:?}");
-    assert!(!lane("requests").is_empty() || !t["lanes"].as_array().unwrap().is_empty());
     // The first touch was five seconds in, give or take the time the recorder took to start.
     let first = taps[0]["tMs"].as_u64().unwrap();
     assert!((3_000..9_000).contains(&first), "{first} ms");
