@@ -10,3 +10,4 @@ pub mod dsym;
 pub mod retrace;
 pub mod sourcemap;
 pub mod store;
+pub mod symbolicate;
