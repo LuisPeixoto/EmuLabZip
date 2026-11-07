@@ -119,6 +119,21 @@ pub fn scan(text: &str) -> Vec<Hit> {
     hits.into_iter().map(|(_, _, h)| h).collect()
 }
 
+static SENSITIVE_NAME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(passw(or)?d|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|credential)")
+        .expect("a valid pattern")
+});
+
+/// Whether a key, column or parameter is named like something that holds a secret.
+pub fn sensitive_name(name: &str) -> bool {
+    SENSITIVE_NAME.is_match(name)
+}
+
+/// Whether a value is empty or only stands in for one (`****`, `${TOKEN}`, `null`).
+pub fn is_empty_secret(value: &str) -> bool {
+    value.trim().is_empty() || is_placeholder(value)
+}
+
 fn is_placeholder(value: &str) -> bool {
     let v = value.trim_matches(|c| c == '"' || c == '\'');
     v.chars().all(|c| matches!(c, '*' | 'x' | 'X' | '•' | '.' | '-'))
@@ -178,6 +193,10 @@ mod tests {
         assert_eq!(redact("short"), "***** (5 chars)".replace("*****", "****"));
         let r = redact("supersecretvalue");
         assert_eq!(r, "su…ue (16 chars)");
+        assert!(sensitive_name("auth_token") && sensitive_name("Password") && sensitive_name("api_key"));
+        assert!(
+            !sensitive_name("theme") && is_empty_secret("") && is_empty_secret("null") && !is_empty_secret("abc12345")
+        );
         assert!(luhn("4111111111111111") && !luhn("4111111111111112") && !luhn("12345"));
     }
 }
