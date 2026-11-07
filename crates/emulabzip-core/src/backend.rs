@@ -10,6 +10,7 @@ use crate::control::{Control, ControlInfo};
 use crate::crash::{CrashReport, CrashSummary};
 use crate::device::{App, Device, InfoSection, Platform, Target};
 use crate::energy::EnergyReport;
+use crate::events::{DeviceClock, InputEvent, SlowFrame, VideoSegment};
 use crate::error::{Error, Result};
 use crate::files::{FileEntry, StorageRoot};
 use crate::frameworks::Framework;
@@ -203,6 +204,34 @@ pub trait Backend: Send + Sync {
     async fn layout(&self, _id: &str) -> Result<LayoutSnapshot> {
         Err(Error::Unsupported("Layout inspection"))
     }
+
+    /// How the device's clock relates to this computer's, measured now.
+    async fn clock(&self, _id: &str) -> Result<DeviceClock> {
+        Err(Error::Unsupported("Reading the device clock"))
+    }
+
+    /// Follows the touches on the screen until the returned stream is dropped.
+    async fn input(&self, _id: &str) -> Result<Stream<InputEvent>> {
+        Err(Error::Unsupported("Recording touches"))
+    }
+
+    /// Follows the frames `app` draws too slowly until the returned stream is dropped.
+    async fn slow_frames(&self, _id: &str, _app: &str) -> Result<Stream<SlowFrame>> {
+        Err(Error::Unsupported("Slow frame timing"))
+    }
+
+    /// Records the screen in pieces of `segment_secs` into `out_dir`, reporting each piece on `segments`
+    /// once it is complete. It stops when `stop` turns `true`, after finishing the piece in progress.
+    async fn record_video(
+        &self,
+        _id: &str,
+        _out_dir: &Path,
+        _segment_secs: u32,
+        _stop: tokio::sync::watch::Receiver<bool>,
+        _segments: tokio::sync::mpsc::UnboundedSender<VideoSegment>,
+    ) -> Result<()> {
+        Err(Error::Unsupported("Screen recording"))
+    }
 }
 
 /// Every available backend behind one handle.
@@ -384,6 +413,35 @@ impl Lab {
         crate::trace::check_duration(request.duration_s())
             .map_err(|_| Error::invalid("duration", request.duration_s().to_string()))?;
         self.backend(target.platform)?.record_trace(&target.id, request, out_dir, stop).await
+    }
+
+    pub async fn clock(&self, target: &Target) -> Result<DeviceClock> {
+        self.backend(target.platform)?.clock(&target.id).await
+    }
+
+    pub async fn input(&self, target: &Target) -> Result<Stream<InputEvent>> {
+        self.backend(target.platform)?.input(&target.id).await
+    }
+
+    pub async fn slow_frames(&self, target: &Target, app: &str) -> Result<Stream<SlowFrame>> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.slow_frames(&target.id, app).await
+    }
+
+    pub async fn record_video(
+        &self,
+        target: &Target,
+        out_dir: &Path,
+        segment_secs: u32,
+        stop: tokio::sync::watch::Receiver<bool>,
+        segments: tokio::sync::mpsc::UnboundedSender<VideoSegment>,
+    ) -> Result<()> {
+        if segment_secs == 0 || segment_secs > crate::events::MAX_SEGMENT_SECS {
+            return Err(Error::invalid("video piece length (1 to 180 seconds)", segment_secs.to_string()));
+        }
+        self.backend(target.platform)?.record_video(&target.id, out_dir, segment_secs, stop, segments).await
     }
 
     pub async fn crashes(&self, target: &Target, app: Option<&str>) -> Result<Vec<CrashSummary>> {
