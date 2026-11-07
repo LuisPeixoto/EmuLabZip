@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Plain HTTP, so the network demo needs no certificate on the device. This is a demo app. -->
     <application
+        android:usesCleartextTraffic="true"
         android:label="EmuLabZip Compose"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".MainActivity" android:exported="true">
