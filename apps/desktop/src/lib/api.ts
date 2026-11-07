@@ -321,6 +321,19 @@ export interface NetState {
   hideHttp3: boolean;
   conditions: Conditions;
   protos: ProtosInfo | null;
+  /** The recording requests are answered from, when there is one. */
+  replay: ReplayStats | null;
+}
+
+export interface ReplayStats {
+  source: string;
+  entries: number;
+  hits: number;
+  misses: number;
+  /** Requests that are not in the recording go to the real server. */
+  passthrough: boolean;
+  /** What the app asked for that the recording does not hold, once each. */
+  missed: string[];
 }
 
 export interface Conditions {
@@ -479,6 +492,9 @@ export interface RecordingStatus {
   samples: number;
   crashes: number;
   screens: number;
+  taps: number;
+  slowFrames: number;
+  videoPieces: number;
   network: boolean;
 }
 
@@ -514,6 +530,34 @@ export interface SessionSummary {
   screens: number;
 }
 
+export type Lane = "taps" | "logs" | "requests" | "frames" | "gc" | "crashes" | "screens" | "video";
+
+export interface TimelineEvent {
+  /** Milliseconds from the start of the recording. */
+  tMs: number;
+  durMs: number | null;
+  lane: Lane;
+  severity: "info" | "warning" | "error";
+  label: string;
+  detail: string | null;
+  /** The position in the list the event comes from: the logs, the requests, the crashes, the screenshots or the video. */
+  index: number | null;
+}
+
+export interface Timeline {
+  startMs: number;
+  durationMs: number;
+  clock: "measured" | "estimated" | "notNeeded";
+  lanes: { lane: Lane; total: number; shown: number }[];
+  events: TimelineEvent[];
+}
+
+export interface VideoPiece {
+  file: string;
+  startMs: number;
+  endMs: number;
+}
+
 export interface SessionView {
   path: string;
   meta: { startedMs: number; endedMs: number | null; app: string | null; network: boolean };
@@ -524,6 +568,8 @@ export interface SessionView {
   requests: RequestRow[];
   crashes: CrashSummary[];
   screens: string[];
+  video: VideoPiece[];
+  timeline: Timeline;
 }
 
 export interface DiffRow {
@@ -786,6 +832,8 @@ export interface ReportRequest {
   logs: boolean;
   requests: boolean;
   crashes: boolean;
+  /** The piece of the screen recording around the crash. Only a session has one. */
+  video: boolean;
   issue: string;
   session: string | null;
   app: string | null;
@@ -891,6 +939,9 @@ export const api = {
   netDisconnect: (target: Target) => invoke<NetworkStatus>("net_disconnect", { target }),
   netInstallCa: (target: Target) => invoke<CaInstall>("net_install_ca", { target }),
   netClearBypass: () => invoke<NetState>("net_clear_bypass"),
+  /** Answers from a HAR file or a session (asked for when `path` is null). Null when the dialog is cancelled. */
+  netReplayLoad: (path: string | null, passthrough: boolean) => invoke<NetState | null>("net_replay_load", { path, passthrough }),
+  netReplayStop: () => invoke<NetState>("net_replay_stop"),
   async netSubscribe(onBatch: (b: NetBatch) => void): Promise<number> {
     const channel = new Channel<NetBatch>();
     channel.onmessage = onBatch;
@@ -898,13 +949,15 @@ export const api = {
   },
   layoutRead: (target: Target, app: string | null = null) => invoke<LayoutResult>("layout_read", { target, app }),
   sessionStatus: () => invoke<RecordingStatus>("session_status"),
-  sessionStart: (target: Target, app: string | null, network: boolean, screensEvery: number | null) =>
-    invoke<RecordingStatus>("session_start", { target, app, network, screensEvery }),
+  sessionStart: (target: Target, app: string | null, network: boolean, screensEvery: number | null, video: number | null, taps: boolean) =>
+    invoke<RecordingStatus>("session_start", { target, app, network, screensEvery, video, taps }),
   sessionStop: () => invoke<{ path: string }>("session_stop"),
   sessionList: () => invoke<SessionFile[]>("session_list"),
   sessionOpen: (path: string | null) => invoke<SessionView | null>("session_open", { path }),
   sessionRequest: (index: number) => invoke<Record<string, any>>("session_request", { index }),
   sessionScreen: (name: string) => invoke<string>("session_screen", { name }),
+  /** One piece of the screen recording, as the bytes of an mp4. */
+  sessionVideo: (name: string) => invoke<ArrayBuffer>("session_video", { name }),
   sessionDelete: (path: string) => invoke<void>("session_delete", { path }),
   sessionReveal: (path: string) => invoke<void>("session_reveal", { path }),
   compareInfo: (a: Target, b: Target) => invoke<{ rows: DiffRow[] }>("compare_info", { a, b }),
