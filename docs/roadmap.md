@@ -99,14 +99,20 @@ Left for later from this phase: touches on iOS (the simulator gives them to noth
 replaying WebSockets and gRPC calls (a HAR file does not hold their messages and trailers), and matching a request
 that carries a timestamp or a random id.
 
-## Phase 11: App state as data (v0.11)
+## ✅ Phase 11: App state as data (v0.11)
 
-**App state snapshots**: save the whole sandbox and restore it (`run-as` and tar for debuggable Android apps, the data
-container on the simulator) · **emulator snapshots** (`adb emu avd snapshot`), and creating, wiping and booting AVDs and
-simulators from the app (`avdmanager`, `simctl create` and `erase`) · a **write mode** in Storage for SQLite rows,
-SharedPreferences and property lists, behind a confirmation, with read-only staying the default · viewers for
-**DataStore, MMKV, Realm, AsyncStorage and Core Data** · a **schema diff** between two sessions, for testing
-migrations.
+**[App state snapshots](app-state.md)**: save the whole sandbox to one `.ezstate` file and restore it (`run-as` and tar for
+debuggable Android apps, the data container on the simulator), with an automatic backup of what a restore replaces ·
+**[emulator snapshots and the device lifecycle](devices.md)**: create, start, stop, wipe and delete AVDs and simulators,
+and `avd snapshot save|load|delete` · a **[write mode](storage-editing.md)** in Storage for SQLite rows and
+SharedPreferences (property lists from the command line), behind a confirmation, with Undo, and read-only staying the
+default · viewers for **DataStore, MMKV, AsyncStorage, Core Data and Realm** (with a reader of Realm's file format) · a
+**schema diff** between two states, for testing migrations · **[React Native state](react-native-state.md)**: Redux, React
+Query, context and registered stores, with a Redux action log.
+
+Limits: Realm sets, dictionaries, mixed, decimal and UUID columns are not read; MMKV types are guessed; Core Data
+attribute names lose their case; AsyncStorage and Core Data from an iOS device were tested on fixture files, not on a
+simulator; Flutter state is not read.
 
 ## Phase 12: Quality beyond performance (v0.12)
 

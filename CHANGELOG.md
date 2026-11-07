@@ -6,6 +6,41 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-08
+
+Phase 11: app state as data.
+
+### Added
+
+- **App state.** `emulabzip state save|restore|show|diff` and **Save state… / Open state…** in Storage keep everything an
+  app stores in one `.ezstate` file and put it back (`run-as` and tar on debuggable Android apps, the data container on
+  the simulator). A restore needs confirmation, refuses another platform, warns on another app version, saves the data it
+  replaces first, and checks every tar entry before writing. See [App state](docs/app-state.md).
+- **A schema diff.** `state diff` and the **Compare** buttons list the tables, columns, indexes and preference keys that
+  changed between two states, or between one and the app now, to check a migration.
+- **Devices.** The **Devices** view and `emulabzip avd`, `sim` and `snapshot` create, start, stop, wipe and delete
+  emulators and simulators, and save, load and delete an emulator's snapshots. `devices --all` lists the ones that are
+  not running. Anything that throws data away needs `--yes` or a dialog. See [Devices](docs/devices.md).
+- **Edit mode in Storage.** SQLite rows (by rowid or primary key, one row exactly), SharedPreferences and, from the
+  command line, property lists, each behind a confirmation: the app is stopped, the old file kept, the new one read back,
+  and **Undo** puts it back. `emulabzip edit`. Read-only stays the default. See
+  [Changing an app's data](docs/storage-editing.md).
+- **New viewers:** Preferences and Proto DataStore, MMKV, AsyncStorage (Android database and iOS manifest), Core Data
+  entities, and **Realm** tables and rows, read with a reader of Realm's file format written in Rust.
+- **React Native state.** `emulabzip rn state`, the **State** tab and the `react_state` MCP tool read Redux, React Query,
+  React context and stores registered in `globalThis.__EMULABZIP_STORES__`; `--watch` follows Redux actions and prints
+  what each changed. See [React Native state](docs/react-native-state.md).
+- **MCP:** `list_all_devices`, `boot_device`, `shutdown_device`, `save_state`, `list_states`, `diff_state`,
+  `list_emulator_snapshots`, `save_emulator_snapshot` and `react_state`. Restoring, editing, wiping, deleting and loading
+  snapshots are not offered to assistants.
+- Demo apps: the Compose demo keeps a database (with a v1 to v2 migration), preferences, a DataStore and MMKV; the React
+  Native demo has a Redux cart, a React Query fetch, a theme context and a Zustand store.
+
+### Known limits
+
+Realm sets, dictionaries, mixed, decimal and UUID columns are not read; MMKV values have no stored type, so it is guessed;
+Core Data attribute names lose their case; Flutter state is not read; saving a state needs a debuggable Android app.
+
 ## [0.10.0] - 2026-11-07
 
 Phase 10: timeline and replay.
