@@ -117,6 +117,8 @@ pub struct NetArgs {
     pub show_h3: bool,
     pub conditions: ConditionArgs,
     pub replay: Option<ReplayArgs>,
+    /// Print the analytics events of each request instead of the request: the services to show, all when empty.
+    pub analytics: Option<Vec<emulabzip_net::analytics::Service>>,
 }
 
 /// Reads rules from a JSON file: a list, or an object with a `rules` list. Breakpoints are left
@@ -204,7 +206,7 @@ pub async fn run(lab: &Lab, args: NetArgs) -> Result<()> {
         eprintln!("{}", output::dim("Press Ctrl+C to stop."));
     }
 
-    let result = stream(&store, args.json).await;
+    let result = stream(&store, args.json, args.analytics.as_deref()).await;
     finish(lab, target.as_ref()).await;
     drop(proxy);
     if let Some(set) = &replay
@@ -287,7 +289,7 @@ async fn finish(lab: &Lab, target: Option<&Target>) {
     }
 }
 
-async fn stream(store: &FlowStore, json: bool) -> Result<()> {
+async fn stream(store: &FlowStore, json: bool, analytics: Option<&[emulabzip_net::analytics::Service]>) -> Result<()> {
     let mut events = store.subscribe();
     let mut printed = HashSet::new();
     loop {
@@ -296,7 +298,11 @@ async fn stream(store: &FlowStore, json: bool) -> Result<()> {
                 Ok(FlowEvent::Added { flow } | FlowEvent::Updated { flow }) => {
                     // A flow is shown once, when it is finished.
                     if matches!(flow.state, FlowState::Completed | FlowState::Failed) && printed.insert(flow.id) {
-                        if json { println!("{}", serde_json::to_string(&flow)?) } else { println!("{}", output::flow_line(&flow)) }
+                        if let Some(services) = analytics {
+                            if let Some(full) = store.get(flow.id) {
+                                super::analytics::print_flow(&full, services, json)?;
+                            }
+                        } else if json { println!("{}", serde_json::to_string(&flow)?) } else { println!("{}", output::flow_line(&flow)) }
                     }
                 }
                 Ok(FlowEvent::Cleared) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}

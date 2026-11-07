@@ -292,6 +292,23 @@ enum Command {
         #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
         fail_on: Option<emulabzip_core::Severity>,
     },
+    /// Show the events an app sends to Segment, Amplitude, Mixpanel and Firebase Analytics, as they happen
+    Analytics {
+        /// Only these services: segment, amplitude, mixpanel, firebase
+        #[arg(long, value_delimiter = ',')]
+        service: Vec<String>,
+        /// The proxy's port on this computer
+        #[arg(short, long, default_value_t = 9090, env = "EMULABZIP_PORT")]
+        port: u16,
+        /// Run the proxy without pointing a device at it
+        #[arg(long)]
+        no_connect: bool,
+        /// Follow the device log for Firebase's debug-mode lines instead of using the proxy
+        #[arg(long)]
+        firebase_log: bool,
+        #[arg(long)]
+        json: bool,
+    },
     /// Compare screenshots with a baseline, to see when the screen changes
     Visual {
         #[command(subcommand)]
@@ -1507,6 +1524,7 @@ async fn run() -> ExitCode {
                 show_h3,
                 conditions,
                 replay: replay.map(|file| cmd::net::ReplayArgs { file, passthrough, timing }),
+                analytics: None,
             };
             cmd::net::run(&lab, args).await
         }
@@ -1539,6 +1557,17 @@ async fn run() -> ExitCode {
         }
         Command::Layout { json, png, depth, app } => {
             cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
+        }
+        Command::Analytics { service, port, no_connect, firebase_log, json } => {
+            let args = cmd::analytics::Args {
+                device: cli.device.clone(),
+                port,
+                no_connect,
+                services: service,
+                json,
+                firebase_log,
+            };
+            cmd::analytics::run(&lab, args).await
         }
         Command::Visual { action } => match action {
             VisualAction::Capture { name, dir, status_bar } => {
