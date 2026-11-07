@@ -1043,7 +1043,98 @@ export interface StatusBarOverride {
   cellular: boolean | null;
 }
 
+export type AuditArea = "manifest" | "traffic" | "log" | "storage" | "privacy";
+
+export interface SecurityFinding {
+  rule: string;
+  severity: Severity;
+  area: AuditArea;
+  message: string;
+  evidence: string | null;
+  location: string | null;
+  fix: string;
+}
+
+export interface SecurityAudit {
+  findings: SecurityFinding[];
+  checked: AuditArea[];
+  skipped: [AuditArea, string][];
+}
+
+export interface Simulated {
+  png: string;
+  audit: Audit;
+}
+
+export interface SizeTotals {
+  compressed: number;
+  uncompressed: number;
+  files: number;
+}
+
+export interface PackageEntry {
+  path: string;
+  kind: string;
+  compressed: number;
+  uncompressed: number;
+}
+
+export interface PackageView {
+  format: "apk" | "aab" | "ipa";
+  fileBytes: number;
+  total: SizeTotals;
+  kinds: Record<string, SizeTotals>;
+  folders: Record<string, SizeTotals>;
+  native: Record<string, SizeTotals>;
+  modules: Record<string, SizeTotals>;
+  dex: { path: string; bytes: number; classes: number; methods: number }[];
+  largest: PackageEntry[];
+  methods: number;
+}
+
+export interface PackageDiff {
+  before: number;
+  after: number;
+  delta: number;
+  percent: number;
+  kinds: [string, number][];
+  folders: [string, number][];
+  added: number;
+  removed: number;
+  files: { path: string; kind: string; before: number | null; after: number | null; delta: number }[];
+  methodsBefore: number;
+  methodsAfter: number;
+}
+
+export interface VisualResult {
+  comparison: { width: number; height: number; changed: number; compared: number; percent: number; bounds: { x: number; y: number; width: number; height: number } | null };
+  threshold: number;
+  exceeds: boolean;
+  baseline: string;
+  current: string;
+  diff: string;
+}
+
+export interface AnalyticsItem {
+  flow: number;
+  startedMs: number;
+  host: string;
+  event: {
+    service: "segment" | "amplitude" | "mixpanel" | "firebase";
+    kind: string;
+    name: string;
+    properties: unknown;
+    user: string | null;
+    timeMs: number | null;
+  };
+}
+
 export type Control =
+  | { action: "locale"; locale: string; app: string | null }
+  | { action: "resetLocale"; app: string | null }
+  | { action: "fontScale"; percent: number }
+  | { action: "display"; width: number | null; height: number | null; density: number | null }
+  | { action: "resetDisplay" }
   | { action: "location"; lat: string; lon: string }
   | { action: "clearLocation" }
   | { action: "appearance"; appearance: Appearance }
@@ -1192,6 +1283,18 @@ export const api = {
   pluginOpenFolder: () => invoke<void>("plugin_open_folder"),
   controlsInfo: (target: Target, app: string | null) => invoke<ControlInfo>("controls_info", { target, app }),
   controlApply: (target: Target, control: Control) => invoke<void>("control_apply", { target, control }),
+  auditSecurity: (target: Target, app: string) => invoke<SecurityAudit>("audit_security", { target, app }),
+  textCheck: (target: Target, rtl: boolean) => invoke<Audit>("text_check", { target, rtl }),
+  colourSimulate: (target: Target, vision: string) => invoke<Simulated>("colour_simulate", { target, vision }),
+  packagePick: () => invoke<string | null>("package_pick"),
+  packageAnalyze: (path: string) => invoke<PackageView>("package_analyze", { path }),
+  packageDiff: (before: string, after: string) => invoke<PackageDiff>("package_diff", { before, after }),
+  visualList: () => invoke<[string, number][]>("visual_list"),
+  visualCapture: (target: Target, name: string, cleanStatusBar: boolean, replace: boolean) =>
+    invoke<void>("visual_capture", { target, name, cleanStatusBar, replace }),
+  visualCompare: (target: Target, name: string, cleanStatusBar: boolean, threshold: number) =>
+    invoke<VisualResult>("visual_compare", { target, name, cleanStatusBar, threshold, ignore: [] }),
+  analyticsEvents: (after: number) => invoke<AnalyticsItem[]>("analytics_events", { after }),
   traceTemplates: (target: Target) => invoke<string[]>("trace_templates", { target }),
   async traceStart(target: Target, device: string, request: TraceRequest, onEvent: (e: TraceEvent) => void): Promise<number> {
     const channel = new Channel<TraceEvent>();

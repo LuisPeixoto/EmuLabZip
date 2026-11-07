@@ -29,6 +29,19 @@
     controls.apply(`permission:${permission}`, { action: "permission", app: packageName, permission, grant }, `${permission}: ${grant}`);
   }
 
+  let textSize = $state(100);
+  let locale = $state("en-XA");
+  let width = $state<number | null>(720);
+  let height = $state<number | null>(1600);
+  let density = $state<number | null>(320);
+  const LOCALES: [string, string][] = [
+    ["en-XA", "Pseudo-locale: long, accented text"],
+    ["ar-XB", "Pseudo-locale: right to left"],
+    ["de-DE", "German: long words"],
+    ["ja-JP", "Japanese"],
+    ["ar", "Arabic: right to left"],
+  ];
+
   const granted = $derived(controls.info?.permissions.filter((p) => p.granted).length ?? 0);
 </script>
 
@@ -57,6 +70,46 @@
     {/each}
 
     <div class="mt-3 grid gap-4 lg:grid-cols-2">
+      {#if controls.supports("fontScale")}
+        <section class="rounded-2xl border border-line bg-panel p-4">
+          {@render card("Text size and language", "code", "See how the app copes with big text and long or right-to-left languages.")}
+          <label class="text-[11px] text-muted">Text size: {textSize}%
+            <input type="range" min="85" max="200" step="5" bind:value={textSize} class="mt-1 w-full accent-[var(--accent)]" />
+          </label>
+          <div class="mt-2 flex gap-2">
+            <button class={primary} disabled={busy != null} onclick={() => controls.apply("fontScale", { action: "fontScale", percent: textSize }, `Text size set to ${textSize}%`)}>Apply</button>
+            <button class={button} disabled={busy != null} onclick={() => { textSize = 100; controls.apply("fontScale", { action: "fontScale", percent: 100 }, "Text size back to normal"); }}>Reset</button>
+          </div>
+          {#if controls.supports("locale") || ios}
+            <div class="mt-4 border-t border-line pt-3">
+              <div class="mb-2 flex flex-wrap gap-1.5">
+                {#each LOCALES as l (l[0])}
+                  <button onclick={() => (locale = l[0])} title={l[1]} class="rounded-full border px-2.5 py-0.5 text-[11.5px] {locale === l[0] ? 'border-accent text-accent' : 'border-line text-muted hover:text-fg'}">{l[0]}</button>
+                {/each}
+              </div>
+              <div class="flex gap-2">
+                <button class={primary} disabled={busy != null || (!ios && !packageName)} onclick={() => controls.apply("locale", { action: "locale", locale, app: packageName }, `Language set to ${locale}`)}>Show in {locale}</button>
+                <button class={button} disabled={busy != null || (!ios && !packageName)} onclick={() => controls.apply("locale", { action: "resetLocale", app: packageName }, "Language back to normal")}>Reset</button>
+              </div>
+              <p class="mt-2 text-[11px] leading-snug text-faint">{ios ? "The simulator changes language for every app; each picks it up when it starts again." : packageName ? "Android changes the language of the picked app (Android 13 and newer)." : "Pick an app in the toolbar: Android changes the language of one app at a time."}</p>
+            </div>
+          {/if}
+        </section>
+      {/if}
+      {#if controls.supports("display")}
+        <section class="rounded-2xl border border-line bg-panel p-4">
+          {@render card("Display size", "smartphone", "A smaller or denser screen, to see how the layout copes.")}
+          <div class="grid grid-cols-3 gap-2">
+            <label class="text-[11px] text-muted">Width<input class="{field} mono mt-1" type="number" bind:value={width} /></label>
+            <label class="text-[11px] text-muted">Height<input class="{field} mono mt-1" type="number" bind:value={height} /></label>
+            <label class="text-[11px] text-muted">Density<input class="{field} mono mt-1" type="number" bind:value={density} /></label>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button class={primary} disabled={busy != null} onclick={() => controls.apply("display", { action: "display", width, height, density }, "Display changed")}>Apply</button>
+            <button class={button} disabled={busy != null} onclick={() => controls.apply("display", { action: "resetDisplay" }, "Display back to normal")}>Reset</button>
+          </div>
+        </section>
+      {/if}
       {#if controls.supports("location")}
         <section class="rounded-2xl border border-line bg-panel p-4">
           {@render card("Location", "globe", ios ? "The simulator's GPS position." : "The emulator's GPS position, through its console.")}

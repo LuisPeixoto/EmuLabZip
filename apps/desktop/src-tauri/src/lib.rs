@@ -12,6 +12,7 @@ mod layout;
 mod network;
 mod plugins;
 mod profiling;
+mod quality;
 mod report;
 mod sessions;
 mod state;
@@ -92,6 +93,16 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            quality::audit_security,
+            quality::text_check,
+            quality::colour_simulate,
+            quality::package_pick,
+            quality::package_analyze,
+            quality::package_diff,
+            quality::visual_list,
+            quality::visual_capture,
+            quality::visual_compare,
+            quality::analytics_events,
             layout::layout_read,
             sessions::session_status,
             sessions::session_start,

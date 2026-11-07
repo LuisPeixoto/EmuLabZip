@@ -2,7 +2,7 @@ import { api, errorText, targetOf, type App, type Device, type HostInfo, type Pl
 import { load, loadValue, save } from "../prefs";
 
 export type Theme = "dark" | "light";
-export type View = "overview" | "layout" | "frameworks" | "sessions" | "compare" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins" | "devices";
+export type View = "overview" | "layout" | "frameworks" | "sessions" | "compare" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins" | "devices" | "audit" | "size" | "visual" | "analytics";
 
 export interface Toast {
   id: number;
