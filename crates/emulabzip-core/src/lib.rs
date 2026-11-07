@@ -13,6 +13,7 @@ pub mod crash;
 pub mod device;
 pub mod energy;
 pub mod error;
+pub mod events;
 pub mod files;
 pub mod frameworks;
 pub mod layout;
@@ -37,6 +38,7 @@ pub use crash::{
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use energy::{EnergyComponent, EnergyReport, Wakelock};
 pub use error::{Error, Result};
+pub use events::{DeviceClock, InputEvent, InputKind, MAX_SEGMENT_SECS, SlowFrame, VideoSegment};
 pub use files::{FileEntry, StorageRoot};
 pub use frameworks::Framework;
 pub use layout::{Bounds, LayoutSnapshot, Screen, UiNode};

@@ -4,10 +4,15 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use emulabzip_core::{CrashReport, Error, LogEntry, PerfSample, Result, StartupReport};
+use emulabzip_core::{
+    CrashReport, Error, InputEvent, LogEntry, PerfSample, Result, SlowFrame, StartupReport, VideoSegment,
+};
 use serde::de::DeserializeOwned;
 
-use crate::format::{CRASHES, LOGS, META, Meta, NETWORK, PERF, SCREENS, STARTUP, VERSION, bad};
+use crate::format::{
+    CRASHES, FRAMES, INPUT, LOGS, META, Meta, NETWORK, PERF, SCREENS, SCREENS_INDEX, STARTUP, ScreenShot, VERSION,
+    VIDEO, VIDEO_INDEX, bad,
+};
 
 /// The biggest single file read from a session. A bigger one is not a session of ours.
 const MAX_FILE: u64 = 512 * 1024 * 1024;
@@ -26,6 +31,14 @@ pub struct Session {
     pub crashes: Vec<CrashReport>,
     /// The names of the screenshots, in order.
     pub screens: Vec<String>,
+    /// When each screenshot was taken. Empty in version 1 files.
+    pub screen_times: Vec<ScreenShot>,
+    /// Touch gestures, when they were recorded.
+    pub input: Vec<InputEvent>,
+    /// Frames the app drew too slowly, when they were recorded.
+    pub slow_frames: Vec<SlowFrame>,
+    /// The pieces of the screen recording, in order, when there is one.
+    pub video: Vec<VideoSegment>,
     /// How long the app took to open, when that was measured before the run.
     pub startup: Option<StartupReport>,
     /// The recording was cut short: it was read from a folder, or never got an end time.
@@ -77,12 +90,18 @@ impl Session {
                 network: false,
                 screens_every_secs: None,
                 logs_dropped: 0,
+                clock: None,
+                perf_started_ms: None,
             },
             logs: Vec::new(),
             perf: Vec::new(),
             har: None,
             crashes: Vec::new(),
             screens: Vec::new(),
+            screen_times: Vec::new(),
+            input: Vec::new(),
+            slow_frames: Vec::new(),
+            video: Vec::new(),
             startup: None,
             partial: partial_dir,
             source,
@@ -115,7 +134,24 @@ impl Session {
                 session.crashes.push(report);
             }
         }
-        session.screens = session.names(SCREENS);
+        session.screens = session.names(SCREENS).into_iter().filter(|n| n.ends_with(".png")).collect();
+        if let Some(b) = session.read(SCREENS_INDEX)? {
+            session.screen_times = lines(&String::from_utf8_lossy(&b));
+        }
+        if let Some(b) = session.read(INPUT)? {
+            session.input = lines(&String::from_utf8_lossy(&b));
+        }
+        if let Some(b) = session.read(FRAMES)? {
+            session.slow_frames = lines(&String::from_utf8_lossy(&b));
+        }
+        if let Some(b) = session.read(VIDEO_INDEX)? {
+            // A piece that is in the index but not in the file (a run killed mid-write) is left out.
+            let present = session.names(VIDEO);
+            session.video = lines::<VideoSegment>(&String::from_utf8_lossy(&b))
+                .into_iter()
+                .filter(|s| present.contains(&s.file))
+                .collect();
+        }
         Ok(session)
     }
 
@@ -167,5 +203,22 @@ impl Session {
             return Err(Error::invalid("screenshot name", name));
         }
         self.read(&format!("{SCREENS}/{name}"))?.ok_or_else(|| Error::NotFound(format!("no screenshot named {name}")))
+    }
+
+    /// One piece of the screen recording, by the name in [`Session::video`].
+    pub fn video_file(&self, name: &str) -> Result<Vec<u8>> {
+        if name.contains('/') || name.contains('\\') || name.contains("..") {
+            return Err(Error::invalid("video name", name));
+        }
+        self.read(&format!("{VIDEO}/{name}"))?.ok_or_else(|| Error::NotFound(format!("no video named {name}")))
+    }
+
+    /// Writes one piece of video into `dir` and returns its path.
+    pub fn extract_video(&self, name: &str, dir: &Path) -> Result<PathBuf> {
+        let bytes = self.video_file(name)?;
+        fs::create_dir_all(dir)?;
+        let path = dir.join(name);
+        fs::write(&path, bytes)?;
+        Ok(path)
     }
 }
