@@ -253,11 +253,12 @@ pub struct Image {
 }
 
 impl Image {
-    pub(crate) fn from_rgba(width: u32, height: u32, rgba: Vec<u8>) -> Image {
+    pub fn from_rgba(width: u32, height: u32, rgba: Vec<u8>) -> Image {
         Image { width, height, rgba }
     }
 
-    pub(crate) fn rgba(&self) -> &[u8] {
+    /// The pixels, four bytes each (red, green, blue, alpha), row by row.
+    pub fn rgba(&self) -> &[u8] {
         &self.rgba
     }
 
