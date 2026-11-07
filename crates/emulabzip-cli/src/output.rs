@@ -107,6 +107,7 @@ pub fn state(s: DeviceState) -> String {
         DeviceState::Booting => ("booting", Style::new().yellow()),
         DeviceState::Offline => ("offline", Style::new().dimmed()),
         DeviceState::Unauthorized => ("unauthorized", Style::new().red()),
+        DeviceState::Shutdown => ("shut down", Style::new().dimmed()),
     };
     text.if_supports_color(Stdout, |t| t.style(style)).to_string()
 }

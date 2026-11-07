@@ -13,12 +13,14 @@
     booting: "Booting",
     offline: "Offline",
     unauthorized: "Unauthorized",
+    shutdown: "Shut down",
   };
   const stateDot: Record<Device["state"], string> = {
     online: "bg-ok",
     booting: "bg-warn",
     offline: "bg-faint",
     unauthorized: "bg-err",
+    shutdown: "bg-faint",
   };
 
   const groups = $derived([

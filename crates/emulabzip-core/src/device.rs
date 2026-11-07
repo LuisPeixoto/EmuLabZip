@@ -48,6 +48,8 @@ pub enum DeviceState {
     Offline,
     /// Waiting for the user to accept the USB debugging prompt.
     Unauthorized,
+    /// Exists but is not running: an AVD or a simulator that has not been started. Only [`crate::Lab::all_devices`] lists it.
+    Shutdown,
 }
 
 impl DeviceState {

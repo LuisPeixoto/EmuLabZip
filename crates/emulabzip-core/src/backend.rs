@@ -15,11 +15,13 @@ use crate::events::{DeviceClock, InputEvent, SlowFrame, VideoSegment};
 use crate::files::{FileEntry, StorageRoot};
 use crate::frameworks::Framework;
 use crate::layout::LayoutSnapshot;
+use crate::lifecycle::{BootOptions, CreateDevice, DeviceOptions, EmulatorSnapshot, SnapshotAction};
 use crate::log::LogEntry;
 use crate::memory::{HeapDump, MemoryReport};
 use crate::network::{CaInstall, NetworkStatus};
 use crate::perf::{PerfOptions, PerfSample};
 use crate::startup::{StartKind, StartupReport};
+use crate::state::StateFiles;
 use crate::stream::Stream;
 use crate::trace::{TraceFile, TraceRequest};
 
@@ -232,6 +234,94 @@ pub trait Backend: Send + Sync {
     ) -> Result<()> {
         Err(Error::Unsupported("Screen recording"))
     }
+
+    /// Stops an app, so what it keeps on disk is not changed under it.
+    async fn stop_app(&self, _id: &str, _app: &str) -> Result<()> {
+        Err(Error::Unsupported("Stopping an app"))
+    }
+
+    /// Writes an app's data as `tar` files into `out_dir`. `include_external` adds what it keeps on shared storage.
+    async fn save_state(&self, _id: &str, _app: &str, _out_dir: &Path, _include_external: bool) -> Result<StateFiles> {
+        Err(Error::Unsupported("Saving an app's state"))
+    }
+
+    /// Replaces an app's data with what `save_state` wrote. The app is stopped first.
+    async fn restore_state(&self, _id: &str, _app: &str, _data: &Path, _external: Option<&Path>) -> Result<()> {
+        Err(Error::Unsupported("Restoring an app's state"))
+    }
+
+    /// Writes a file into an app's storage, replacing it. The path is relative to the root and has been checked.
+    async fn write_file(&self, _id: &str, _app: &str, _root: &str, _path: &str, _bytes: &[u8]) -> Result<()> {
+        Err(Error::Unsupported("Writing to an app's storage"))
+    }
+
+    /// Removes a file from an app's storage.
+    async fn remove_file(&self, _id: &str, _app: &str, _root: &str, _path: &str) -> Result<()> {
+        Err(Error::Unsupported("Removing a file from an app's storage"))
+    }
+
+    /// Every device of this platform, running or not. The default is the running ones.
+    async fn all_devices(&self) -> Result<Vec<Device>> {
+        self.devices().await
+    }
+
+    /// What a new device can be made from.
+    async fn device_options(&self) -> Result<DeviceOptions> {
+        Err(Error::Unsupported("Creating devices"))
+    }
+
+    /// Makes a new device, not started.
+    async fn create_device(&self, _request: &CreateDevice) -> Result<Device> {
+        Err(Error::Unsupported("Creating devices"))
+    }
+
+    /// Starts a device and waits until it is ready. `id` is a UDID, or `avd:<name>` for an emulator that is not running.
+    async fn boot_device(&self, _id: &str, _options: &BootOptions) -> Result<Device> {
+        Err(Error::Unsupported("Starting devices"))
+    }
+
+    async fn shutdown_device(&self, _id: &str) -> Result<()> {
+        Err(Error::Unsupported("Shutting devices down"))
+    }
+
+    /// Puts a device back to factory state. It has to be shut down.
+    async fn wipe_device(&self, _id: &str) -> Result<()> {
+        Err(Error::Unsupported("Wiping devices"))
+    }
+
+    /// Deletes a device for good. It has to be shut down.
+    async fn delete_device(&self, _id: &str) -> Result<()> {
+        Err(Error::Unsupported("Deleting devices"))
+    }
+
+    /// The snapshots an emulator keeps of its own state.
+    async fn emulator_snapshots(&self, _id: &str) -> Result<Vec<EmulatorSnapshot>> {
+        Err(Error::Unsupported("Emulator snapshots"))
+    }
+
+    async fn emulator_snapshot(&self, _id: &str, _action: SnapshotAction, _name: &str) -> Result<()> {
+        Err(Error::Unsupported("Emulator snapshots"))
+    }
+}
+
+fn check_write_path(app: &str, root: &str, path: &str) -> Result<()> {
+    if !crate::control::is_app_id(app) {
+        return Err(Error::invalid("app", app));
+    }
+    if root.is_empty()
+        || root.len() > 100
+        || !root.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ':'))
+    {
+        return Err(Error::invalid("storage root", root));
+    }
+    if path.is_empty() || !crate::files::is_safe_relative(path) || path.ends_with('/') {
+        return Err(Error::invalid("path", path));
+    }
+    Ok(())
+}
+
+fn check_device_ref(id: &str) -> Result<()> {
+    if crate::lifecycle::is_device_ref(id) { Ok(()) } else { Err(Error::invalid("device", id)) }
 }
 
 /// Every available backend behind one handle.
@@ -444,6 +534,152 @@ impl Lab {
         self.backend(target.platform)?.record_video(&target.id, out_dir, segment_secs, stop, segments).await
     }
 
+    pub async fn stop_app(&self, target: &Target, app: &str) -> Result<()> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.stop_app(&target.id, app).await
+    }
+
+    pub async fn save_state(
+        &self,
+        target: &Target,
+        app: &str,
+        out_dir: &Path,
+        include_external: bool,
+    ) -> Result<StateFiles> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.save_state(&target.id, app, out_dir, include_external).await
+    }
+
+    /// Replaces an app's data. `confirm` says the person has been asked.
+    pub async fn restore_state(
+        &self,
+        target: &Target,
+        app: &str,
+        data: &Path,
+        external: Option<&Path>,
+        confirm: bool,
+    ) -> Result<()> {
+        if !crate::control::is_app_id(app) {
+            return Err(Error::invalid("app", app));
+        }
+        if !confirm {
+            return Err(Error::NeedsConfirmation("Restoring an app's state"));
+        }
+        self.backend(target.platform)?.restore_state(&target.id, app, data, external).await
+    }
+
+    /// Writes a file into an app's storage. `confirm` says the person has been asked.
+    pub async fn write_file(
+        &self,
+        target: &Target,
+        app: &str,
+        root: &str,
+        path: &str,
+        bytes: &[u8],
+        confirm: bool,
+    ) -> Result<()> {
+        check_write_path(app, root, path)?;
+        if bytes.len() > crate::state::MAX_WRITE_BYTES {
+            return Err(Error::invalid("file size", format!("{} bytes", bytes.len())));
+        }
+        if !confirm {
+            return Err(Error::NeedsConfirmation("Writing to an app's storage"));
+        }
+        self.backend(target.platform)?.write_file(&target.id, app, root, path, bytes).await
+    }
+
+    pub async fn remove_file(&self, target: &Target, app: &str, root: &str, path: &str, confirm: bool) -> Result<()> {
+        check_write_path(app, root, path)?;
+        if !confirm {
+            return Err(Error::NeedsConfirmation("Removing a file from an app's storage"));
+        }
+        self.backend(target.platform)?.remove_file(&target.id, app, root, path).await
+    }
+
+    /// Every device, running or not.
+    pub async fn all_devices(&self) -> (Vec<Device>, Vec<(Platform, Error)>) {
+        let mut devices = Vec::new();
+        let mut errors = Vec::new();
+        for backend in &self.backends {
+            if !backend.is_available().await {
+                continue;
+            }
+            match backend.all_devices().await {
+                Ok(mut list) => devices.append(&mut list),
+                Err(e) => errors.push((backend.platform(), e)),
+            }
+        }
+        devices.sort_by(|a, b| (a.platform as u8, &a.name).cmp(&(b.platform as u8, &b.name)));
+        (devices, errors)
+    }
+
+    pub async fn device_options(&self, platform: Platform) -> Result<DeviceOptions> {
+        self.backend(platform)?.device_options().await
+    }
+
+    pub async fn create_device(&self, platform: Platform, request: &CreateDevice) -> Result<Device> {
+        if !request.is_valid() {
+            return Err(Error::invalid(
+                "device to create",
+                format!("{} / {} / {}", request.name, request.image, request.model),
+            ));
+        }
+        self.backend(platform)?.create_device(request).await
+    }
+
+    pub async fn boot_device(&self, target: &Target, options: &BootOptions) -> Result<Device> {
+        check_device_ref(&target.id)?;
+        // Starting from factory state throws the data away.
+        self.backend(target.platform)?.boot_device(&target.id, options).await
+    }
+
+    pub async fn shutdown_device(&self, target: &Target) -> Result<()> {
+        check_device_ref(&target.id)?;
+        self.backend(target.platform)?.shutdown_device(&target.id).await
+    }
+
+    pub async fn wipe_device(&self, target: &Target, confirm: bool) -> Result<()> {
+        check_device_ref(&target.id)?;
+        if !confirm {
+            return Err(Error::NeedsConfirmation("Wiping a device"));
+        }
+        self.backend(target.platform)?.wipe_device(&target.id).await
+    }
+
+    pub async fn delete_device(&self, target: &Target, confirm: bool) -> Result<()> {
+        check_device_ref(&target.id)?;
+        if !confirm {
+            return Err(Error::NeedsConfirmation("Deleting a device"));
+        }
+        self.backend(target.platform)?.delete_device(&target.id).await
+    }
+
+    pub async fn emulator_snapshots(&self, target: &Target) -> Result<Vec<EmulatorSnapshot>> {
+        check_device_ref(&target.id)?;
+        self.backend(target.platform)?.emulator_snapshots(&target.id).await
+    }
+
+    pub async fn emulator_snapshot(
+        &self,
+        target: &Target,
+        action: SnapshotAction,
+        name: &str,
+        confirm: bool,
+    ) -> Result<()> {
+        check_device_ref(&target.id)?;
+        if !crate::lifecycle::is_device_name(name) {
+            return Err(Error::invalid("snapshot name", name));
+        }
+        if action.is_destructive() && !confirm {
+            return Err(Error::NeedsConfirmation(action.label()));
+        }
+        self.backend(target.platform)?.emulator_snapshot(&target.id, action, name).await
+    }
+
     pub async fn crashes(&self, target: &Target, app: Option<&str>) -> Result<Vec<CrashSummary>> {
         if let Some(app) = app.filter(|a| !crate::control::is_app_id(a)) {
             return Err(Error::invalid("app", app));
@@ -489,6 +725,7 @@ impl Lab {
 mod tests {
     use super::*;
     use crate::device::{DeviceKind, DeviceState};
+    use crate::lifecycle::{CreateDevice, SnapshotAction};
 
     struct Fake(Platform, Vec<&'static str>);
 
@@ -599,6 +836,73 @@ mod tests {
         let lab = Lab::new().with(Fake(Platform::Android, vec![]));
         let t = Target { platform: Platform::Android, id: "x".into() };
         assert!(matches!(lab.read_file(&t, "app", "data", "../../etc").await.unwrap_err(), Error::Invalid { .. }));
+    }
+
+    #[tokio::test]
+    async fn changes_to_an_app_or_a_device_need_confirming_and_are_validated_first() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let t = Target { platform: Platform::Android, id: "emulator-5554".into() };
+        let dir = Path::new("/tmp");
+        // Not confirmed: refused before the backend is asked.
+        assert!(matches!(
+            lab.restore_state(&t, "a.b", dir, None, false).await.unwrap_err(),
+            Error::NeedsConfirmation(_)
+        ));
+        assert!(matches!(
+            lab.write_file(&t, "a.b", "data", "x/y", b"1", false).await.unwrap_err(),
+            Error::NeedsConfirmation(_)
+        ));
+        assert!(matches!(
+            lab.remove_file(&t, "a.b", "data", "x", false).await.unwrap_err(),
+            Error::NeedsConfirmation(_)
+        ));
+        assert!(matches!(lab.wipe_device(&t, false).await.unwrap_err(), Error::NeedsConfirmation(_)));
+        assert!(matches!(lab.delete_device(&t, false).await.unwrap_err(), Error::NeedsConfirmation(_)));
+        for action in [SnapshotAction::Load, SnapshotAction::Delete] {
+            let err = lab.emulator_snapshot(&t, action, "snap", false).await.unwrap_err();
+            assert!(matches!(err, Error::NeedsConfirmation(_)), "{action:?}");
+        }
+        // Saving a snapshot is harmless, so it goes on to the backend, which has none.
+        assert!(matches!(
+            lab.emulator_snapshot(&t, SnapshotAction::Save, "snap", false).await.unwrap_err(),
+            Error::Unsupported(_)
+        ));
+        // Confirmed, the backend is asked, and says it cannot.
+        assert!(matches!(lab.restore_state(&t, "a.b", dir, None, true).await.unwrap_err(), Error::Unsupported(_)));
+        assert!(matches!(
+            lab.write_file(&t, "a.b", "data", "x/y", b"1", true).await.unwrap_err(),
+            Error::Unsupported(_)
+        ));
+        assert!(matches!(lab.wipe_device(&t, true).await.unwrap_err(), Error::Unsupported(_)));
+        // Mistakes are named, confirmed or not.
+        for path in ["", "../x", "/abs", "dir/"] {
+            assert!(
+                matches!(lab.write_file(&t, "a.b", "data", path, b"1", true).await.unwrap_err(), Error::Invalid { .. }),
+                "{path:?}"
+            );
+        }
+        assert!(matches!(lab.write_file(&t, "a b", "data", "x", b"1", true).await.unwrap_err(), Error::Invalid { .. }));
+        assert!(matches!(
+            lab.write_file(&t, "a.b", "da ta", "x", b"1", true).await.unwrap_err(),
+            Error::Invalid { .. }
+        ));
+        assert!(matches!(lab.stop_app(&t, "a b").await.unwrap_err(), Error::Invalid { .. }));
+        let bad = Target { platform: Platform::Android, id: "a;rm".into() };
+        assert!(matches!(lab.shutdown_device(&bad).await.unwrap_err(), Error::Invalid { .. }));
+        assert!(matches!(
+            lab.emulator_snapshot(&t, SnapshotAction::Save, "a b", true).await.unwrap_err(),
+            Error::Invalid { .. }
+        ));
+        let request =
+            CreateDevice { name: "ok".into(), image: "system-images;android-35;x;y".into(), model: "pixel 6".into() };
+        assert!(matches!(lab.create_device(Platform::Android, &request).await.unwrap_err(), Error::Invalid { .. }));
+    }
+
+    #[tokio::test]
+    async fn all_devices_defaults_to_the_running_ones() {
+        let lab = Lab::new().with(Fake(Platform::Android, vec![]));
+        let (devices, errors) = lab.all_devices().await;
+        assert!(devices.is_empty() && errors.is_empty());
     }
 
     #[tokio::test]
