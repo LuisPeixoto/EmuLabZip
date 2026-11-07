@@ -17,7 +17,7 @@
     "language": "语言"
   },
   "hero": {
-    "eyebrow": "开源 · MIT · v0.11",
+    "eyebrow": "开源 · MIT · v0.12",
     "titleLead": "专为你的",
     "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
     "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
@@ -60,7 +60,8 @@
       { "icon": "network", "title": "GraphQL 与 gRPC", "text": "在请求列表中显示操作与调用名称、查询及其变量、gRPC 状态与流式传输，并可使用或不使用 .proto 文件解析 protobuf。" },
       { "icon": "sessions", "title": "时间线、录屏与回放", "text": "点击、请求、日志问题、卡顿帧和崩溃放在同一条时间轴上，旁边是屏幕录像；还有一份能在没有网络时回答应用的网络录制。" },
       { "icon": "rules", "title": "重发与慢速网络", "text": "修改后重新发送请求，或让网络变慢、延迟、丢包或断开，看看应用如何应对。" },
-      { "icon": "storage", "title": "把应用状态当作数据", "text": "把应用的数据保存到一个文件并恢复，查看迁移改变了什么，带撤销地编辑行和偏好设置，创建模拟器并做快照，还能读取 Redux、React Query 和 Realm。" }
+      { "icon": "storage", "title": "把应用状态当作数据", "text": "把应用的数据保存到一个文件并恢复，查看迁移改变了什么，带撤销地编辑行和偏好设置，创建模拟器并做快照，还能读取 Redux、React Query 和 Realm。" },
+      { "icon": "shield", "title": "速度之外的质量", "text": "安全与隐私审计，带 CI 预算的 APK、AAB 或 IPA 体积分析，其他语言和字号下放不下的文字，色盲模拟，视觉回归，以及分析事件检查器。" }
     ]
   },
   "showcase": {
@@ -91,7 +92,12 @@
       { "id": "state-compare", "shot": "state-compare", "label": "应用状态", "title": "迁移改变了什么", "text": "在迁移前后保存应用数据，查看新增、删除或改变的列、索引和表。", "alt": "在存储中比较两个已保存的状态：新增了一列、一个索引和一张表" },
       { "id": "storage-edit", "shot": "storage-edit", "label": "编辑模式", "title": "改一个值，也能撤回", "text": "双击单元格或偏好设置。应用会先停止，旧文件被保留，新文件会被读回校验，撤销可以恢复旧文件。", "alt": "处于编辑模式的存储，正在修改 cart 表的一个单元格" },
       { "id": "storage-realm", "shot": "storage-realm", "label": "Realm 等", "title": "Realm、DataStore、MMKV、Core Data", "text": "Realm 的表和行直接从设备上的文件读取，旁边还有 DataStore、MMKV、AsyncStorage 和 Core Data。", "alt": "从设备读取的 Realm 数据库，显示它的类和 Person 的行" },
-      { "id": "devices-manage", "shot": "devices-manage", "label": "设备", "title": "启动、停止、清除并做快照", "text": "无论是否在运行的模拟器：创建、启动、停止、清除、删除并保存快照，每个破坏性操作都要先确认。", "alt": "设备视图，列出 Android 模拟器和 iOS 模拟器，带有启动、清除和删除按钮" }
+      { "id": "devices-manage", "shot": "devices-manage", "label": "设备", "title": "启动、停止、清除并做快照", "text": "无论是否在运行的模拟器：创建、启动、停止、清除、删除并保存快照，每个破坏性操作都要先确认。", "alt": "设备视图，列出 Android 模拟器和 iOS 模拟器，带有启动、清除和删除按钮" },
+      { "id": "audit-security", "shot": "audit-security", "label": "安全审计", "title": "密钥、明文 HTTP 与暴露的组件", "text": "在日志和存储中查找令牌和个人数据、明文 HTTP、debuggable 与 allowBackup 以及暴露的组件。任何输出中的密钥都会被截短。", "alt": "审计视图列出日志中的 bearer 令牌、allowBackup 和一个导出的 receiver" },
+      { "id": "audit-text", "shot": "audit-text", "label": "放得下的文字", "title": "找出放不下的标签", "text": "切换语言和字号，然后检查屏幕：被截断、超出屏幕，或在从右到左的语言中没有镜像的文字。", "alt": "审计视图找到一个对这一行来说太长的标签" },
+      { "id": "size-diff", "shot": "size-diff", "label": "构建体积", "title": "构建的字节都在哪里", "text": "按类型、ABI 和 dex 文件拆解 APK、AAB 或 IPA，并比较两个构建的变化，还有用于 CI 的体积预算。", "alt": "构建体积视图比较两个构建：新增了一个视频和一个字体" },
+      { "id": "visual-diff", "shot": "visual-diff", "label": "视觉回归", "title": "看看屏幕上变了什么", "text": "保存一个屏幕的基准，之后再比较：变化了多少、在哪里，以及把变化标成红色的图片。", "alt": "视觉视图，把基准与当前屏幕之间的变化画成红色" },
+      { "id": "analytics", "shot": "analytics", "label": "分析事件", "title": "应用发出的事件", "text": "由代理解码的 Segment、Amplitude、Mixpanel 和 Firebase 事件，附带它们的属性。", "alt": "分析视图列出一个 Segment 和一个 Mixpanel 事件，其中一个已展开" }
     ]
   },
   "cli": {
@@ -146,7 +152,7 @@
   "roadmap": {
     "kicker": "路线图",
     "title": "EmuLabZip 的下一步",
-    "lead": "十一个阶段已经完成，接下来的五个阶段将通向稳定的 1.0。",
+    "lead": "十二个阶段已经完成，接下来的四个阶段将通向稳定的 1.0。",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "观察", "text": "设备、日志、性能、内存、存储和网络代理。" },
       { "state": "done", "version": "v0.4", "title": "追踪", "text": "Perfetto、simpleperf 和 Instruments，支持火焰图和 SQL。" },
@@ -157,8 +163,8 @@
       { "state": "done", "version": "v0.9", "title": "可读的堆栈与缺陷报告", "text": "符号化的崩溃（R8、dSYM、source map）和一键缺陷报告。" },
       { "state": "done", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
       { "state": "done", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
-      { "state": "next", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
-      { "state": "later", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView、输入与录制的操作流程、深层链接测试和可编程规则。" },
+      { "state": "done", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
+      { "state": "next", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView、输入与录制的操作流程、深层链接测试和可编程规则。" },
       { "state": "later", "version": "v0.14", "title": "带上下文的 AI", "text": "时间线、回放和快照作为 MCP 工具，以及常见问题的提示词。" },
       { "state": "later", "version": "v0.15", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 上的 Android、Wear OS、电视和 Apple 各平台。" },
       { "state": "later", "version": "v1.0", "title": "团队与生态", "text": "可分享的报告、规则库、VS Code 扩展和稳定性承诺。" }

@@ -17,7 +17,7 @@
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "Open source · MIT · v0.11",
+    "eyebrow": "Open source · MIT · v0.12",
     "titleLead": "The debugging lab for your",
     "titleAccent": "Android emulator and iOS simulator",
     "lead": "<strong>EmuLabZip</strong> brings logs, network traffic, performance, memory, storage, crashes and accessibility of your <strong>Android emulators and iOS simulators</strong> into one fast, native app. Nothing to install on the device.",
@@ -60,7 +60,8 @@
       { "icon": "network", "title": "GraphQL and gRPC", "text": "Operations and calls named in the request list, queries with their variables, gRPC status and streaming, and protobuf read with or without your .proto files." },
       { "icon": "rules", "title": "Send again and slow networks", "text": "Resend a request with changes, or make the network slow, laggy, lossy or offline to see how the app copes." },
       { "icon": "sessions", "title": "Timeline, video and replay", "text": "Touches, requests, log problems, slow frames and crashes on one time axis with the screen recording beside it, and a recording of the network that answers your app offline." },
-      { "icon": "storage", "title": "App state as data", "text": "Save an app's data to one file and restore it, see what a migration changed, edit rows and preferences with Undo, make and snapshot emulators, and read Redux, React Query and Realm." }
+      { "icon": "storage", "title": "App state as data", "text": "Save an app's data to one file and restore it, see what a migration changed, edit rows and preferences with Undo, make and snapshot emulators, and read Redux, React Query and Realm." },
+      { "icon": "shield", "title": "Quality beyond speed", "text": "A security and privacy audit, the size of an APK, AAB or IPA with a budget for CI, text that does not fit in other languages and sizes, colour blindness, visual regression and an analytics inspector." }
     ]
   },
   "showcase": {
@@ -91,7 +92,12 @@
       { "id": "state-compare", "shot": "state-compare", "label": "App state", "title": "What a migration changed", "text": "Save the app's data before and after, and see the columns, indexes and tables that were added, removed or changed.", "alt": "Two saved states compared in Storage: a column, an index and a table were added" },
       { "id": "storage-edit", "shot": "storage-edit", "label": "Edit mode", "title": "Change a value, and take it back", "text": "Double-click a cell or a preference. The app is stopped, the old file kept, the new one read back, and Undo puts it back.", "alt": "Storage in edit mode with a cell of the cart table being changed" },
       { "id": "storage-realm", "shot": "storage-realm", "label": "Realm and more", "title": "Realm, DataStore, MMKV, Core Data", "text": "Realm tables and rows are read from the file on the device, next to DataStore, MMKV, AsyncStorage and Core Data.", "alt": "A Realm database read from the device, with its classes and the rows of Person" },
-      { "id": "devices-manage", "shot": "devices-manage", "label": "Devices", "title": "Start, stop, wipe and snapshot", "text": "Emulators and simulators, running or not: create, start, stop, wipe, delete and keep snapshots, each destructive step behind a confirmation.", "alt": "The Devices view listing Android emulators and iOS simulators with Start, Wipe and Delete" }
+      { "id": "devices-manage", "shot": "devices-manage", "label": "Devices", "title": "Start, stop, wipe and snapshot", "text": "Emulators and simulators, running or not: create, start, stop, wipe, delete and keep snapshots, each destructive step behind a confirmation.", "alt": "The Devices view listing Android emulators and iOS simulators with Start, Wipe and Delete" },
+      { "id": "audit-security", "shot": "audit-security", "label": "Security audit", "title": "Secrets, plain HTTP and exposed components", "text": "Looks for tokens and personal data in the log and storage, plain HTTP, debuggable and allowBackup, and exposed components. Secrets are cut down in every output.", "alt": "The Audit view listing a bearer token in the log, allowBackup and an exported receiver" },
+      { "id": "audit-text", "shot": "audit-text", "label": "Text that fits", "title": "Find the label that does not fit", "text": "Switch language and text size, then check the screen for text that is cut off, pushed off the screen or not mirrored for right-to-left languages.", "alt": "The Audit view finding a label that is too long for its line" },
+      { "id": "size-diff", "shot": "size-diff", "label": "Build size", "title": "Where the bytes of a build are", "text": "An APK, AAB or IPA by kind, ABI and dex file, and what changed between two builds, with a size budget for CI.", "alt": "The Build size view comparing two builds: a video and a font were added" },
+      { "id": "visual-diff", "shot": "visual-diff", "label": "Visual regression", "title": "See what changed on the screen", "text": "Keep a baseline of a screen and compare it later: how much changed, where, and a picture with the changes in red.", "alt": "The Visual view with the changes between a baseline and the screen drawn in red" },
+      { "id": "analytics", "shot": "analytics", "label": "Analytics", "title": "The events an app sends", "text": "Segment, Amplitude, Mixpanel and Firebase events decoded from the proxy, with their properties.", "alt": "The Analytics view listing a Segment and a Mixpanel event, one opened" }
     ]
   },
   "cli": {
@@ -146,7 +152,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Where EmuLabZip is going",
-    "lead": "Eleven phases are done. The next five lead to a stable 1.0.",
+    "lead": "Twelve phases are done. The next four lead to a stable 1.0.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observe", "text": "Devices, logs, performance, memory, storage and the network proxy." },
       { "state": "done", "version": "v0.4", "title": "Tracing", "text": "Perfetto, simpleperf and Instruments, with flame graphs and SQL." },
@@ -157,8 +163,8 @@
       { "state": "done", "version": "v0.9", "title": "Readable stacks and bug reports", "text": "Symbolicated crashes (R8, dSYMs, source maps) and one-click bug reports." },
       { "state": "done", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of touches, logs and requests, screen video, and network replay." },
       { "state": "done", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
-      { "state": "next", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
-      { "state": "later", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },
+      { "state": "done", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
+      { "state": "next", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },
       { "state": "later", "version": "v0.14", "title": "AI with context", "text": "The timeline, replay and snapshots as MCP tools, and prompts for common questions." },
       { "state": "later", "version": "v0.15", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
       { "state": "later", "version": "v1.0", "title": "Team and ecosystem", "text": "Shareable reports, rule libraries, a VS Code extension and a stable promise." }
