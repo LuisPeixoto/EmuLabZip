@@ -152,13 +152,18 @@ impl Default for VisualConfig {
     }
 }
 
+/// A path that is absolute on any platform: `/tmp/x` is not one on Windows by itself, and `C:\\x` is not one elsewhere.
+fn is_absolute_anywhere(path: &str) -> bool {
+    path.starts_with(['/', '\\']) || path.as_bytes().get(1) == Some(&b':') || std::path::Path::new(path).is_absolute()
+}
+
 impl VisualConfig {
     fn validate(&self) -> Result<()> {
         if !(0.0..=100.0).contains(&self.threshold_percent) {
             return Err(Error::invalid("[visual] threshold_percent (0 to 100)", self.threshold_percent.to_string()));
         }
         if let Some(dir) = &self.baseline_dir
-            && (dir.is_empty() || dir.contains("..") || std::path::Path::new(dir).is_absolute())
+            && (dir.is_empty() || dir.contains("..") || is_absolute_anywhere(dir))
         {
             return Err(Error::invalid("[visual] baseline_dir (a folder inside the project)", dir.clone()));
         }
@@ -258,6 +263,8 @@ mod tests {
             "[visual]\nthreshold_percent = 101\n",
             "[visual]\nbaseline_dir = \"../elsewhere\"\n",
             "[visual]\nbaseline_dir = \"/tmp/x\"\n",
+            "[visual]\nbaseline_dir = \"C:\\\\x\"\n",
+            "[visual]\nbaseline_dir = \"\\\\\\\\server\\\\share\"\n",
             "[visual]\ntolerance = 300\n",
             "[[visual.ignore]]\nx = 0\ny = 0\nwidth = 0\nheight = 5\n",
             "[visual]\nthreshhold = 1\n",
