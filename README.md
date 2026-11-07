@@ -167,6 +167,17 @@ request, record a whole run and compare two devices. It ships as a native deskto
 
 <table>
   <tr>
+    <td width="50%"><img src="docs/images/audit-security.png" alt="The security audit of an app: a bearer token in the log, an exported receiver, allowBackup" /><br /><sub><b>Security audit</b>: secrets in the log and storage, exposed components, risky flags. Secrets are cut down.</sub></td>
+    <td width="50%"><img src="docs/images/size-diff.png" alt="Two builds compared: what grew, by kind and by file" /><br /><sub><b>Build size</b>: an APK, AAB or IPA by kind, ABI and dex file, and what changed between two builds.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/visual-diff.png" alt="A screen compared with its baseline, with the changes drawn in red" /><br /><sub><b>Visual regression</b>: the screen against a baseline, with the changed area drawn.</sub></td>
+    <td width="50%"><img src="docs/images/analytics.png" alt="Analytics events from Segment and Mixpanel, with one opened" /><br /><sub><b>Analytics</b>: the events an app sends to Segment, Amplitude, Mixpanel and Firebase.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
     <td width="50%"><img src="docs/images/replay.png" alt="Network: a recording is replayed, three requests are answered from it and one that is not in it fails" /><br /><sub><b>Replay</b>: the app runs against a recording. What is not in it fails with a 504 and never reaches the internet.</sub></td>
     <td width="50%"><img src="docs/images/bug-report-video.png" alt="A bug report in a browser with the clip of the crash and a strip of the last minute" /><br /><sub><b>Video in the report</b>: the clip around the crash, and the last minute on a strip, in the same file.</sub></td>
   </tr>
