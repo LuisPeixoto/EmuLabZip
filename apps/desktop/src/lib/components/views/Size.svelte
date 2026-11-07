@@ -71,10 +71,16 @@
         {#if diff.methodsBefore !== diff.methodsAfter}<p class="mono text-[11.5px] text-muted">methods {diff.methodsBefore.toLocaleString()} → {diff.methodsAfter.toLocaleString()}</p>{/if}
         <div class="mt-3 grid gap-4 md:grid-cols-2">
           <div>
-            <p class="mb-1 text-[11px] font-medium text-muted">By kind and folder</p>
-            {#each [...diff.kinds, ...diff.folders.slice(0, 6)] as [k, d], i (k + i)}
+            <p class="mb-1 text-[11px] font-medium text-muted">By kind</p>
+            {#each diff.kinds as [k, d] (k)}
               <p class="mono flex justify-between text-[11.5px]"><span>{k}</span><span class={d > 0 ? "text-warn" : "text-ok"}>{signed(d)}</span></p>
             {/each}
+            {#if diff.folders.length}
+              <p class="mt-3 mb-1 text-[11px] font-medium text-muted">By folder</p>
+              {#each diff.folders.slice(0, 6) as [f, d] (f)}
+                <p class="mono flex justify-between text-[11.5px]"><span>{f}/</span><span class={d > 0 ? "text-warn" : "text-ok"}>{signed(d)}</span></p>
+              {/each}
+            {/if}
           </div>
           <div>
             <p class="mb-1 text-[11px] font-medium text-muted">Biggest changes ({diff.added} added, {diff.removed} removed)</p>
