@@ -4,6 +4,8 @@
 pub mod detect;
 pub mod plist;
 pub mod prefs;
+pub mod schema;
+pub mod snapshot;
 pub mod sqlite;
 
 pub use detect::{FileKind, detect, image_mime};
