@@ -17,7 +17,7 @@
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "Open source · MIT · v0.8",
+    "eyebrow": "Open source · MIT · v0.9",
     "titleLead": "The debugging lab for your",
     "titleAccent": "Android emulator and iOS simulator",
     "lead": "<strong>EmuLabZip</strong> brings logs, network traffic, performance, memory, storage, crashes and accessibility of your <strong>Android emulators and iOS simulators</strong> into one fast, native app. Nothing to install on the device.",
@@ -79,7 +79,10 @@
       { "id": "compose", "shot": "layout-compose", "label": "Compose", "title": "Jetpack Compose in Layout", "text": "The views Compose draws are marked, test tags show as ids, and the inspector names the framework.", "alt": "Layout view of a Jetpack Compose screen with its views marked as Compose" },
       { "id": "graphql", "shot": "network-graphql", "label": "GraphQL", "title": "GraphQL, named and readable", "text": "Each operation is named in the list, and the request shows as a query and its variables.", "alt": "Network view with a GraphQL request shown as a query with variables" },
       { "id": "grpc", "shot": "network-grpc", "label": "gRPC", "title": "gRPC calls, with their status", "text": "The method and status of every call, and protobuf read as JSON, with or without your .proto files.", "alt": "Network view with a gRPC call and its protobuf message shown as JSON" },
-      { "id": "conditions", "shot": "network-conditions", "label": "Slow network", "title": "Slow, laggy or offline on demand", "text": "Fast and Slow 3G, high latency, packet loss, offline, or your own numbers, applied while connections are open.", "alt": "Network view with the menu of network conditions and Slow 3G chosen" }
+      { "id": "conditions", "shot": "network-conditions", "label": "Slow network", "title": "Slow, laggy or offline on demand", "text": "Fast and Slow 3G, high latency, packet loss, offline, or your own numbers, applied while connections are open.", "alt": "Network view with the menu of network conditions and Slow 3G chosen" },
+      { "id": "readable", "shot": "symbolication", "label": "Readable stacks", "title": "The same crash, readable", "text": "With the mapping.txt kept for the build, R8's scrambled frame becomes the real chain of calls, with files and lines. Original is one click away.", "alt": "The same Android crash read with its mapping.txt and as the device wrote it" },
+      { "id": "report-dialog", "shot": "bug-report-dialog", "label": "Bug report", "title": "Report a bug in one click", "text": "Choose what goes in, and where the issue opens: GitHub, GitLab or Jira, pre-filled. Nothing is sent from the app.", "alt": "The Report a bug dialog with title, description and what to include" },
+      { "id": "report-html", "shot": "bug-report-html", "label": "One file", "title": "One HTML file with everything", "text": "A screenshot, the device, the log, the failed requests and the readable crash, in a file that opens in any browser.", "alt": "A bug report opened in a browser with the screenshot, device details and the readable crash" }
     ]
   },
   "cli": {
@@ -142,8 +145,8 @@
       { "state": "done", "version": "v0.6", "title": "Power tools", "text": "Mocks, breakpoints, WebSockets, HTTP/3, layout, accessibility, sessions and CI." },
       { "state": "done", "version": "v0.7", "title": "Performance and quality", "text": "App start time, energy, leak finder and performance budgets in CI." },
       { "state": "done", "version": "v0.8", "title": "Inside frameworks", "text": "Flutter, React Native, Compose and SwiftUI; gRPC and GraphQL." },
-      { "state": "next", "version": "v0.9", "title": "Readable stacks and bug reports", "text": "Symbolicated crashes (R8, dSYMs, source maps) and one-click bug reports." },
-      { "state": "later", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of taps, logs and requests, screen video, and network replay." },
+      { "state": "done", "version": "v0.9", "title": "Readable stacks and bug reports", "text": "Symbolicated crashes (R8, dSYMs, source maps) and one-click bug reports." },
+      { "state": "next", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of taps, logs and requests, screen video, and network replay." },
       { "state": "later", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
       { "state": "later", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
       { "state": "later", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },

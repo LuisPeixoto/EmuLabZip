@@ -17,7 +17,7 @@
     "language": "语言"
   },
   "hero": {
-    "eyebrow": "开源 · MIT · v0.8",
+    "eyebrow": "开源 · MIT · v0.9",
     "titleLead": "专为你的",
     "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
     "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
@@ -79,7 +79,10 @@
       { "id": "compose", "shot": "layout-compose", "label": "Compose", "title": "布局中的 Jetpack Compose", "text": "Compose 绘制的视图会被标出，测试标签显示为 id，检查器会注明所属框架。", "alt": "Jetpack Compose 界面的布局视图，其视图被标记为 Compose" },
       { "id": "graphql", "shot": "network-graphql", "label": "GraphQL", "title": "有名字、看得懂的 GraphQL", "text": "列表中每个操作都有名称，请求以查询及其变量的形式显示。", "alt": "网络视图，GraphQL 请求显示为带变量的查询" },
       { "id": "grpc", "shot": "network-grpc", "label": "gRPC", "title": "带状态的 gRPC 调用", "text": "每次调用的方法和状态，protobuf 以 JSON 显示，可使用或不使用你的 .proto 文件。", "alt": "网络视图，显示一次 gRPC 调用及以 JSON 显示的 protobuf 消息" },
-      { "id": "conditions", "shot": "network-conditions", "label": "慢速网络", "title": "随时变慢、延迟或断网", "text": "快速和慢速 3G、高延迟、丢包、断网或自定义数值，对已打开的连接同样生效。", "alt": "网络视图，显示网络条件菜单并选中了慢速 3G" }
+      { "id": "conditions", "shot": "network-conditions", "label": "慢速网络", "title": "随时变慢、延迟或断网", "text": "快速和慢速 3G、高延迟、丢包、断网或自定义数值，对已打开的连接同样生效。", "alt": "网络视图，显示网络条件菜单并选中了慢速 3G" },
+      { "id": "readable", "shot": "symbolication", "label": "可读堆栈", "title": "同一个崩溃，可读了", "text": "用为该构建保存的 mapping.txt，R8 打乱的帧会还原成真实的调用链，带文件和行号。原始内容一键即可查看。", "alt": "同一个 Android 崩溃：用 mapping.txt 读取，以及设备写下的原样" },
+      { "id": "report-dialog", "shot": "bug-report-dialog", "label": "Bug 报告", "title": "一键报告 Bug", "text": "选择要包含的内容，以及在哪里创建问题：GitHub、GitLab 或 Jira，内容已预填。应用不会发送任何数据。", "alt": "“Report a bug”对话框，包含标题、描述和要包含的内容" },
+      { "id": "report-html", "shot": "bug-report-html", "label": "一个文件", "title": "一个包含全部内容的 HTML 文件", "text": "截图、设备、日志、失败的请求和可读的崩溃，放在任何浏览器都能打开的文件里。", "alt": "在浏览器中打开的 Bug 报告，含截图、设备信息和可读的崩溃" }
     ]
   },
   "cli": {
@@ -142,8 +145,8 @@
       { "state": "done", "version": "v0.6", "title": "进阶工具", "text": "模拟响应、断点、WebSocket、HTTP/3、布局、无障碍、会话和 CI。" },
       { "state": "done", "version": "v0.7", "title": "性能与质量", "text": "应用启动耗时、能耗、泄漏检测，以及 CI 中的性能预算。" },
       { "state": "done", "version": "v0.8", "title": "深入框架内部", "text": "Flutter、React Native、Compose 和 SwiftUI；gRPC 和 GraphQL。" },
-      { "state": "next", "version": "v0.9", "title": "可读的堆栈与缺陷报告", "text": "符号化的崩溃（R8、dSYM、source map）和一键缺陷报告。" },
-      { "state": "later", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
+      { "state": "done", "version": "v0.9", "title": "可读的堆栈与缺陷报告", "text": "符号化的崩溃（R8、dSYM、source map）和一键缺陷报告。" },
+      { "state": "next", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
       { "state": "later", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
       { "state": "later", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
       { "state": "later", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView、输入与录制的操作流程、深层链接测试和可编程规则。" },
