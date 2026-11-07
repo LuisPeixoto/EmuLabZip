@@ -26,6 +26,8 @@ if [[ -n "${ANDROID:-}" ]]; then
   cargo test -p emulabzip-cli --test live_phase7 -- --ignored --test-threads=1
   # Frameworks. Install the Compose and Flutter demos first: tools/compose-app and tools/flutter-app
   cargo test -p emulabzip-cli --test live_phase8 -- --ignored --test-threads=1
+  # Readable crashes and the bug report. Install the R8 build first: tools/compose-app/install.sh --release
+  cargo test -p emulabzip-cli --test live_phase9 -- --ignored --test-threads=1
   # Chrome has to be past its first run: write its command line, and dismiss the notification prompt once.
   # They also need the internet (example.com, cloudflare-quic.com).
   cargo test -p emulabzip-cli --test live_net -- --ignored --test-threads=1
