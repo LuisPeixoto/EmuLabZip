@@ -40,6 +40,8 @@ the app's real database is never touched. Temporary copies are deleted when EmuL
 
 **Save…** copies the original file to a place you choose.
 
+![A Realm file read from the device: its classes, and the rows of Person](images/storage-realm.png)
+
 ## Changing and saving
 
 Storage is read-only until you turn on **Edit**: see [Changing an app's data](storage-editing.md). **Save state…**,

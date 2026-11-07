@@ -1,5 +1,9 @@
 # Devices: emulators and simulators
 
+<p align="center">
+  <img src="images/devices-manage.png" alt="The Devices view: emulators running or not, with Start, Headless, Wipe and Delete" />
+</p>
+
 The **Devices** view and the `avd`, `sim` and `snapshot` commands make, start, stop, wipe and delete emulators and
 simulators, and keep an emulator's snapshots. Until now EmuLabZip only saw devices that were already running.
 
