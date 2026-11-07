@@ -50,12 +50,45 @@ pub fn args_for(control: &Control) -> Result<Vec<Vec<String>>> {
         }
         Control::OpenUrl { url } => vec![v(&["openurl", url])],
         Control::Notification { .. } => Vec::new(),
+        Control::Locale { locale, .. } => {
+            // The simulator has no switch for the language; the global defaults are what apps read when they start.
+            vec![
+                v(&["spawn", "defaults", "write", "-g", "AppleLanguages", "-array", locale]),
+                v(&["spawn", "defaults", "write", "-g", "AppleLocale", "-string", &locale.replace('-', "_")]),
+            ]
+        }
+        Control::ResetLocale { .. } => vec![
+            v(&["spawn", "defaults", "delete", "-g", "AppleLanguages"]),
+            v(&["spawn", "defaults", "delete", "-g", "AppleLocale"]),
+        ],
+        Control::FontScale { percent } => vec![v(&["ui", "content_size", content_size(*percent)])],
+        Control::Display { .. } | Control::ResetDisplay => {
+            return Err(Error::Unsupported("Changing the screen size of the simulator"));
+        }
         Control::Battery { .. } | Control::ResetBattery => {
             return Err(Error::Unsupported(
                 "Changing the battery of the simulator (use the status bar to show another level)",
             ));
         }
     })
+}
+
+/// The Dynamic Type size closest to a percentage of the normal text size.
+pub fn content_size(percent: u32) -> &'static str {
+    match percent {
+        0..=82 => "extra-small",
+        83..=91 => "small",
+        92..=96 => "medium",
+        97..=105 => "large",
+        106..=115 => "extra-large",
+        116..=125 => "extra-extra-large",
+        126..=140 => "extra-extra-extra-large",
+        141..=160 => "accessibility-medium",
+        161..=185 => "accessibility-large",
+        186..=225 => "accessibility-extra-large",
+        226..=265 => "accessibility-extra-extra-large",
+        _ => "accessibility-extra-extra-extra-large",
+    }
 }
 
 fn status_bar_args(sb: &StatusBar) -> Result<Vec<String>> {
@@ -123,6 +156,9 @@ pub async fn info(udid: &str) -> Result<ControlInfo> {
             "permission",
             "notification",
             "openUrl",
+            "locale",
+            "resetLocale",
+            "fontScale",
         ]
         .map(String::from)
         .to_vec(),
@@ -130,6 +166,7 @@ pub async fn info(udid: &str) -> Result<ControlInfo> {
         notes: vec![
             format!("iOS does not report which permissions an app has. Services: {}.", SERVICES.join(", ")),
             "The battery of the simulator cannot be changed; the status bar can show any level.".into(),
+            "A language change reaches an app when it starts again. The screen size of the simulator cannot be changed.".into(),
         ],
     })
 }
@@ -147,6 +184,40 @@ pub async fn apply(udid: &str, control: &Control) -> Result<()> {
             .await?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+
+    fn joined(c: &Control) -> Vec<String> {
+        args_for(c).unwrap().iter().map(|a| a.join(" ")).collect()
+    }
+
+    #[test]
+    fn language_and_text_size_become_simctl_arguments() {
+        assert_eq!(
+            joined(&Control::Locale { locale: "pt-BR".into(), app: None }),
+            [
+                "spawn defaults write -g AppleLanguages -array pt-BR",
+                "spawn defaults write -g AppleLocale -string pt_BR"
+            ]
+        );
+        assert_eq!(
+            joined(&Control::ResetLocale { app: None }),
+            ["spawn defaults delete -g AppleLanguages", "spawn defaults delete -g AppleLocale"]
+        );
+        assert_eq!(joined(&Control::FontScale { percent: 100 }), ["ui content_size large"]);
+        assert_eq!(joined(&Control::FontScale { percent: 130 }), ["ui content_size extra-extra-extra-large"]);
+        assert_eq!(joined(&Control::FontScale { percent: 200 }), ["ui content_size accessibility-extra-large"]);
+        assert_eq!(content_size(50), "extra-small");
+        assert_eq!(content_size(300), "accessibility-extra-extra-extra-large");
+        assert!(matches!(args_for(&Control::ResetDisplay), Err(Error::Unsupported(_))));
+        assert!(matches!(
+            args_for(&Control::Display { width: Some(1), height: Some(1), density: None }),
+            Err(Error::Unsupported(_))
+        ));
+    }
 }
 
 #[cfg(test)]
