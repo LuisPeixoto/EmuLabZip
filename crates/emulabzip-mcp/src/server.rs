@@ -161,6 +161,49 @@ fn session_summary(id: &str) -> Result<String, String> {
     json(&emulabzip_session::summarize(&session))
 }
 
+/// What went into making a crash readable, next to the crash.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Readable {
+    #[serde(flatten)]
+    report: emulabzip_core::CrashReport,
+    symbolication: Symbolication,
+}
+
+#[derive(Serialize)]
+struct Symbolication {
+    applied: Vec<String>,
+    missing: Vec<String>,
+}
+
+fn readable(report: emulabzip_core::CrashReport) -> Readable {
+    use emulabzip_symbols::store::Store;
+    use emulabzip_symbols::symbolicate::{Source, symbolicate};
+    let sources: Vec<Source> = match &report.summary.app {
+        Some(app) => Store::default().find(app, report.app_version.as_deref()).iter().map(Source::from).collect(),
+        None => Vec::new(),
+    };
+    let s = symbolicate(&report, &sources);
+    Readable {
+        symbolication: Symbolication {
+            applied: s
+                .applied
+                .iter()
+                .map(|a| format!("{} ({}, {} frames)", a.source, a.kind.label(), a.frames))
+                .collect(),
+            missing: s.missing,
+        },
+        report: s.report,
+    }
+}
+
+fn slug(text: &str) -> String {
+    let s: String =
+        text.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
+    let s = s.split('-').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("-");
+    s.chars().take(40).collect::<String>().trim_end_matches('-').to_string()
+}
+
 fn grant_of(action: &str) -> Result<Grant, String> {
     match action {
         "grant" => Ok(Grant::Grant),
@@ -450,7 +493,7 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "One crash with its exception or signal, the stack of the thread that crashed (and others), and hints for symbolicating it."
+        description = "One crash with its exception or signal, the stack of the thread that crashed (and others), and hints. Names scrambled by R8 or ProGuard, JavaScript positions and native iOS addresses are made readable with the mapping.txt, source maps and dSYMs stored for the app and version (`symbolication` says which were used, and what is missing)."
     )]
     async fn get_crash(&self, Parameters(a): Parameters<args::Crash>) -> CallToolResult {
         reply(
@@ -460,10 +503,17 @@ impl EmuLabServer {
                 if !a.raw.unwrap_or(false) {
                     report.raw.clear();
                 }
-                json(&report)
+                if a.original.unwrap_or(false) { json(&report) } else { json(&readable(report)) }
             }
             .await,
         )
+    }
+
+    #[tool(
+        description = "Write a bug report as one self-contained HTML file in EmuLabZip's reports folder: a screenshot, the device, the warnings and errors of the log, the failed requests and the readable crashes, from the device as it is now or from a recorded session. Returns the file's path, a Markdown summary for an issue, and optionally a link that opens a pre-filled issue. Nothing is sent anywhere."
+    )]
+    async fn create_bug_report(&self, Parameters(a): Parameters<args::BugReport>) -> CallToolResult {
+        reply(self.bug_report(a).await)
     }
 
     #[tool(
@@ -926,5 +976,63 @@ impl ServerHandler for EmuLabServer {
              Every tool takes an optional `device`; it can be left out when only one device is running. \
              Tools that change the device (control_*, open_url, record_trace) act on it for real.",
         )
+    }
+}
+
+impl EmuLabServer {
+    async fn bug_report(&self, a: args::BugReport) -> Result<String, String> {
+        use emulabzip_report::issue::{Tracker, issue_url};
+        use emulabzip_report::{BugReport, Options, html, markdown};
+        use emulabzip_symbols::store::Store;
+
+        // What can be checked without a device is checked first.
+        let tracker = a.issue.as_deref().map(Tracker::parse).transpose().map_err(|e| e.to_string())?;
+        if a.session.is_some() && a.app.is_some() {
+            return Err("`app` is for a report of the device as it is now; a session already knows its app".into());
+        }
+        let mut options = Options::everything();
+        options.title = a.title.clone().unwrap_or_default();
+        options.description = a.description.clone().unwrap_or_default();
+        let store = Store::default();
+        let mut report = match &a.session {
+            Some(id) => {
+                if !valid_session_id(id) {
+                    return Err(format!("`{id}` is not a session name: use one from list_sessions"));
+                }
+                let dir = sessions_dir();
+                let path = [format!("{id}.ezsession"), format!("{id}.ezsession.partial")]
+                    .into_iter()
+                    .map(|n| dir.join(n))
+                    .find(|p| p.exists())
+                    .ok_or_else(|| format!("there is no session called `{id}`; list_sessions shows what exists"))?;
+                let session = emulabzip_session::Session::open(&path).map_err(|e| e.to_string())?;
+                BugReport::from_session(&session, &options, &store)
+            }
+            None => {
+                let target = self.target(&a.device).await?;
+                BugReport::collect(&self.lab, &target, a.app.as_deref(), &[], &options, &store).await
+            }
+        };
+        if report.title.trim().is_empty() {
+            report.title = match (report.crashes.first(), &report.app) {
+                (Some(c), _) => c.title.clone(),
+                (None, Some(app)) => format!("Bug in {app}"),
+                _ => "Bug report".into(),
+            };
+        }
+        let dir = emulabzip_core::data_dir().join("reports");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(format!("{}-{}.html", report.created_ms, slug(&report.title)));
+        std::fs::write(&path, html::html(&report)).map_err(|e| e.to_string())?;
+        let summary = markdown::markdown(&report);
+        json(&serde_json::json!({
+            "path": path,
+            "title": report.title,
+            "crashes": report.crashes.len(),
+            "failedRequests": report.requests.len(),
+            "notes": report.notes,
+            "issueUrl": tracker.map(|t| issue_url(&t, &report.title, &summary)),
+            "markdown": summary,
+        }))
     }
 }
