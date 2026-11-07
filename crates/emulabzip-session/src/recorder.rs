@@ -302,6 +302,7 @@ async fn follow_crashes(
                     Ok(report) => serde_json::to_vec_pretty(&report),
                     // A report that cannot be fetched is still worth knowing about.
                     Err(_) => serde_json::to_vec_pretty(&emulabzip_core::CrashReport {
+                        app_version: None,
                         summary: summary.clone(),
                         details: Vec::new(),
                         threads: Vec::new(),
