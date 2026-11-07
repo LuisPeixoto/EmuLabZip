@@ -105,6 +105,7 @@ impl Backend for Fake {
             return Err(Error::NotFound(id.into()));
         }
         Ok(CrashReport {
+            app_version: None,
             summary: crash(),
             details: vec![("Signal".into(), "none".into())],
             threads: Vec::new(),

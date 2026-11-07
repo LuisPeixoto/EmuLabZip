@@ -7,7 +7,9 @@
 
 use std::path::{Path, PathBuf};
 
-use emulabzip_core::{CrashKind, CrashReport, CrashSummary, Error, Frame, FrameOrigin, Hint, Result, ThreadTrace};
+use emulabzip_core::{
+    CrashKind, CrashReport, CrashSummary, Error, Frame, FrameOrigin, Hint, Language, Result, ThreadTrace,
+};
 use serde_json::Value;
 
 /// Reports older than this are not listed, and at most this many files are read.
@@ -103,13 +105,18 @@ fn frames_of(thread: &Value, images: &[Value]) -> Vec<Frame> {
                         }
                         _ => address_of(image, offset).map(|a| format!("{a:#x}")),
                     };
-                    Frame {
-                        index: index as u32,
+                    let mut frame = Frame::new(
+                        index as u32,
                         symbol,
-                        image: image.and_then(|i| text(i, "name")).map(str::to_string),
+                        image.and_then(|i| text(i, "name")).map(str::to_string),
                         location,
-                        origin: origin_of(image),
-                    }
+                        origin_of(image),
+                    );
+                    frame.address = address_of(image, offset);
+                    frame.image_base = image.and_then(|i| i.get("base")).and_then(Value::as_u64);
+                    frame.build_id = image.and_then(|i| text(i, "uuid")).map(str::to_string);
+                    frame.language = Some(Language::Native);
+                    frame
                 })
                 .collect()
         })
@@ -240,7 +247,11 @@ fn parse_with_path(text_: &str, file_name: &str) -> Result<(CrashReport, String)
     add("Architecture", images.iter().find_map(|i| text(i, "arch")).map(str::to_string));
 
     let hints = hints_of(&traces, &images, app.as_deref());
-    Ok((CrashReport { summary, details, threads: traces, hints, raw: text_.to_string() }, proc_path))
+    let app_version = body.get("bundleInfo").and_then(|b| {
+        let short = text(b, "CFBundleShortVersionString")?;
+        Some(format!("{short} ({})", text(b, "CFBundleVersion").unwrap_or("?")))
+    });
+    Ok((CrashReport { summary, details, threads: traces, hints, app_version, raw: text_.to_string() }, proc_path))
 }
 
 /// Whether an app at `proc_path` lives in the simulator with this UDID. (The path in the report
@@ -388,6 +399,18 @@ mod tests {
         assert!(r.details.iter().any(|(k, v)| k == "Signal" && v == "SIGILL"));
         assert!(r.details.iter().any(|(k, v)| k == "App version" && v == "1.0 (1)"));
         assert!(r.hints.iter().any(|h| h.command.as_deref() == Some("emulabzip logs --app dev.emulabzip.crashy")));
+        assert_eq!(r.app_version.as_deref(), Some("1.0 (1)"));
+    }
+
+    #[test]
+    fn frames_keep_the_image_base_and_uuid_for_atos() {
+        let r = parse(FATAL, "x.ips").unwrap();
+        let app = r.threads[0].frames.iter().find(|f| f.symbol == "explode(depth:)").unwrap();
+        let (base, address) = (app.image_base.expect("the base of the app's image"), app.address.unwrap());
+        assert!(address > base, "the address is inside the image: {address:#x} vs {base:#x}");
+        let uuid = app.build_id.as_deref().expect("the Mach-O UUID");
+        assert_eq!(uuid.len(), 36, "{uuid}");
+        assert_eq!(app.language, Some(Language::Native));
     }
 
     #[test]

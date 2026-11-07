@@ -50,6 +50,18 @@ pub enum FrameOrigin {
     Kernel,
 }
 
+/// The kind of code a frame is: what decides how it can be made readable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Language {
+    /// Java or Kotlin: obfuscated names are restored with a ProGuard or R8 `mapping.txt`.
+    Java,
+    /// Machine code in a library or binary: symbols come from the debug info (a `.dSYM`, or an unstripped `.so`).
+    Native,
+    /// JavaScript of a React Native app: positions in a bundle are looked up in a source map.
+    Js,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Frame {
@@ -61,6 +73,40 @@ pub struct Frame {
     /// The offset into the image, as the device printed it (`0x1a2b`) or the line number.
     pub location: Option<String>,
     pub origin: FrameOrigin,
+    /// For native frames: the address in the image on Android, the address in the process on iOS.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub address: Option<u64>,
+    /// Where the image was loaded, when the report says it (iOS).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image_base: Option<u64>,
+    /// Tells which build of the image this is: the ELF build id on Android, the Mach-O UUID on iOS.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<Language>,
+}
+
+impl Frame {
+    /// A frame with only what every report has; the rest can be set after.
+    pub fn new(
+        index: u32,
+        symbol: impl Into<String>,
+        image: Option<String>,
+        location: Option<String>,
+        origin: FrameOrigin,
+    ) -> Self {
+        Frame {
+            index,
+            symbol: symbol.into(),
+            image,
+            location,
+            origin,
+            address: None,
+            image_base: None,
+            build_id: None,
+            language: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,6 +135,9 @@ pub struct CrashReport {
     pub details: Vec<(String, String)>,
     pub threads: Vec<ThreadTrace>,
     pub hints: Vec<Hint>,
+    /// The version of the app, `1.2.0 (42)`, which is what tells which mapping file belongs to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
     /// The report as the device wrote it.
     pub raw: String,
 }
@@ -131,5 +180,19 @@ mod tests {
         };
         let json = serde_json::to_value(&s).unwrap();
         assert_eq!((json["kind"].as_str(), json["timeMs"].as_u64()), (Some("nativeCrash"), Some(2)));
+    }
+
+    #[test]
+    fn an_old_frame_without_the_new_fields_still_reads() {
+        let old = r#"{"index":0,"symbol":"a.B.c","image":"B.java","location":"12","origin":"app"}"#;
+        let f: Frame = serde_json::from_str(old).unwrap();
+        assert_eq!((f.address, f.image_base, f.build_id, f.language), (None, None, None, None));
+        let json = serde_json::to_string(&Frame::new(1, "x", None, None, FrameOrigin::Native)).unwrap();
+        assert!(!json.contains("address") && !json.contains("buildId"), "{json}");
+        let mut with = Frame::new(2, "y", None, None, FrameOrigin::Native);
+        with.build_id = Some("ab12".into());
+        with.language = Some(Language::Native);
+        let json = serde_json::to_value(&with).unwrap();
+        assert_eq!((json["buildId"].as_str(), json["language"].as_str()), (Some("ab12"), Some("native")));
     }
 }

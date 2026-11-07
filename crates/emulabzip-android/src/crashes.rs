@@ -7,7 +7,9 @@
 use std::collections::HashMap;
 
 use emulabzip_adb::{AdbClient, is_package_name};
-use emulabzip_core::{CrashKind, CrashReport, CrashSummary, Error, Frame, FrameOrigin, Hint, Result, ThreadTrace};
+use emulabzip_core::{
+    CrashKind, CrashReport, CrashSummary, Error, Frame, FrameOrigin, Hint, Language, Result, ThreadTrace,
+};
 
 /// DropBox tags that hold what we show, with the kind of each.
 const TAGS: &[(&str, CrashKind)] = &[
@@ -234,7 +236,9 @@ fn parse_java_frame(line: &str, index: u32, package: Option<&str>) -> Option<Fra
         None if place == "Native Method" || place == "Native method" => (None, Some("native".to_string())),
         None => (Some(place.to_string()).filter(|p| p != "Unknown Source"), None),
     };
-    Some(Frame { index, symbol: symbol.to_string(), image, location, origin: java_origin(symbol, package) })
+    let mut frame = Frame::new(index, symbol, image, location, java_origin(symbol, package));
+    frame.language = Some(Language::Java);
+    Some(frame)
 }
 
 /// `#00 pc 00000000000b7f57  /apex/.../libc.so (kill+7) (BuildId: fa33…)`
@@ -245,7 +249,8 @@ fn parse_native_frame(line: &str, package: Option<&str>) -> Option<Frame> {
     let (pc, rest) = rest.split_once(' ')?;
     let rest = rest.trim_start();
     // The symbol is in the first parenthesis that is not the BuildId, but the path may contain
-    // none, so cut the BuildId first.
+    // none, so cut the BuildId first, and keep it: it tells which build of the library crashed.
+    let build_id = rest.split_once(" (BuildId: ").map(|(_, id)| id.trim_end_matches(')').trim().to_string());
     let rest = rest.split(" (BuildId:").next().unwrap_or(rest);
     let (image, symbol) = match rest.find(" (") {
         Some(i) => (&rest[..i], rest[i + 2..].trim_end_matches(')')),
@@ -267,13 +272,27 @@ fn parse_native_frame(line: &str, package: Option<&str>) -> Option<Frame> {
     } else {
         FrameOrigin::Native
     };
-    Some(Frame {
-        index: index.parse().ok()?,
-        symbol: symbol.to_string(),
-        image: Some(image.to_string()).filter(|i| !anonymous && !i.is_empty()),
-        location: Some(format!("0x{}", if hex.is_empty() { "0" } else { hex })),
+    let mut frame = Frame::new(
+        index.parse().ok()?,
+        symbol,
+        Some(image.to_string()).filter(|i| !anonymous && !i.is_empty()),
+        Some(format!("0x{}", if hex.is_empty() { "0" } else { hex })),
         origin,
-    })
+    );
+    frame.address = u64::from_str_radix(pc, 16).ok();
+    frame.build_id = build_id.filter(|id| !id.is_empty());
+    frame.language = Some(if origin_is_java(image, anonymous) { Language::Java } else { Language::Native });
+    Some(frame)
+}
+
+/// Frames of the runtime's compiled code: they are Java methods, not machine code of a library.
+fn origin_is_java(image: &str, anonymous: bool) -> bool {
+    anonymous
+        || image.ends_with(".jar")
+        || image.ends_with(".odex")
+        || image.ends_with(".oat")
+        || image.ends_with(".vdex")
+        || image.ends_with(".art")
 }
 
 fn java_threads(body: &str, package: Option<&str>) -> Vec<ThreadTrace> {
@@ -368,6 +387,20 @@ fn anr_threads(body: &str, pid: Option<u32>, package: Option<&str>) -> Vec<Threa
     // The blocked main thread comes first, then the rest as the device listed them.
     threads.sort_by_key(|t| !t.crashed);
     threads
+}
+
+/// The version in the DropBox header `Package: com.example.app v42 (1.2.0)`, as `1.2.0 (42)`.
+pub fn app_version_of(body: &str) -> Option<String> {
+    let package = header(body, "Package")?;
+    let mut parts = package.split_whitespace();
+    parts.next()?;
+    let code = parts.next()?.strip_prefix('v')?;
+    if code.is_empty() || !code.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let name = parts.collect::<Vec<_>>().join(" ");
+    let name = name.trim().trim_start_matches('(').trim_end_matches(')').trim();
+    Some(if name.is_empty() { format!("({code})") } else { format!("{name} ({code})") })
 }
 
 fn details_of(kind: CrashKind, body: &str) -> Vec<(String, String)> {
@@ -485,7 +518,15 @@ pub fn report(entry: &Entry, offset: Option<i64>) -> Result<CrashReport> {
         CrashKind::Anr => anr_threads(&entry.body, summary.pid, package),
     };
     let hints = hints_of(kind, &threads, &entry.body, package);
-    Ok(CrashReport { details: details_of(kind, &entry.body), hints, threads, raw: entry.body.clone(), summary })
+    let app_version = app_version_of(&entry.body);
+    Ok(CrashReport {
+        details: details_of(kind, &entry.body),
+        hints,
+        threads,
+        app_version,
+        raw: entry.body.clone(),
+        summary,
+    })
 }
 
 /// `dumpsys dropbox --print` for every tag, then the device's clock twice.
@@ -612,6 +653,34 @@ mod tests {
         assert_eq!(framework.origin, FrameOrigin::Framework);
         assert!(r.hints.iter().any(|h| h.text.contains("kill()")));
         assert!(r.details.iter().any(|(k, v)| k == "Signal" && v.starts_with("11 (SIGSEGV)")));
+    }
+
+    #[test]
+    fn native_frames_keep_what_symbolication_needs() {
+        let r = report(&one(NATIVE), OFFSET).unwrap();
+        let top = &r.threads[0].frames[0];
+        assert_eq!(top.address, Some(0xb7f57), "the offset in the library");
+        assert_eq!(top.language, Some(Language::Native));
+        let id = top.build_id.as_deref().expect("the build id of libc");
+        assert!(id.len() >= 20 && id.bytes().all(|b| b.is_ascii_hexdigit()), "{id}");
+        let managed = r.threads[0].frames.iter().find(|f| f.symbol == "dev.emulabzip.crashy.MainActivity.run").unwrap();
+        assert_eq!(managed.language, Some(Language::Java));
+        assert_eq!(managed.build_id, None);
+    }
+
+    #[test]
+    fn java_frames_are_java() {
+        let r = report(&one(CRASH), OFFSET).unwrap();
+        assert!(r.threads.iter().flat_map(|t| &t.frames).all(|f| f.language == Some(Language::Java)));
+    }
+
+    #[test]
+    fn reads_the_version_of_the_app_from_the_package_header() {
+        assert_eq!(app_version_of("Package: com.example.app v42 (1.2.0)\nOther: x"), Some("1.2.0 (42)".into()));
+        assert_eq!(app_version_of("Package: com.example.app v7"), Some("(7)".into()));
+        assert_eq!(app_version_of("Package: com.example.app"), None);
+        assert_eq!(app_version_of("Package: com.example.app vX (1)"), None);
+        assert_eq!(app_version_of("Process: a"), None);
     }
 
     #[test]
