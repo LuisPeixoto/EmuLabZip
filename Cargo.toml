@@ -23,6 +23,7 @@ emulabzip-heap = { path = "crates/emulabzip-heap" }
 emulabzip-frameworks = { path = "crates/emulabzip-frameworks" }
 emulabzip-net = { path = "crates/emulabzip-net" }
 emulabzip-session = { path = "crates/emulabzip-session" }
+emulabzip-symbols = { path = "crates/emulabzip-symbols" }
 emulabzip-trace = { path = "crates/emulabzip-trace" }
 emulabzip-mcp = { path = "crates/emulabzip-mcp" }
 emulabzip-plugin = { path = "crates/emulabzip-plugin" }
