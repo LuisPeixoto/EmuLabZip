@@ -25,5 +25,6 @@ pub mod props;
 pub mod startup;
 pub mod storage;
 pub mod trace;
+pub mod video;
 
 pub use backend::AndroidBackend;

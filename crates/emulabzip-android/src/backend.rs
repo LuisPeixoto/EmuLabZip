@@ -131,6 +131,17 @@ impl Backend for AndroidBackend {
         crate::frames::follow(&self.adb, id, app).await
     }
 
+    async fn record_video(
+        &self,
+        id: &str,
+        out_dir: &std::path::Path,
+        segment_secs: u32,
+        stop: tokio::sync::watch::Receiver<bool>,
+        segments: tokio::sync::mpsc::UnboundedSender<emulabzip_core::VideoSegment>,
+    ) -> Result<()> {
+        crate::video::record(&self.adb, id, out_dir, segment_secs, stop, segments).await
+    }
+
     async fn clock(&self, id: &str) -> Result<emulabzip_core::DeviceClock> {
         clock::measure(&self.adb, id).await
     }
