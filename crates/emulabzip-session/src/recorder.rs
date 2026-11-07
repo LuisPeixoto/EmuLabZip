@@ -7,14 +7,16 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use emulabzip_core::{Device, Error, Lab, LogOptions, PerfOptions, Result, StartupReport, Target};
+use emulabzip_core::{
+    Device, Error, InputEvent, Lab, LogOptions, PerfOptions, Result, SlowFrame, StartupReport, Target, VideoSegment,
+};
 use emulabzip_net::{FlowStore, to_har};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 use crate::format::{
-    CRASHES, DeviceMeta, JsonlWriter, LOGS, META, Meta, NETWORK, PERF, SCREENS, STARTUP, VERSION, bad, now_ms, pack,
-    work_dir,
+    CRASHES, DeviceMeta, FRAMES, INPUT, JsonlWriter, LOGS, META, Meta, NETWORK, PERF, SCREENS, STARTUP, ScreenShot,
+    VERSION, VIDEO, VIDEO_INDEX, bad, now_ms, pack, work_dir,
 };
 
 /// How often the device is asked for new crashes.
@@ -35,6 +37,10 @@ pub struct Options {
     pub flows: Option<Arc<FlowStore>>,
     /// How long the app took to open, measured before the run, to keep with it.
     pub startup: Option<StartupReport>,
+    /// Record the screen, in pieces of this many seconds.
+    pub video: Option<u32>,
+    /// Record touches (Android only; other devices are skipped with a note in the log).
+    pub taps: bool,
 }
 
 impl Default for Options {
@@ -46,6 +52,8 @@ impl Default for Options {
             max_log_lines: 500_000,
             flows: None,
             startup: None,
+            video: None,
+            taps: false,
         }
     }
 }
@@ -57,10 +65,16 @@ pub struct Stats {
     pub samples: u64,
     pub crashes: u64,
     pub screens: u64,
+    pub taps: u64,
+    pub slow_frames: u64,
+    pub video_pieces: u64,
 }
 
 #[derive(Default)]
 struct Counters {
+    taps: AtomicU64,
+    slow_frames: AtomicU64,
+    video_pieces: AtomicU64,
     logs: AtomicU64,
     dropped: AtomicU64,
     samples: AtomicU64,
@@ -107,7 +121,12 @@ impl Recorder {
             network: options.flows.is_some(),
             screens_every_secs: options.screens_every.map(|d| d.as_secs()),
             logs_dropped: 0,
+            clock: None,
+            perf_started_ms: None,
         };
+        let mut meta = meta;
+        // A device that cannot tell its time still records; its times are then placed best-effort.
+        meta.clock = lab.clock(&target).await.ok();
         write_meta(&dir, &meta)?;
 
         let (stop, rx) = watch::channel(false);
@@ -126,7 +145,10 @@ impl Recorder {
         )));
 
         match lab.perf(&target, PerfOptions { app: options.app.clone(), interval_ms: options.perf_interval_ms }).await {
-            Ok(samples) => tasks.push(tokio::spawn(follow_perf(samples, dir.join(PERF), rx.clone(), counters.clone()))),
+            Ok(samples) => {
+                meta.perf_started_ms = Some(now_ms());
+                tasks.push(tokio::spawn(follow_perf(samples, dir.join(PERF), rx.clone(), counters.clone())));
+            }
             Err(e) => tracing::info!("not sampling performance: {e}"),
         }
 
@@ -146,9 +168,38 @@ impl Recorder {
             new_crashes.clone(),
         )));
 
+        if options.taps {
+            match lab.input(&target).await {
+                Ok(events) => {
+                    tasks.push(tokio::spawn(follow_input(events, dir.join(INPUT), rx.clone(), counters.clone())))
+                }
+                Err(e) => tracing::info!("not recording touches: {e}"),
+            }
+        }
+        if let Some(app) = options.app.as_deref() {
+            match lab.slow_frames(&target, app).await {
+                Ok(frames) => {
+                    tasks.push(tokio::spawn(follow_frames(frames, dir.join(FRAMES), rx.clone(), counters.clone())))
+                }
+                Err(e) => tracing::info!("not timing slow frames: {e}"),
+            }
+        }
+        if let Some(secs) = options.video {
+            fs::create_dir_all(dir.join(VIDEO))?;
+            let (tx, pieces) = tokio::sync::mpsc::unbounded_channel();
+            let (lab, target, folder, stop) = (lab.clone(), target.clone(), dir.join(VIDEO), rx.clone());
+            tasks.push(tokio::spawn(async move {
+                if let Err(e) = lab.record_video(&target, &folder, secs, stop, tx).await {
+                    tracing::warn!("screen recording stopped: {e}");
+                }
+            }));
+            tasks.push(tokio::spawn(follow_video(pieces, dir.join(VIDEO_INDEX), counters.clone())));
+        }
+
         if let Some(every) = options.screens_every {
             tasks.push(tokio::spawn(follow_screens(lab, target, every, dir.join(SCREENS), rx, counters.clone())));
         }
+        write_meta(&dir, &meta)?;
 
         Ok(Recorder {
             dir,
@@ -170,6 +221,9 @@ impl Recorder {
             samples: c.samples.load(Ordering::Relaxed),
             crashes: c.crashes.load(Ordering::Relaxed),
             screens: c.screens.load(Ordering::Relaxed),
+            taps: c.taps.load(Ordering::Relaxed),
+            slow_frames: c.slow_frames.load(Ordering::Relaxed),
+            video_pieces: c.video_pieces.load(Ordering::Relaxed),
         }
     }
 
@@ -324,6 +378,70 @@ async fn follow_crashes(
     }
 }
 
+async fn follow_input(
+    mut stream: emulabzip_core::Stream<InputEvent>,
+    path: PathBuf,
+    mut stop: watch::Receiver<bool>,
+    counters: Arc<Counters>,
+) {
+    let Ok(mut out) = JsonlWriter::create(&path) else { return };
+    loop {
+        tokio::select! {
+            event = stream.next() => match event {
+                Some(event) => {
+                    if out.write(&event).is_ok() {
+                        counters.taps.fetch_add(1, Ordering::Relaxed);
+                        out.flush();
+                    }
+                }
+                None => break,
+            },
+            _ = stopped(&mut stop) => break,
+        }
+    }
+    out.flush();
+}
+
+async fn follow_frames(
+    mut stream: emulabzip_core::Stream<SlowFrame>,
+    path: PathBuf,
+    mut stop: watch::Receiver<bool>,
+    counters: Arc<Counters>,
+) {
+    let Ok(mut out) = JsonlWriter::create(&path) else { return };
+    loop {
+        tokio::select! {
+            frame = stream.next() => match frame {
+                Some(frame) => {
+                    if out.write(&frame).is_ok() {
+                        counters.slow_frames.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+                None => break,
+            },
+            _ = tokio::time::sleep(FLUSH) => out.flush(),
+            _ = stopped(&mut stop) => break,
+        }
+    }
+    out.flush();
+}
+
+/// Writes one index line per finished piece. It ends when the recorder drops its sender, which is after the last
+/// piece has been reported.
+async fn follow_video(
+    mut pieces: tokio::sync::mpsc::UnboundedReceiver<VideoSegment>,
+    path: PathBuf,
+    counters: Arc<Counters>,
+) {
+    let Ok(mut out) = JsonlWriter::create(&path) else { return };
+    while let Some(piece) = pieces.recv().await {
+        if out.write(&piece).is_ok() {
+            counters.video_pieces.fetch_add(1, Ordering::Relaxed);
+            out.flush();
+        }
+    }
+}
+
 async fn follow_screens(
     lab: Lab,
     target: Target,
@@ -333,14 +451,22 @@ async fn follow_screens(
     counters: Arc<Counters>,
 ) {
     let mut tick = tokio::time::interval(every.max(Duration::from_secs(1)));
+    let mut index = JsonlWriter::create(&dir.join("index.jsonl")).ok();
     loop {
         tokio::select! {
             _ = tick.tick() => {}
             _ = stopped(&mut stop) => break,
         }
+        let t_ms = now_ms();
         if let Ok(png) = lab.screenshot(&target).await {
             let n = counters.screens.fetch_add(1, Ordering::Relaxed) + 1;
-            let _ = fs::write(dir.join(format!("{n:04}.png")), png);
+            let name = format!("{n:04}.png");
+            if fs::write(dir.join(&name), png).is_ok()
+                && let Some(index) = index.as_mut()
+            {
+                let _ = index.write(&ScreenShot { name, t_ms });
+                index.flush();
+            }
         }
     }
 }

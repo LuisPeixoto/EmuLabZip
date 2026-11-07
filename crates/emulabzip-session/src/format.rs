@@ -4,11 +4,12 @@ use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use emulabzip_core::{Device, Error, Platform, Result};
+use emulabzip_core::{Device, DeviceClock, Error, Platform, Result};
 use serde::{Deserialize, Serialize};
 
-/// The version of the layout. Readers refuse a newer one.
-pub const VERSION: u32 = 1;
+/// The version of the layout. Readers refuse a newer one. Version 2 added the clock, the screenshot index, touches,
+/// slow frames and video; a version 1 file opens as before, with its times best-effort.
+pub const VERSION: u32 = 2;
 /// The extension of a finished session.
 pub const EXTENSION: &str = "ezsession";
 
@@ -18,6 +19,16 @@ pub const PERF: &str = "perf.jsonl";
 pub const NETWORK: &str = "network.har";
 pub const CRASHES: &str = "crashes";
 pub const SCREENS: &str = "screens";
+/// When each screenshot was taken: one `{name, tMs}` per line.
+pub const SCREENS_INDEX: &str = "screens/index.jsonl";
+/// Touch gestures, one per line.
+pub const INPUT: &str = "input.jsonl";
+/// Frames that took too long, one per line.
+pub const FRAMES: &str = "frames.jsonl";
+/// The screen recording, in pieces.
+pub const VIDEO: &str = "video";
+/// What each piece of video covers: one `VideoSegment` per line.
+pub const VIDEO_INDEX: &str = "video/index.jsonl";
 /// The start time measured before the run, when there was one.
 pub const STARTUP: &str = "startup.json";
 
@@ -62,12 +73,28 @@ pub struct Meta {
     /// Log lines past the limit that were not kept.
     #[serde(default)]
     pub logs_dropped: u64,
+    /// How the device's clock relates to this computer's. Missing in version 1 files and when the device could not be
+    /// asked.
+    #[serde(default)]
+    pub clock: Option<DeviceClock>,
+    /// When the performance stream began, so `tMs` in `perf.jsonl` can be placed on the clock.
+    #[serde(default)]
+    pub perf_started_ms: Option<u64>,
 }
 
 impl Meta {
     pub fn duration_ms(&self) -> Option<u64> {
         self.ended_ms.map(|end| end.saturating_sub(self.started_ms))
     }
+}
+
+/// One line of `screens/index.jsonl`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScreenShot {
+    pub name: String,
+    /// Milliseconds since the Unix epoch, on this computer's clock.
+    pub t_ms: u64,
 }
 
 pub fn now_ms() -> u64 {
@@ -134,9 +161,12 @@ fn add_dir(zip: &mut zip::ZipWriter<BufWriter<File>>, root: &Path, dir: &Path) -
             .map_err(|e| bad("a session path", e.to_string()))?
             .to_string_lossy()
             .replace('\\', "/");
-        // Screenshots are compressed already.
-        let method =
-            if name.ends_with(".png") { zip::CompressionMethod::Stored } else { zip::CompressionMethod::Deflated };
+        // Screenshots and video are compressed already.
+        let method = if name.ends_with(".png") || name.ends_with(".mp4") || name.ends_with(".mov") {
+            zip::CompressionMethod::Stored
+        } else {
+            zip::CompressionMethod::Deflated
+        };
         zip.start_file(name, zip::write::SimpleFileOptions::default().compression_method(method))
             .map_err(|e| bad("the session archive", e.to_string()))?;
         std::io::copy(&mut File::open(&path)?, zip)?;
