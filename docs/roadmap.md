@@ -114,17 +114,22 @@ Limits: Realm sets, dictionaries, mixed, decimal and UUID columns are not read; 
 attribute names lose their case; AsyncStorage and Core Data from an iOS device were tested on fixture files, not on a
 simulator; Flutter state is not read.
 
-## Phase 12: Quality beyond performance (v0.12)
+## ✅ Phase 12: Quality beyond performance (v0.12)
 
-A **security and privacy audit** while the app runs: cleartext traffic, tokens and personal data in logs and
+A **[security and privacy audit](security-audit.md)** while the app runs: cleartext traffic, tokens and personal data in logs and
 preferences, exported components (`dumpsys package`), the `debuggable` and `allowBackup` flags, App Transport Security
-exceptions in `Info.plist` and domains missing from the privacy manifest · an **APK, AAB and IPA analyzer**: size by
-folder, dex and assets, a diff between two builds, and a size budget in `emulabzip.toml` · **localization checks**:
-pseudo-locales (`en-XA`, `ar-XB`) in one click, right-to-left layouts, font scale and display size, and truncated text
-found through Layout · **more accessibility checks**: focus order, text scaling and colour blindness simulation ·
-**visual regression**: screenshots compared between runs or devices, with a baseline in CI · an **analytics
-inspector**: Firebase Analytics events through its debug mode, and Segment, Amplitude and Mixpanel calls decoded by the
-proxy, in a list of their own.
+exceptions in `Info.plist` and domains missing from the privacy manifest · an **[APK, AAB and IPA analyzer](package-size.md)**: size by
+folder, dex and assets, a diff between two builds, and a size budget in `emulabzip.toml` · **[localization checks](localization.md)**:
+pseudo-locales (`en-XA`, `ar-XB`), font scale and display size controls, a sweep across languages and sizes, and text that
+does not fit found through Layout · **more accessibility checks**: focus order and colour blindness simulation (text
+scaling through the sweep) · **[visual regression](visual-regression.md)**: screenshots compared with a baseline, with a
+difference picture and a check in CI · an **[analytics inspector](analytics.md)**: Segment, Amplitude, Mixpanel and Firebase
+events decoded by the proxy, and Firebase's debug log.
+
+Limits: the audit cannot see the `exported` attribute (`dumpsys` does not print it) and judges text by pattern; the size
+analyzer reads sizes, folders and dex headers, not bytecode, and not an installed app yet; cut-off text is a heuristic;
+Android changes the language per app, not per device; the Firebase decoder was tested on payloads made to Google's layout,
+not on live traffic; there is no analytics tool over MCP.
 
 ## Phase 13: Automation and hybrid apps (v0.13)
 
