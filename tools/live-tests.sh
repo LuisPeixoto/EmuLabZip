@@ -31,6 +31,8 @@ if [[ -n "${ANDROID:-}" ]]; then
   # Video, touches, the timeline and replay. Install the Compose demo first: tools/compose-app/install.sh
   # They send touches through the emulator console, and need the internet once, to record.
   cargo test -p emulabzip-cli --test live_phase10 -- --ignored --test-threads=1
+  # App state, editing and the schema diff. Install the Compose demo first; they write its data.
+  cargo test -p emulabzip-cli --test live_phase11 -- --ignored --test-threads=1
   # Chrome has to be past its first run: write its command line, and dismiss the notification prompt once.
   # They also need the internet (example.com, cloudflare-quic.com).
   cargo test -p emulabzip-cli --test live_net -- --ignored --test-threads=1
