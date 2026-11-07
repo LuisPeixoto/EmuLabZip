@@ -54,7 +54,12 @@ pub fn markdown(r: &BugReport) -> String {
         }
         out.push_str("```\n\n");
     }
-    out.push_str(&format!("_Made with {}. The full report is attached: emulabzip-report.html_\n", r.tool));
+    let files = if r.video_sidecar().is_some() {
+        format!("emulabzip-report.html and {}", crate::model::VIDEO_FILE)
+    } else {
+        "emulabzip-report.html".to_string()
+    };
+    out.push_str(&format!("_Made with {}. The full report is attached: {files}_\n", r.tool));
     out
 }
 

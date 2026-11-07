@@ -2,7 +2,7 @@
 
 use base64::Engine;
 
-use crate::model::BugReport;
+use crate::model::{BugReport, MAX_INLINE_VIDEO, Strip, VIDEO_FILE};
 
 /// Escapes text for HTML, in content and in attributes.
 pub fn escape(text: &str) -> String {
@@ -34,7 +34,10 @@ summary{cursor:pointer;padding:10px 14px;font-weight:600}\
 table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:3px 10px 3px 0;vertical-align:top}\
 pre{margin:0;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word}\
 img{max-width:100%;max-height:640px;border:1px solid var(--line);border-radius:6px}\
-.desc{white-space:pre-wrap}";
+.desc{white-space:pre-wrap}\
+video{max-width:100%;max-height:640px;border:1px solid var(--line);border-radius:6px;background:#000}\
+.strip{width:100%;height:auto}.strip text{font:11px -apple-system,system-ui,sans-serif;fill:var(--mut)}\
+.strip line{stroke:var(--line)}.strip .m-info{fill:#4a90d9}.strip .m-warning{fill:#d9a23a}.strip .m-error{fill:var(--bad)}";
 
 fn section(out: &mut String, title: &str, count: Option<usize>, open: bool, body: &str) {
     let n = count.map(|c| format!(" <span class=\"mut\">({c})</span>")).unwrap_or_default();
@@ -48,6 +51,59 @@ fn section(out: &mut String, title: &str, count: Option<usize>, open: bool, body
 fn lines(items: &[crate::model::LogLine]) -> String {
     let text: Vec<String> = items.iter().map(|l| format!("{} {} {}: {}", l.time, l.level, l.tag, l.message)).collect();
     format!("<pre>{}</pre>", escape(&text.join("\n")))
+}
+
+/// The lanes of the strip, in the order they are drawn, with the name shown for each.
+const STRIP_LANES: [(&str, &str); 6] = [
+    ("taps", "Touches"),
+    ("requests", "Requests"),
+    ("logs", "Log"),
+    ("frames", "Slow frames"),
+    ("gc", "GC"),
+    ("crashes", "Crash"),
+];
+
+/// The last minute as an SVG: one row per kind of thing, one dot for each, time running to the right. It is drawn
+/// from numbers and escaped text only, and has no script: the hover text is plain `<title>` elements.
+fn strip_svg(strip: &Strip) -> String {
+    const LEFT: f64 = 84.0;
+    const RIGHT: f64 = 990.0;
+    const ROW: f64 = 22.0;
+    let rows: Vec<&(&str, &str)> =
+        STRIP_LANES.iter().filter(|(lane, _)| strip.marks.iter().any(|m| m.lane == *lane)).collect();
+    let height = ROW * rows.len() as f64 + 26.0;
+    let window = strip.window_ms.max(1) as f64;
+    let x = |t_ms: u64| LEFT + (RIGHT - LEFT) * (t_ms as f64 / window);
+    let mut svg = format!(
+        "<svg class=\"strip\" viewBox=\"0 0 1000 {height}\" role=\"img\" aria-label=\"Timeline of the last minute\">"
+    );
+    for (i, (lane, name)) in rows.iter().enumerate() {
+        let y = ROW * i as f64 + ROW / 2.0 + 2.0;
+        svg.push_str(&format!(
+            "<text x=\"4\" y=\"{:.1}\">{}</text><line x1=\"{LEFT}\" y1=\"{y:.1}\" x2=\"{RIGHT}\" y2=\"{y:.1}\"/>",
+            y + 4.0,
+            escape(name)
+        ));
+        for m in strip.marks.iter().filter(|m| m.lane == *lane) {
+            let class = match m.severity.as_str() {
+                "error" => "m-error",
+                "warning" => "m-warning",
+                _ => "m-info",
+            };
+            svg.push_str(&format!(
+                "<circle class=\"{class}\" cx=\"{:.1}\" cy=\"{y:.1}\" r=\"4\"><title>{}</title></circle>",
+                x(m.t_ms),
+                escape(&format!("{:.1} s: {}", m.t_ms as f64 / 1000.0, m.label))
+            ));
+        }
+    }
+    let base = ROW * rows.len() as f64 + 16.0;
+    let seconds = strip.window_ms / 1000;
+    let end = if strip.ends_at_crash { "crash" } else { "end" };
+    svg.push_str(&format!(
+        "<text x=\"{LEFT}\" y=\"{base}\">−{seconds} s</text><text x=\"{RIGHT}\" y=\"{base}\" text-anchor=\"end\">{end}</text></svg>"
+    ));
+    svg
 }
 
 /// The whole report as an HTML document.
@@ -76,6 +132,34 @@ pub fn html(r: &BugReport) -> String {
     }
     for n in &r.notes {
         out.push_str(&format!("<p class=\"mut\">• {}</p>\n", escape(n)));
+    }
+    if let Some(clip) = &r.video {
+        let (src, extra) = if clip.bytes.len() <= MAX_INLINE_VIDEO {
+            (
+                format!("data:video/mp4;base64,{}", base64::engine::general_purpose::STANDARD.encode(&clip.bytes)),
+                String::new(),
+            )
+        } else {
+            (
+                VIDEO_FILE.to_string(),
+                format!(" The video is the file {VIDEO_FILE}, next to this one: keep the two together."),
+            )
+        };
+        section(
+            &mut out,
+            "Screen recording",
+            None,
+            true,
+            &format!(
+                "<video controls preload=\"metadata\" src=\"{}\"></video><p class=\"mut\">{}{}</p>",
+                escape(&src),
+                escape(&clip.label),
+                escape(&extra)
+            ),
+        );
+    }
+    if let Some(strip) = &r.strip {
+        section(&mut out, "Timeline, the last minute", Some(strip.marks.len()), true, &strip_svg(strip));
     }
     if let Some(png) = &r.screenshot {
         let b64 = base64::engine::general_purpose::STANDARD.encode(png);
@@ -199,6 +283,56 @@ mod tests {
         assert!(!h.contains("<b>boom"), "bodies are escaped");
         assert!(!h.contains("<script"), "no script at all");
         assert!(!h.contains("http://") || !h.contains("src=\"http"), "nothing is loaded from a server");
+    }
+
+    #[test]
+    fn a_short_clip_is_part_of_the_file_and_a_long_one_is_next_to_it() {
+        use crate::model::VideoClip;
+        let small = BugReport {
+            video: Some(VideoClip { bytes: b"\0\0\0 ftypmp42".to_vec(), label: "Screen recording, 30 s".into() }),
+            ..Default::default()
+        };
+        let h = html(&small);
+        assert!(h.contains("<video controls") && h.contains("src=\"data:video/mp4;base64,"));
+        assert!(small.video_sidecar().is_none());
+
+        let big = BugReport {
+            video: Some(VideoClip { bytes: vec![0; MAX_INLINE_VIDEO + 1], label: "Screen recording".into() }),
+            ..Default::default()
+        };
+        let h = html(&big);
+        assert!(h.contains(&format!("src=\"{VIDEO_FILE}\"")) && !h.contains("base64,AAAA"));
+        assert!(h.contains("keep the two together"));
+        assert_eq!(big.video_sidecar().map(<[u8]>::len), Some(MAX_INLINE_VIDEO + 1));
+    }
+
+    #[test]
+    fn the_strip_draws_one_row_per_lane_with_escaped_hover_text_and_no_script() {
+        use crate::model::StripMark;
+        let mark = |t_ms, lane: &str, severity: &str, label: &str| StripMark {
+            t_ms,
+            lane: lane.into(),
+            severity: severity.into(),
+            label: label.into(),
+        };
+        let r = BugReport {
+            strip: Some(Strip {
+                window_ms: 60_000,
+                ends_at_crash: true,
+                marks: vec![
+                    mark(1000, "taps", "info", "Tap (1, 2)"),
+                    mark(59_000, "crashes", "error", "<script>alert(1)</script>"),
+                ],
+            }),
+            ..Default::default()
+        };
+        let h = html(&r);
+        assert!(
+            h.contains("<svg class=\"strip\"") && h.contains("m-error") && h.contains("Touches") && h.contains("Crash")
+        );
+        assert!(!h.contains("Requests</text>"), "a lane with nothing on it is not drawn");
+        assert!(h.contains("&lt;script&gt;") && !h.contains("<script"));
+        assert!(h.contains("−60 s") && h.contains(">crash<"));
     }
 
     #[test]
