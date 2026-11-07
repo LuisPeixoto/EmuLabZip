@@ -10,6 +10,7 @@ rust-version.workspace = true
 
 [dependencies]
 base64.workspace = true
+emulabzip-audit.workspace = true
 emulabzip-core.workspace = true
 emulabzip-frameworks.workspace = true
 emulabzip-heap.workspace = true

@@ -228,6 +228,47 @@ pub struct ColorBlindness {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct SecurityAudit {
+    pub device: Option<String>,
+    /// The app: a package name or bundle id.
+    pub app: String,
+    /// Only these areas: `manifest`, `logs`, `storage`. Default: all of them.
+    pub only: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Package {
+    /// The path of an `.apk`, `.aab` or `.ipa` file on this computer.
+    pub file: String,
+    /// How many of the biggest files to list (default 15, up to 100).
+    pub top: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PackageDiff {
+    /// The older build: an `.apk`, `.aab` or `.ipa` file.
+    pub before: String,
+    /// The newer build.
+    pub after: String,
+    /// How many of the biggest changes to list (default 15, up to 100).
+    pub top: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CheckText {
+    pub device: Option<String>,
+    /// The screen is shown in a right-to-left language: also check that the layout was mirrored.
+    pub rtl: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualCompare {
+    pub device: Option<String>,
+    /// The name of a baseline made with `emulabzip visual capture` (letters, digits, `.`, `_` and `-`).
+    pub baseline: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct FontScale {
     pub device: Option<String>,
     /// The text size as a percentage of normal: 100 is normal, 130 and 200 are common accessibility settings (50 to 300).
