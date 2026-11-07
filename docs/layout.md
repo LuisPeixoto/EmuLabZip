@@ -47,10 +47,27 @@ The **Accessibility** tab lists findings, most serious first. Click one to see t
 | `touch-target` | A control smaller than 48 dp (Android) or 44 pt (iOS) in either direction | 2.5.8 |
 | `contrast` | Text with a contrast under 4.5:1 (3:1 for large text), measured from the screenshot's pixels inside the view | 1.4.3 |
 | `duplicate-label` | Neighbouring controls announced the same way ("Delete", "Delete", "Delete") | 2.4.6 |
+| `focus-order` | Focus that jumps back up the screen: the layout lists a control before the ones above it (a screen reader and a keyboard follow the layout's order). Controls in one row are not a jump; at most five are reported | 2.4.3 |
 
 Contrast is measured by taking the most common colour in the view as the background and the colour furthest from it as
 the text. A view over a photo or a gradient is not judged, because there is no single background. Disabled controls are
 not asked to be big or named.
+
+### Colour blindness
+
+```bash
+emulabzip a11y --simulate deuteranopia -o deuteranopia.png    # protanopia, deuteranopia, tritanopia or achromatopsia
+```
+
+Shows the screen as someone with that kind of colour blindness sees it (the matrices of Machado, Oliveira and Fernandes, at
+full severity, applied to linear light), writes the picture, and lists the **text that was readable normally and is not any
+more** (`contrast-<kind>`). Text that already failed the contrast rule is not repeated. Over [MCP](mcp.md),
+`simulate_color_blindness` returns the picture and the findings. The **Audit** view has the same under *Colour vision*.
+
+### Text size, languages and text that does not fit
+
+See [Language, text size and text that does not fit](localization.md): `i18n check` and `i18n sweep` look for text that is
+cut off, off screen or not mirrored, and the sweep reports touch targets and focus order that get worse at large text.
 
 This is a first pass from the layout alone. It does not replace trying the app with TalkBack or VoiceOver, and it cannot
 know that a label is *wrong*.

@@ -23,7 +23,22 @@ kind = "cold"              # cold, warm or hot
 
 [baseline]
 tolerance_percent = 10     # how much worse than the baseline counts as a regression
+
+[size]                     # a build's size: see Build size (package-size.md)
+max_total_mb = 25
+max_dex_mb = 8
+max_native_mb = 12
+max_methods = 60000
+max_growth_percent = 5
+
+[visual]                   # screenshots: see Visual regression (visual-regression.md)
+threshold_percent = 0.1
+tolerance = 8
 ```
+
+`[size]` is checked on a build file with `emulabzip size show --budget` and `emulabzip ci --size`; `[visual]` sets how
+`emulabzip visual` compares and which parts of the screen to ignore. See [Build size](package-size.md) and
+[Visual regression](visual-regression.md).
 
 A key that does not exist is an **error**, so a typo does not leave a limit switched off. A limit that could not be
 measured counts as broken: `start_time_ms` without a `[startup]` table and `--app` fails, rather than passing silently.

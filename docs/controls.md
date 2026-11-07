@@ -56,8 +56,13 @@ the emulator console for the location.
 - *Notification* is `cmd notification post`. Android posts it as whoever runs the command, so when `adbd` is root (the
   emulators without Google Play) EmuLabZip runs it as the shell user. The app argument is ignored.
 
+- *Text size* is `settings put system font_scale`, as a percentage of normal (50 to 300).
+- *Language* is `cmd locale set-app-locales` for **one app** (Android 13 and newer), including the pseudo-locales `en-XA`
+  and `ar-XB`. *Display size* is `wm size` and `wm density`. All three can be put back. See
+  [Language, text size and text that does not fit](localization.md).
+
 **iOS Simulator.** Everything is `xcrun simctl`: `location`, `ui appearance`, `status_bar`, `privacy`, `push` and
-`openurl`. iOS does not report which permissions an app has, so the card offers the services and the actions only.
+`openurl`, with `ui content_size` for the text size and the global defaults (`AppleLanguages`, `AppleLocale`) for the language, which an app takes when it starts again. iOS does not report which permissions an app has, so the card offers the services and the actions only.
 
 ## Safety
 

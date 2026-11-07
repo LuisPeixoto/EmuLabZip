@@ -179,6 +179,42 @@ and `undo <folder>`. Each takes the app and the file, and **every one needs `--y
 running emulator picked with `-d`. `wipe`, `delete`, `boot --wipe`, `snapshot load` and `snapshot delete` need `--yes`.
 `emulabzip devices --all` also lists devices that are not running. See [Devices](devices.md).
 
+### `emulabzip audit security <app>`
+
+Looks for secrets and personal data in the log, preferences and databases, plain HTTP and secrets in requests (`--har`),
+the `debuggable` and `allowBackup` flags, components other apps can reach, App Transport Security exceptions and privacy
+manifest gaps. `--only manifest,logs,storage,traffic`, `--json`, `--fail-on <note|warning|error>`. Evidence is cut down so a
+secret is never repeated. See [Security audit](security-audit.md).
+
+### `emulabzip size show|diff`
+
+`show <file>` breaks an `.apk`, `.aab` or `.ipa` down by kind, native ABI and dex file (`--top`, `--json`); with
+`--budget` it holds the build to the `[size]` section of `emulabzip.toml` (`--config`, `--baseline`) and exits 1 over a limit.
+`diff <before> <after>` says what changed (`--fail-on-growth <percent>`). See [Build size](package-size.md).
+
+### `emulabzip i18n check|sweep`
+
+`check` looks for text that is cut off, off screen, clipped or not mirrored on the screen as it is (`--rtl`, `--fail-on`).
+`sweep` tries it in other languages and text sizes (`--locales en-XA,ar-XB`, `--scales 100,130,200`, `--app`,
+`--fail-on-worse`) and puts the device back. See [Language, text size and text that does not fit](localization.md).
+
+### `emulabzip control locale|reset-locale|font-scale|display|reset-display`
+
+Change the language of an app (Android) or of the simulator (iOS), the text size, and the Android display size.
+`a11y --simulate <kind> [-o file]` shows the screen as someone with colour blindness sees it.
+
+### `emulabzip visual capture|update|compare|list|diff|session`
+
+Baselines of the screen, and what changed since. `capture` and `compare` take `--status-bar` (a clean 9:41 bar), `--dir`,
+`--threshold`; `update` needs `--yes`. `compare` exits 1 over the limit and draws the difference. See
+[Visual regression](visual-regression.md).
+
+### `emulabzip analytics`
+
+Runs the proxy and prints the events an app sends to Segment, Amplitude, Mixpanel and Firebase (`--service`, `--port`,
+`--no-connect`, `--json`), or with `--firebase-log` Firebase's debug lines from the device log. See
+[Analytics inspector](analytics.md).
+
 ### `emulabzip session` and `emulabzip ci`
 
 `session record -o run.ezsession [--app <id>] [--network] [--screens <s>] [--duration <s>] [--video [<s>]] [--taps]
