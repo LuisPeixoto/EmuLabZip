@@ -28,6 +28,37 @@ struct Cli {
 }
 
 #[derive(Subcommand)]
+enum MappingsAction {
+    /// Keep a mapping.txt, a source map or a .dSYM for an app and version
+    Add {
+        /// The app (package name or bundle id)
+        app: String,
+        /// The version it belongs to, as the crash shows it, such as "1.2.0 (42)"
+        #[arg(id = "app_version", value_name = "VERSION")]
+        version: String,
+        /// The file (or the .dSYM folder)
+        file: PathBuf,
+        /// What it is, when it cannot be told from the file: mapping, sourcemap or dsym
+        #[arg(short, long, value_parser = cmd::symbols::parse_kind)]
+        kind: Option<emulabzip_symbols::store::Kind>,
+    },
+    /// List what is kept
+    List {
+        app: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Forget what is kept for an app and version
+    Remove {
+        app: String,
+        #[arg(id = "app_version", value_name = "VERSION")]
+        version: String,
+        #[arg(short, long, value_parser = cmd::symbols::parse_kind)]
+        kind: Option<emulabzip_symbols::store::Kind>,
+    },
+}
+
+#[derive(Subcommand)]
 enum Command {
     /// List running emulators, simulators and attached devices
     #[command(visible_alias = "ls")]
@@ -313,8 +344,49 @@ enum Command {
         /// Print every thread, not only the one that crashed
         #[arg(long)]
         all_threads: bool,
+        /// Read it with this mapping.txt, source map or .dSYM, besides what is stored for the app (repeat for more)
+        #[arg(short, long, value_name = "FILE")]
+        mapping: Vec<PathBuf>,
         #[arg(long)]
         json: bool,
+    },
+    /// Keep the mapping.txt, source maps and .dSYMs that make crashes readable
+    Mappings {
+        #[command(subcommand)]
+        action: MappingsAction,
+    },
+    /// Read a stack pasted from a log or a bug report with a mapping.txt or a source map
+    Symbolicate {
+        /// The stack, in a file (or - for standard input)
+        stack: PathBuf,
+        /// A mapping.txt or source map (repeat for more)
+        #[arg(short, long, value_name = "FILE")]
+        mapping: Vec<PathBuf>,
+    },
+    /// Write what a bug report needs into one HTML file, and a link that opens the issue
+    Report {
+        /// Make it from a recorded session instead of the device as it is now
+        #[arg(long, value_name = "FILE")]
+        session: Option<PathBuf>,
+        /// The app the report is about
+        #[arg(short, long)]
+        app: Option<String>,
+        /// Where to write the HTML
+        #[arg(short, long, value_name = "FILE", default_value = "emulabzip-report.html")]
+        output: PathBuf,
+        #[arg(long)]
+        title: Option<String>,
+        #[arg(long)]
+        description: Option<String>,
+        /// Where the issue goes: github:owner/repo, gitlab:[host/]group/project or jira:site/PROJECTID/ISSUETYPEID
+        #[arg(long, value_name = "TRACKER")]
+        issue: Option<String>,
+        /// Leave a part out: screenshot, logs, requests or crashes (repeat for more)
+        #[arg(long, value_name = "PART", value_parser = cmd::report::parse_without)]
+        without: Vec<String>,
+        /// Open the report (and the issue link) in the browser
+        #[arg(long)]
+        open: bool,
     },
     /// Change what the device reports or does: location, appearance, status bar, permissions, …
     Control {
@@ -965,8 +1037,18 @@ async fn run() -> ExitCode {
         }
         Command::Compare { a, b, all, json } => cmd::compare::run(&lab, &a, &b, all, json).await,
         Command::Crashes { app, kind, json } => cmd::crashes::list(&lab, device, app.as_deref(), kind, json).await,
-        Command::Crash { id, raw, all_threads, json } => {
-            cmd::crashes::show(&lab, device, &id, raw, json, all_threads).await
+        Command::Crash { id, raw, all_threads, mapping, json } => {
+            cmd::crashes::show(&lab, device, &id, raw, json, all_threads, &mapping).await
+        }
+        Command::Mappings { action } => match action {
+            MappingsAction::Add { app, version, file, kind } => cmd::symbols::add(&app, &version, &file, kind),
+            MappingsAction::List { app, json } => cmd::symbols::list(app.as_deref(), json),
+            MappingsAction::Remove { app, version, kind } => cmd::symbols::remove(&app, &version, kind),
+        },
+        Command::Symbolicate { stack, mapping } => cmd::symbols::symbolicate(&stack, &mapping),
+        Command::Report { session, app, output, title, description, issue, without, open } => {
+            let args = cmd::report::Args { session, app, output, title, description, issue, without, open };
+            cmd::report::run(&lab, device, args).await
         }
         Command::Control { action } => run_control(&lab, device, action).await,
         Command::Plugin { action } => match action {
