@@ -105,12 +105,79 @@ impl SizeConfig {
     }
 }
 
+/// A part of the screen that visual comparisons leave out, in pixels.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IgnoreRegion {
+    /// What it is, for whoever reads the file: `clock`, `ad banner`.
+    pub name: Option<String>,
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// How screenshots are compared (`emulabzip visual`, `emulabzip ci --visual`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VisualConfig {
+    /// How much of the screen may change before it counts as a difference.
+    #[serde(default = "default_visual_threshold")]
+    pub threshold_percent: f64,
+    /// How far a colour channel may differ (0 to 255) before a pixel counts as changed.
+    #[serde(default = "default_visual_tolerance")]
+    pub tolerance: u8,
+    /// Where the baselines are, relative to the project folder. Default `visual`.
+    pub baseline_dir: Option<String>,
+    #[serde(default)]
+    pub ignore: Vec<IgnoreRegion>,
+}
+
+fn default_visual_threshold() -> f64 {
+    0.1
+}
+
+fn default_visual_tolerance() -> u8 {
+    8
+}
+
+impl Default for VisualConfig {
+    fn default() -> Self {
+        VisualConfig {
+            threshold_percent: default_visual_threshold(),
+            tolerance: default_visual_tolerance(),
+            baseline_dir: None,
+            ignore: Vec::new(),
+        }
+    }
+}
+
+impl VisualConfig {
+    fn validate(&self) -> Result<()> {
+        if !(0.0..=100.0).contains(&self.threshold_percent) {
+            return Err(Error::invalid("[visual] threshold_percent (0 to 100)", self.threshold_percent.to_string()));
+        }
+        if let Some(dir) = &self.baseline_dir
+            && (dir.is_empty() || dir.contains("..") || std::path::Path::new(dir).is_absolute())
+        {
+            return Err(Error::invalid("[visual] baseline_dir (a folder inside the project)", dir.clone()));
+        }
+        for r in &self.ignore {
+            if r.width == 0 || r.height == 0 {
+                return Err(Error::invalid("[visual] ignore region (a width and height above 0)", format!("{r:?}")));
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(default)]
     pub budget: Budget,
     pub size: Option<SizeConfig>,
+    pub visual: Option<VisualConfig>,
     pub startup: Option<StartupConfig>,
     #[serde(default)]
     pub baseline: Baseline,
@@ -129,6 +196,9 @@ impl Config {
         }
         if let Some(size) = &config.size {
             size.validate()?;
+        }
+        if let Some(visual) = &config.visual {
+            visual.validate()?;
         }
         if !(0.0..=1000.0).contains(&config.baseline.tolerance_percent) {
             return Err(Error::invalid(
@@ -172,6 +242,29 @@ mod tests {
         [baseline]
         tolerance_percent = 15
     "#;
+
+    #[test]
+    fn the_visual_section_is_read_and_checked() {
+        let c = Config::parse(
+            "[visual]\nthreshold_percent = 0.5\ntolerance = 12\nbaseline_dir = \"ui/baselines\"\n[[visual.ignore]]\nname = \"clock\"\nx = 0\ny = 0\nwidth = 300\nheight = 80\n",
+        )
+        .unwrap();
+        let v = c.visual.unwrap();
+        assert_eq!((v.threshold_percent, v.tolerance, v.baseline_dir.as_deref()), (0.5, 12, Some("ui/baselines")));
+        assert_eq!((v.ignore[0].name.as_deref(), v.ignore[0].width), (Some("clock"), 300));
+        let d = Config::parse("[visual]\n").unwrap().visual.unwrap();
+        assert_eq!((d.threshold_percent, d.tolerance), (0.1, 8));
+        for bad in [
+            "[visual]\nthreshold_percent = 101\n",
+            "[visual]\nbaseline_dir = \"../elsewhere\"\n",
+            "[visual]\nbaseline_dir = \"/tmp/x\"\n",
+            "[visual]\ntolerance = 300\n",
+            "[[visual.ignore]]\nx = 0\ny = 0\nwidth = 0\nheight = 5\n",
+            "[visual]\nthreshhold = 1\n",
+        ] {
+            assert!(Config::parse(bad).is_err(), "{bad}");
+        }
+    }
 
     #[test]
     fn the_size_section_is_read_and_checked() {
