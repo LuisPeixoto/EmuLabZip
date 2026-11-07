@@ -739,6 +739,8 @@ export interface CrashFrame {
   image: string | null;
   location: string | null;
   origin: Origin;
+  /** What the frame is: Java or Kotlin, native, or JavaScript. */
+  language?: "java" | "native" | "js";
 }
 
 export interface CrashThread {
@@ -754,10 +756,45 @@ export interface CrashHint {
 
 export interface CrashReport {
   summary: CrashSummary;
+  appVersion?: string | null;
   details: [string, string][];
   threads: CrashThread[];
   hints: CrashHint[];
   raw: string;
+}
+
+/** A crash, and the files that made it readable. */
+export interface ReadableCrash {
+  report: CrashReport;
+  applied: string[];
+  missing: string[];
+}
+
+export interface StoredMapping {
+  app: string;
+  version: string;
+  kind: "mapping" | "sourceMap" | "dsym";
+  name: string;
+  path: string;
+  sizeBytes: number;
+}
+
+export interface ReportRequest {
+  title: string;
+  description: string;
+  screenshot: boolean;
+  logs: boolean;
+  requests: boolean;
+  crashes: boolean;
+  issue: string;
+  session: string | null;
+  app: string | null;
+}
+
+export interface ReportSaved {
+  path: string;
+  issueUrl: string | null;
+  notes: string[];
 }
 
 export type Appearance = "light" | "dark";
@@ -899,7 +936,9 @@ export const api = {
     invoke<ConsoleLine[]>("rn_console", { app, port, seconds }),
   netImportPcap: () => invoke<Imported | null>("net_import_pcap"),
   crashList: (target: Target, app: string | null) => invoke<CrashSummary[]>("crash_list", { target, app }),
-  crashGet: (target: Target, id: string) => invoke<CrashReport>("crash_get", { target, id }),
+  crashGet: (target: Target, id: string, original: boolean) => invoke<ReadableCrash>("crash_get", { target, id, original }),
+  mappingAdd: (pkg: string, version: string, folder: boolean) => invoke<StoredMapping | null>("mapping_add", { package: pkg, version, folder }),
+  reportSave: (target: Target | null, request: ReportRequest) => invoke<ReportSaved | null>("report_save", { target, request }),
   crashSave: (target: Target, id: string) => invoke<string | null>("crash_save", { target, id }),
   pluginList: () => invoke<PluginList>("plugin_list"),
   pluginEnable: (name: string, enabled: boolean) => invoke<void>("plugin_enable", { name, enabled }),
