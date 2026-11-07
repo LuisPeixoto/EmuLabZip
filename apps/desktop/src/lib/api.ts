@@ -227,12 +227,196 @@ export interface FileEntry {
   modified: number | null;
 }
 
-export type FileKind = "sqlite" | "sharedPrefs" | "plist" | "json" | "image" | "text" | "binary";
+export type FileKind =
+  | "sqlite"
+  | "sharedPrefs"
+  | "plist"
+  | "json"
+  | "dataStore"
+  | "protoDataStore"
+  | "mmkv"
+  | "realm"
+  | "asyncStorage"
+  | "image"
+  | "text"
+  | "binary";
 
 export interface Pref {
   key: string;
   kind: string;
   value: string;
+  items?: string[];
+}
+
+export interface MmkvEntry {
+  key: string;
+  kind: string;
+  value: string;
+  items?: string[];
+  hex: string;
+}
+
+export interface KeyValue {
+  key: string;
+  value: string | null;
+  json: unknown;
+  inFile: boolean;
+}
+
+export interface RealmColumn {
+  name: string;
+  kind: string;
+  nullable: boolean;
+  collection: string | null;
+  supported: boolean;
+}
+
+export interface RealmTable {
+  name: string;
+  rows: number;
+  columns: RealmColumn[];
+}
+
+export interface RealmFile {
+  format: number;
+  tables: RealmTable[];
+}
+
+export interface CoreDataEntity {
+  name: string;
+  table: string;
+  rows: number;
+  attributes: { column: string; name: string; declType: string }[];
+}
+
+/** A value of a SQLite cell, with its type. */
+export type Cell =
+  | { type: "null" }
+  | { type: "integer"; value: number }
+  | { type: "real"; value: number }
+  | { type: "text"; value: string }
+  | { type: "blob"; value: string };
+
+export type RowKey = { kind: "rowid"; value: number } | { kind: "pk"; value: [string, Cell][] };
+
+export interface KeyedRows {
+  columns: string[];
+  rows: unknown[][];
+  keys: RowKey[];
+  truncated: boolean;
+  editable: boolean;
+  reason: string | null;
+}
+
+export type PrefValue =
+  | { type: "string"; value: string }
+  | { type: "int"; value: number }
+  | { type: "long"; value: number }
+  | { type: "float"; value: number }
+  | { type: "boolean"; value: boolean }
+  | { type: "set"; value: string[] };
+
+/** Which file of which app on which device. */
+export interface FileAt {
+  target: Target;
+  app: string;
+  root: string;
+  path: string;
+}
+
+export interface Edited {
+  backup: string;
+  rowid: number | null;
+}
+
+export interface StateMeta {
+  version: number;
+  tool: string;
+  platform: Platform;
+  app: string;
+  appVersion: string | null;
+  device: string;
+  takenMs: number;
+  files: number;
+  bytes: number;
+  external: boolean;
+}
+
+export interface SchemaFile {
+  path: string;
+  kind: string;
+  tables: { name: string; columns: unknown[]; rows: number }[];
+  keys: { key: string; kind: string }[];
+  error: string | null;
+}
+
+export interface StateInfo {
+  path: string;
+  meta: StateMeta;
+  files: SchemaFile[];
+}
+
+export interface Differences {
+  changes: { file: string; scope: string; name: string; change: string; before: string | null; after: string | null }[];
+  lines: string[];
+}
+
+export interface Choice {
+  id: string;
+  label: string;
+  installed: boolean;
+}
+
+export interface DeviceOptions {
+  images: Choice[];
+  models: Choice[];
+}
+
+export interface BootOptions {
+  wipe: boolean;
+  cold: boolean;
+  headless: boolean;
+}
+
+export interface EmulatorSnapshot {
+  name: string;
+  size: string;
+  date: string;
+}
+
+export type SnapshotAction = "save" | "load" | "delete";
+
+export interface StateStore {
+  kind: "redux" | "query" | "context" | "store";
+  name: string;
+  state: unknown;
+  cut: string[];
+  error: string | null;
+}
+
+export interface ReactState {
+  stores: StateStore[];
+}
+
+export interface StateChange {
+  path: string;
+  before: unknown | null;
+  after: unknown | null;
+}
+
+export interface DispatchedAction {
+  seq: number;
+  at: number;
+  store: string;
+  kind: string;
+  action: unknown;
+}
+
+export interface StateUpdate {
+  state: ReactState;
+  changes: StateChange[];
+  actions: DispatchedAction[];
+  watching: boolean;
 }
 
 export interface Column {
@@ -267,6 +451,10 @@ export interface Preview {
   prefs: Pref[] | null;
   plist: unknown;
   tables: Table[] | null;
+  mmkv: MmkvEntry[] | null;
+  kv: KeyValue[] | null;
+  realm: RealmFile | null;
+  entities: CoreDataEntity[] | null;
   hex: string | null;
   error: string | null;
 }
@@ -1053,6 +1241,44 @@ export const api = {
   sqliteRows: (id: number, table: string, offset: number, limit: number) =>
     invoke<Rows>("sqlite_rows", { id, table, offset, limit }),
   sqliteQuery: (id: number, sql: string) => invoke<Rows>("sqlite_query", { id, sql }),
+  sqliteKeyedRows: (id: number, table: string, offset: number, limit: number) =>
+    invoke<KeyedRows>("sqlite_keyed_rows", { id, table, offset, limit }),
+  realmRows: (id: number, cls: string, offset: number, limit: number) =>
+    invoke<Rows>("realm_rows", { id, class: cls, offset, limit }),
+  coredataRows: (id: number, entity: string, offset: number, limit: number) =>
+    invoke<Rows>("coredata_rows", { id, entity, offset, limit }),
+  editCells: (at: FileAt, table: string, key: RowKey, changes: [string, Cell][]) =>
+    invoke<Edited>("edit_cells", { at, table, key, changes, confirm: true }),
+  editInsert: (at: FileAt, table: string, values: [string, Cell][]) =>
+    invoke<Edited>("edit_insert", { at, table, values, confirm: true }),
+  editDelete: (at: FileAt, table: string, key: RowKey) => invoke<Edited>("edit_delete", { at, table, key, confirm: true }),
+  editPref: (at: FileAt, key: string, value: PrefValue | null) =>
+    invoke<Edited>("edit_pref", { at, key, value, confirm: true }),
+  editUndo: (target: Target, backup: string) => invoke<void>("edit_undo", { target, backup, confirm: true }),
+  stateSave: (target: Target, pkg: string, external: boolean) =>
+    invoke<{ path: string; meta: StateMeta } | null>("state_save", { target, package: pkg, external }),
+  statePick: () => invoke<string | null>("state_pick"),
+  stateInfo: (path: string) => invoke<StateInfo>("state_info", { path }),
+  stateRestore: (target: Target, path: string) =>
+    invoke<{ backup: string; warnings: string[] }>("state_restore", { target, path, confirm: true }),
+  stateCompare: (a: string, b: string) => invoke<Differences>("state_compare", { a, b }),
+  stateCompareNow: (target: Target, path: string) => invoke<Differences>("state_compare_now", { target, path }),
+  devicesAll: () => invoke<{ devices: Device[]; problems: string[] }>("devices_all"),
+  deviceOptions: (platform: Platform) => invoke<DeviceOptions>("device_options", { platform }),
+  deviceCreate: (platform: Platform, request: { name: string; image: string; model: string }) =>
+    invoke<Device>("device_create", { platform, request }),
+  deviceBoot: (target: Target, options: BootOptions, confirm: boolean) =>
+    invoke<Device>("device_boot", { target, options, confirm }),
+  deviceShutdown: (target: Target) => invoke<void>("device_shutdown", { target }),
+  deviceWipe: (target: Target) => invoke<void>("device_wipe", { target, confirm: true }),
+  deviceDelete: (target: Target) => invoke<void>("device_delete", { target, confirm: true }),
+  emulatorSnapshots: (target: Target) => invoke<EmulatorSnapshot[]>("emulator_snapshots", { target }),
+  emulatorSnapshot: (target: Target, action: SnapshotAction, name: string) =>
+    invoke<void>("emulator_snapshot", { target, action, name, confirm: true }),
+  rnState: (app: string, port: number | null) => invoke<ReactState>("rn_state", { app, port }),
+  rnStateWatch: (app: string, port: number | null, before: ReactState | null, since: number, start: boolean) =>
+    invoke<StateUpdate>("rn_state_watch", { app, port, before, since, start }),
+  rnStateStop: (app: string, port: number | null) => invoke<void>("rn_state_stop", { app, port }),
   saveFile: (target: Target, app: string, root: string, path: string) =>
     invoke<string | null>("save_file", { target, app, root, path }),
 };
