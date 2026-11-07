@@ -90,18 +90,35 @@ fn state_is_saved_changed_restored_and_compared() {
     let before = query(&home, "SELECT name FROM customers WHERE id = 1");
     let edit = ok(
         &home,
-        &["edit", "cell", APP, "databases/shop.db", "-t", "customers", "--rowid", "1", "--text", "name=Edited", "--yes"],
+        &[
+            "edit",
+            "cell",
+            APP,
+            "databases/shop.db",
+            "-t",
+            "customers",
+            "--rowid",
+            "1",
+            "--text",
+            "name=Edited",
+            "--yes",
+        ],
     );
     assert!(edit.contains("Undo with:"), "{edit}");
     assert!(query(&home, "SELECT name FROM customers WHERE id = 1").contains("Edited"));
     ok(&home, &["edit", "pref-set", APP, "shared_prefs/settings.xml", "theme", "light", "--yes"]);
-    let prefs = ok(&home, &["pull", APP, "shared_prefs/settings.xml", "-o", home.join("settings.xml").to_str().unwrap()]);
+    let prefs =
+        ok(&home, &["pull", APP, "shared_prefs/settings.xml", "-o", home.join("settings.xml").to_str().unwrap()]);
     assert!(prefs.contains("Saved"), "{prefs}");
     let xml = std::fs::read_to_string(home.join("settings.xml")).unwrap();
     assert!(xml.contains("light") && xml.contains("launches"), "{xml}");
 
     // The undo folder the edit printed puts the cell back.
-    let folder = edit.lines().find_map(|l| l.strip_prefix("Undo with: emulabzip edit undo ")).unwrap().trim_end_matches(" --yes");
+    let folder = edit
+        .lines()
+        .find_map(|l| l.strip_prefix("Undo with: emulabzip edit undo "))
+        .unwrap()
+        .trim_end_matches(" --yes");
     ok(&home, &["edit", "undo", folder, "--yes"]);
     assert_eq!(query(&home, "SELECT name FROM customers WHERE id = 1"), before);
 
