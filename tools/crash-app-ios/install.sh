@@ -5,6 +5,9 @@
 #   tools/crash-app-ios/install.sh            # the booted simulator
 #   SIMULATOR=<udid> tools/crash-app-ios/install.sh
 #   tools/crash-app-ios/install.sh --stripped   # no symbols in the app; a Crashy.app.dSYM is written next to this script
+#   DSYM_DIR=/tmp/x tools/crash-app-ios/install.sh --stripped
+#     (macOS may symbolicate a simulator crash itself when it finds the dSYM; a report from a device, a tester or
+#     CI has bare addresses, which is what `emulabzip mappings add` is for)
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -23,9 +26,10 @@ cp "$here/Info.plist" "$app/Info.plist"
 if [ "${1:-}" = "--stripped" ]; then
   # What a release app looks like: its symbols live only in the dSYM, so a crash shows bare addresses.
   echo "› writing the dSYM and stripping the app"
-  rm -rf "$here/Crashy.app.dSYM"
-  xcrun dsymutil "$app/Crashy" -o "$here/Crashy.app.dSYM"
-  xcrun strip -x "$app/Crashy"
+  dsym="${DSYM_DIR:-$here}/Crashy.app.dSYM"
+  rm -rf "$dsym"
+  xcrun dsymutil "$app/Crashy" -o "$dsym"
+  xcrun strip "$app/Crashy"
 fi
 codesign --force --sign - "$app"
 
