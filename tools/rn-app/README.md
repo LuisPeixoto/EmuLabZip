@@ -17,7 +17,13 @@ emulabzip frameworks dev.emulabzip.rndemo
 emulabzip rn tree dev.emulabzip.rndemo
 emulabzip rn heap dev.emulabzip.rndemo
 emulabzip rn console dev.emulabzip.rndemo --seconds 20     # tap the button meanwhile
+emulabzip rn state dev.emulabzip.rndemo                    # Redux, React Query, the theme Context, the settings store
+emulabzip rn state dev.emulabzip.rndemo --watch            # tap Add and Switch: actions and changes follow
 ```
+
+The demo has a Redux cart, a React Query fetch of the time, a `ThemeContext`, and a Zustand store registered with
+`globalThis.__EMULABZIP_STORES__`, which is all an app needs to do to show a store that is not Redux. **Save to
+AsyncStorage** writes a key that Storage then shows.
 
 Metro lets one debugger connect at a time, so close React Native DevTools and Chrome's inspector first.
 
