@@ -261,3 +261,12 @@ fn baselines_are_named_and_replacing_one_needs_a_yes_before_any_device() {
     assert!(out(&listed).contains("home"), "{}", out(&listed));
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn analytics_arguments_are_checked_before_the_proxy_starts() {
+    let dir = scratch("analytics");
+    let o = run(&dir, &["analytics", "--service", "facebook"]);
+    assert!(!o.status.success());
+    assert!(err(&o).contains("segment, amplitude, mixpanel or firebase"), "{}", err(&o));
+    std::fs::remove_dir_all(dir).ok();
+}
