@@ -135,3 +135,56 @@ fn the_bug_report_holds_the_readable_crash_and_the_screen() {
     assert!(html.contains("API level") && html.contains("It closes at once"));
     assert!(!html.contains("<script"));
 }
+
+const RN_APP: &str = "dev.emulabzip.rndemo";
+
+fn adb_out(args: &[&str]) -> String {
+    let out = Command::new("adb").args(["-s", &device()]).args(args).output().unwrap();
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+/// The middle of the button with this text, from the screen's view tree.
+fn button(text: &str) -> (i32, i32) {
+    adb(&["shell", "uiautomator", "dump", "/sdcard/ui.xml"]);
+    let xml = adb_out(&["shell", "cat", "/sdcard/ui.xml"]);
+    let at = xml.find(&format!("text=\"{text}\"")).unwrap_or_else(|| panic!("no {text} button on screen"));
+    let rest = &xml[at..];
+    let b = &rest[rest.find("bounds=\"").unwrap() + 8..];
+    let n: Vec<i32> = b[..b.find('"').unwrap()]
+        .split(['[', ']', ','])
+        .filter(|p| !p.is_empty())
+        .map(|p| p.parse().unwrap())
+        .collect();
+    ((n[0] + n[2]) / 2, (n[1] + n[3]) / 2)
+}
+
+#[test]
+#[ignore = "needs a running device with the React Native release build (tools/rn-app/install.sh --release)"]
+fn a_react_native_js_crash_points_at_the_source_file() {
+    let map = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "../../tools/rn-app/build/RnDemo/android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+    );
+    assert!(map.exists(), "build the release app first: tools/rn-app/install.sh --release");
+    let home = home("rn");
+    adb(&["shell", "am", "force-stop", RN_APP]);
+    adb(&["shell", "am", "start", "-n", &format!("{RN_APP}/.MainActivity")]);
+    std::thread::sleep(std::time::Duration::from_secs(6));
+    let (x, y) = button("CRASH");
+    adb(&["shell", "input", "tap", &x.to_string(), &y.to_string()]);
+    std::thread::sleep(std::time::Duration::from_secs(6));
+    let (ok, out, err) = emulabzip(&home, &["crashes", "--app", RN_APP, "--json"]);
+    assert!(ok, "{err}");
+    let list: serde_json::Value = serde_json::from_str(&out).unwrap();
+    let id = list[0]["id"].as_str().expect("the app crashed").to_string();
+
+    let (ok, before, err) = emulabzip(&home, &["crash", &id]);
+    assert!(ok, "{err}");
+    assert!(before.contains("JavaScript") && !before.contains("App.tsx"), "bundle positions only: {before}");
+
+    let (ok, _, err) = emulabzip(&home, &["mappings", "add", RN_APP, "1.0 (1)", map.to_str().unwrap()]);
+    assert!(ok, "{err}");
+    let (ok, after, err) = emulabzip(&home, &["crash", &id]);
+    assert!(ok, "{err}");
+    assert!(after.contains("App.tsx 17:14"), "the app's own line is found: {after}");
+    assert!(after.contains("Pressability.js"), "so are the libraries: {after}");
+}
