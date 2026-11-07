@@ -20,6 +20,10 @@ in the sidebar, while EmuLabZip is open.
 2. Pick another one on the left, or filter by kind, or by the app picked in the toolbar.
 3. **Report** shows the hints, the details and the threads. **Raw** shows the report as the device wrote it. **Save…**
    writes it to a file.
+4. A release build scrambles its names. Add its `mapping.txt`, source map or dSYM when the crash asks for it, and the
+   crash is read again, with **Readable** and **Original** to switch between them. See [Readable stacks](symbolication.md).
+5. **Report a bug** in the toolbar packs the crash, a screenshot, the log and the failed requests into one file. See
+   [Bug reports](bug-reports.md).
 
 From a terminal:
 
@@ -28,6 +32,7 @@ emulabzip crashes --app com.example.app          # newest first, with an id for 
 emulabzip crash dropbox:data_app_crash:20261023205928
 emulabzip crash <id> --all-threads               # every thread, not only the one that crashed
 emulabzip crash <id> --raw                       # as the device wrote it
+emulabzip crash <id> --mapping mapping.txt       # readable, with a file you name
 ```
 
 ## Where the reports come from
@@ -64,11 +69,13 @@ crashed. The title of the crash is that root cause.
 
 EmuLabZip says what it can tell from the report:
 
-- Class names that look obfuscated: map them back with `retrace` and the build's `mapping.txt`.
+- Class names that look obfuscated: add the build's `mapping.txt` and they are read for you. See
+  [Readable stacks](symbolication.md).
+- JavaScript positions of a React Native app: add the source map of the bundle.
 - Native frames of the app without symbols: `ndk-stack -sym <folder> -dump tombstone.txt`, or `llvm-symbolizer`. The
   BuildId has to match the build that crashed.
-- iOS frames of the app without symbols: the `atos` command to run with the build's dSYM, with the architecture and
-  the load address filled in.
+- iOS frames of the app without symbols: add the build's dSYM and they are read with `atos`, or run the `atos` command
+  shown, with the architecture and the load address filled in.
 - An ANR whose main thread was sleeping or waiting: the main thread was blocked.
 - An ANR on a device that was short of CPU: the app may not be at fault.
 - A native crash whose signal came from `kill()`: it was sent, not raised by a fault.
