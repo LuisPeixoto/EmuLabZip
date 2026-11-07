@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código aberto · MIT · v0.11",
+    "eyebrow": "Código aberto · MIT · v0.12",
     "titleLead": "O laboratório de depuração do seu",
     "titleAccent": "emulador Android e simulador iOS",
     "lead": "O <strong>EmuLabZip</strong> reúne logs, tráfego de rede, desempenho, memória, armazenamento, crashes e acessibilidade dos seus <strong>emuladores Android e simuladores iOS</strong> em um único app nativo e rápido. Nada para instalar no dispositivo.",
@@ -60,7 +60,8 @@
       { "icon": "network", "title": "GraphQL e gRPC", "text": "Operações e chamadas com nome na lista, consultas com suas variáveis, status e streaming do gRPC, e protobuf lido com ou sem seus arquivos .proto." },
       { "icon": "sessions", "title": "Linha do tempo, vídeo e replay", "text": "Toques, requisições, problemas do log, quadros lentos e crashes num só eixo de tempo, com a gravação da tela ao lado, e uma gravação da rede que responde ao app sem internet." },
       { "icon": "rules", "title": "Reenviar e redes lentas", "text": "Reenvie uma requisição com mudanças, ou deixe a rede lenta, com atraso, com perdas ou sem conexão para ver como o app se comporta." },
-      { "icon": "storage", "title": "O estado do app como dado", "text": "Salve os dados de um app em um arquivo e restaure, veja o que uma migração mudou, edite linhas e preferências com Desfazer, crie e tire snapshots de emuladores, e leia Redux, React Query e Realm." }
+      { "icon": "storage", "title": "O estado do app como dado", "text": "Salve os dados de um app em um arquivo e restaure, veja o que uma migração mudou, edite linhas e preferências com Desfazer, crie e tire snapshots de emuladores, e leia Redux, React Query e Realm." },
+      { "icon": "shield", "title": "Qualidade além da velocidade", "text": "Auditoria de segurança e privacidade, tamanho de APK, AAB ou IPA com orçamento para CI, texto que não cabe em outros idiomas e tamanhos, daltonismo, regressão visual e um inspetor de analytics." }
     ]
   },
   "showcase": {
@@ -91,7 +92,12 @@
       { "id": "state-compare", "shot": "state-compare", "label": "Estado do app", "title": "O que uma migração mudou", "text": "Salve os dados do app antes e depois, e veja as colunas, os índices e as tabelas que foram adicionados, removidos ou alterados.", "alt": "Dois estados salvos comparados no Storage: uma coluna, um índice e uma tabela foram adicionados" },
       { "id": "storage-edit", "shot": "storage-edit", "label": "Modo de edição", "title": "Mude um valor, e volte atrás", "text": "Dê dois cliques numa célula ou numa preferência. O app é parado, o arquivo antigo é guardado, o novo é lido de volta, e Desfazer devolve o antigo.", "alt": "Storage no modo de edição, com uma célula da tabela cart sendo alterada" },
       { "id": "storage-realm", "shot": "storage-realm", "label": "Realm e mais", "title": "Realm, DataStore, MMKV, Core Data", "text": "As tabelas e linhas do Realm são lidas do arquivo no dispositivo, ao lado de DataStore, MMKV, AsyncStorage e Core Data.", "alt": "Um banco Realm lido do dispositivo, com suas classes e as linhas de Person" },
-      { "id": "devices-manage", "shot": "devices-manage", "label": "Dispositivos", "title": "Ligue, desligue, apague e tire snapshots", "text": "Emuladores e simuladores, ligados ou não: crie, inicie, pare, apague, exclua e guarde snapshots, com cada passo destrutivo atrás de uma confirmação.", "alt": "A tela Dispositivos listando emuladores Android e simuladores iOS com Iniciar, Apagar e Excluir" }
+      { "id": "devices-manage", "shot": "devices-manage", "label": "Dispositivos", "title": "Ligue, desligue, apague e tire snapshots", "text": "Emuladores e simuladores, ligados ou não: crie, inicie, pare, apague, exclua e guarde snapshots, com cada passo destrutivo atrás de uma confirmação.", "alt": "A tela Dispositivos listando emuladores Android e simuladores iOS com Iniciar, Apagar e Excluir" },
+      { "id": "audit-security", "shot": "audit-security", "label": "Auditoria de segurança", "title": "Segredos, HTTP puro e componentes expostos", "text": "Procura tokens e dados pessoais no log e no armazenamento, HTTP puro, debuggable e allowBackup, e componentes expostos. Os segredos aparecem cortados em qualquer saída.", "alt": "A tela Auditoria listando um bearer token no log, allowBackup e um receiver exportado" },
+      { "id": "audit-text", "shot": "audit-text", "label": "Texto que cabe", "title": "Ache o rótulo que não cabe", "text": "Troque o idioma e o tamanho do texto e verifique a tela: texto cortado, empurrado para fora da tela ou sem espelhamento nos idiomas da direita para a esquerda.", "alt": "A tela Auditoria achando um rótulo grande demais para a linha" },
+      { "id": "size-diff", "shot": "size-diff", "label": "Tamanho do build", "title": "Onde estão os bytes de um build", "text": "Um APK, AAB ou IPA por tipo, ABI e arquivo dex, e o que mudou entre dois builds, com um orçamento de tamanho para CI.", "alt": "A tela Tamanho do build comparando dois builds: um vídeo e uma fonte foram adicionados" },
+      { "id": "visual-diff", "shot": "visual-diff", "label": "Regressão visual", "title": "Veja o que mudou na tela", "text": "Guarde uma referência de uma tela e compare depois: quanto mudou, onde, e uma imagem com as mudanças em vermelho.", "alt": "A tela Visual com as mudanças entre a referência e a tela desenhadas em vermelho" },
+      { "id": "analytics", "shot": "analytics", "label": "Analytics", "title": "Os eventos que um app envia", "text": "Eventos de Segment, Amplitude, Mixpanel e Firebase decodificados pelo proxy, com suas propriedades.", "alt": "A tela Analytics listando um evento do Segment e um do Mixpanel, um deles aberto" }
     ]
   },
   "cli": {
@@ -146,7 +152,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Para onde o EmuLabZip está indo",
-    "lead": "Onze fases já foram concluídas. As cinco próximas levam a uma versão 1.0 estável.",
+    "lead": "Doze fases já foram concluídas. As quatro próximas levam a uma versão 1.0 estável.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
       { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
@@ -157,8 +163,8 @@
       { "state": "done", "version": "v0.9", "title": "Stacks legíveis e relatórios de bug", "text": "Falhas simbolizadas (R8, dSYMs, source maps) e relatórios de bug com um clique." },
       { "state": "done", "version": "v0.10", "title": "Linha do tempo e replay", "text": "Uma linha do tempo de toques, logs e requisições, vídeo da tela e replay de rede." },
       { "state": "done", "version": "v0.11", "title": "O estado do app como dado", "text": "Snapshots do sandbox e dos emuladores, modo de escrita no Storage e mais visualizadores." },
-      { "state": "next", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
-      { "state": "later", "version": "v0.13", "title": "Automação e apps híbridos", "text": "WebViews, entrada e fluxos gravados, testes de deep links e regras programáveis." },
+      { "state": "done", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
+      { "state": "next", "version": "v0.13", "title": "Automação e apps híbridos", "text": "WebViews, entrada e fluxos gravados, testes de deep links e regras programáveis." },
       { "state": "later", "version": "v0.14", "title": "IA com contexto", "text": "A linha do tempo, o replay e os snapshots como ferramentas MCP, e prompts para perguntas comuns." },
       { "state": "later", "version": "v0.15", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios para compartilhar, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
