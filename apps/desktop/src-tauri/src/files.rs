@@ -2,8 +2,11 @@
 
 use base64::Engine;
 use emulabzip_core::{FileEntry, StorageRoot, Target};
+use emulabzip_storage::asyncstorage::KeyValue;
+use emulabzip_storage::coredata::Entity;
+use emulabzip_storage::mmkv::MmkvEntry;
 use emulabzip_storage::prefs::Pref;
-use emulabzip_storage::sqlite::{Database, Rows, Table};
+use emulabzip_storage::sqlite::{Database, KeyedRows, Rows, Table};
 use emulabzip_storage::{FileKind, detect, image_mime};
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -44,6 +47,14 @@ pub struct Preview {
     pub prefs: Option<Vec<Pref>>,
     pub plist: Option<serde_json::Value>,
     pub tables: Option<Vec<Table>>,
+    /// MMKV keys, with the type each value was guessed to be.
+    pub mmkv: Option<Vec<MmkvEntry>>,
+    /// React Native AsyncStorage keys and values.
+    pub kv: Option<Vec<KeyValue>>,
+    /// A Realm file: its classes. The rows come from `realm_rows`, with `id`.
+    pub realm: Option<emulabzip_storage::realm::Realm>,
+    /// A Core Data store: its entities. The rows come from `coredata_rows`, with `id`.
+    pub entities: Option<Vec<Entity>>,
     pub hex: Option<String>,
     /// The viewer could not read the file; the hex view is shown instead.
     pub error: Option<String>,
@@ -99,7 +110,15 @@ pub async fn open_file(
                     let _ = tokio::fs::write(dir.join(format!("{name}{suffix}")), extra).await;
                 }
             }
-            match Database::open(&local).and_then(|db| db.tables()) {
+            match Database::open(&local).and_then(|db| {
+                if emulabzip_storage::asyncstorage::is_android_store(&db) {
+                    p.kv = emulabzip_storage::asyncstorage::from_database(&db).ok();
+                }
+                if emulabzip_storage::coredata::is_core_data(&db) {
+                    p.entities = emulabzip_storage::coredata::entities(&db).ok();
+                }
+                db.tables()
+            }) {
                 Ok(tables) => {
                     p.tables = Some(tables);
                     state.add_database(p.id, local);
@@ -123,15 +142,47 @@ pub async fn open_file(
             p.image = Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(&bytes)));
         }
         FileKind::Json | FileKind::Text => (p.text, p.truncated) = text(&bytes),
-        // The viewers for these come with the Storage view's new panels; until then they are shown as bytes.
-        FileKind::Binary
-        | FileKind::DataStore
-        | FileKind::ProtoDataStore
-        | FileKind::Mmkv
-        | FileKind::Realm
-        | FileKind::AsyncStorage => {}
+        FileKind::DataStore => match emulabzip_storage::datastore::parse_preferences(&bytes) {
+            Ok(prefs) => p.prefs = Some(prefs),
+            Err(e) => p.error = Some(e.to_string()),
+        },
+        FileKind::ProtoDataStore => match emulabzip_storage::datastore::parse_proto(&bytes) {
+            Ok(v) => p.plist = Some(v),
+            Err(e) => p.error = Some(e.to_string()),
+        },
+        FileKind::Mmkv => match emulabzip_storage::mmkv::parse(&bytes) {
+            Ok(entries) => p.mmkv = Some(entries),
+            Err(e) => p.error = Some(e.to_string()),
+        },
+        FileKind::AsyncStorage => {
+            match emulabzip_storage::asyncstorage::from_manifest(&String::from_utf8_lossy(&bytes)) {
+                Ok(kv) => p.kv = Some(kv),
+                Err(e) => p.error = Some(e.to_string()),
+            }
+        }
+        FileKind::Realm => match emulabzip_storage::realm::read(&bytes) {
+            Ok(realm) => {
+                // The rows are read from a copy, a page at a time.
+                let dir = scratch_dir().join(p.id.to_string());
+                tokio::fs::create_dir_all(&dir).await.map_err(err)?;
+                let local = dir.join(&name);
+                tokio::fs::write(&local, &bytes).await.map_err(err)?;
+                state.add_database(p.id, local);
+                p.realm = Some(realm);
+            }
+            Err(e) => p.error = Some(e.to_string()),
+        },
+        FileKind::Binary => {}
     }
-    if p.text.is_none() && p.image.is_none() && p.prefs.is_none() && p.plist.is_none() && p.tables.is_none() {
+    if p.text.is_none()
+        && p.image.is_none()
+        && p.prefs.is_none()
+        && p.plist.is_none()
+        && p.tables.is_none()
+        && p.mmkv.is_none()
+        && p.kv.is_none()
+        && p.realm.is_none()
+    {
         p.hex = Some(hex_dump(&bytes[..bytes.len().min(HEX_BYTES)]));
         p.truncated = bytes.len() > HEX_BYTES;
     }
@@ -157,6 +208,45 @@ pub async fn sqlite_rows(
 #[tauri::command]
 pub async fn sqlite_query(state: State<'_, AppState>, id: u64, sql: String) -> CmdResult<Rows> {
     database(&state, id)?.query(&sql, 1000).map_err(err)
+}
+
+/// The rows of a table with what is needed to change them: each row's key, and why a table cannot be changed.
+#[tauri::command]
+pub async fn sqlite_keyed_rows(
+    state: State<'_, AppState>,
+    id: u64,
+    table: String,
+    offset: u64,
+    limit: u64,
+) -> CmdResult<KeyedRows> {
+    database(&state, id)?.rows_keyed(&table, offset, limit).map_err(err)
+}
+
+#[tauri::command]
+pub async fn realm_rows(
+    state: State<'_, AppState>,
+    id: u64,
+    class: String,
+    offset: u64,
+    limit: u64,
+) -> CmdResult<emulabzip_storage::realm::Rows> {
+    let path = state.database(id).ok_or("The file is no longer open. Open it again.")?;
+    let bytes = tokio::fs::read(&path).await.map_err(err)?;
+    emulabzip_storage::realm::rows(&bytes, &class, offset, limit).map_err(err)
+}
+
+#[tauri::command]
+pub async fn coredata_rows(
+    state: State<'_, AppState>,
+    id: u64,
+    entity: String,
+    offset: u64,
+    limit: u64,
+) -> CmdResult<Rows> {
+    let db = database(&state, id)?;
+    let entities = emulabzip_storage::coredata::entities(&db).map_err(err)?;
+    let found = entities.iter().find(|e| e.name == entity).ok_or("That entity is not in the store.")?;
+    emulabzip_storage::coredata::rows(&db, found, offset, limit).map_err(err)
 }
 
 /// Saves a file from the device to a path the user picks.
