@@ -63,6 +63,33 @@ pub fn commands_for(control: &Control) -> Result<Vec<String>> {
             v
         }
         Control::ResetBattery => vec![command(["dumpsys", "battery", "reset"])],
+        Control::Locale { locale, app } => {
+            let app = app.as_deref().ok_or_else(|| {
+                Error::failed(
+                    "Android changes the language of one app at a time: say which app (Android 13 and newer).",
+                )
+            })?;
+            vec![command(["cmd", "locale", "set-app-locales", app, "--user", "0", "--locales", locale])]
+        }
+        Control::ResetLocale { app } => {
+            let app =
+                app.as_deref().ok_or_else(|| Error::failed("Say which app to put back on the device's language."))?;
+            vec![command(["cmd", "locale", "set-app-locales", app, "--user", "0", "--locales", ""])]
+        }
+        Control::FontScale { percent } => {
+            vec![command(["settings", "put", "system", "font_scale", &format!("{:.2}", *percent as f64 / 100.0)])]
+        }
+        Control::Display { width, height, density } => {
+            let mut v = Vec::new();
+            if let (Some(w), Some(h)) = (width, height) {
+                v.push(command(["wm", "size", &format!("{w}x{h}")]));
+            }
+            if let Some(d) = density {
+                v.push(command(["wm", "density", &d.to_string()]));
+            }
+            v
+        }
+        Control::ResetDisplay => vec![command(["wm", "size", "reset"]), command(["wm", "density", "reset"])],
         Control::Location { .. } | Control::ClearLocation => Vec::new(),
     })
 }
@@ -100,6 +127,7 @@ pub fn failure(output: &str) -> Option<String> {
             || l.starts_with("Error ")
             || l.contains("Unknown command")
             || l.contains("Operation not allowed")
+            || l.contains("Can't find service")
     })?;
     // The reason is on the next line for exceptions, and on the same line for the rest.
     let reason = if lines[bad].starts_with("Exception occurred") {
@@ -153,8 +181,9 @@ pub async fn info(adb: &AdbClient, serial: &str, app: Option<&str>) -> Result<Co
     let emulator = console_port(serial).is_some();
     let mut supported: Vec<&str> =
         vec!["appearance", "statusBar", "clearStatusBar", "notification", "openUrl", "battery", "resetBattery"];
+    supported.extend(["fontScale", "display", "resetDisplay"]);
     if app.is_some() {
-        supported.push("permission");
+        supported.extend(["permission", "locale", "resetLocale"]);
     }
     let mut notes = Vec::new();
     if emulator {
@@ -272,6 +301,29 @@ async fn set_location(serial: &str, lat: &str, lon: &str) -> Result<()> {
 mod tests {
     use super::*;
     use emulabzip_core::StatusBar;
+
+    #[test]
+    fn language_text_size_and_display_become_shell_commands() {
+        let cmds = |c: Control| commands_for(&c).unwrap();
+        assert_eq!(
+            cmds(Control::Locale { locale: "ar-XB".into(), app: Some("com.example".into()) }),
+            ["cmd locale set-app-locales com.example --user 0 --locales ar-XB"]
+        );
+        assert_eq!(
+            cmds(Control::ResetLocale { app: Some("com.example".into()) }),
+            ["cmd locale set-app-locales com.example --user 0 --locales ''"]
+        );
+        assert!(commands_for(&Control::Locale { locale: "de".into(), app: None }).is_err(), "Android needs an app");
+        assert_eq!(cmds(Control::FontScale { percent: 130 }), ["settings put system font_scale 1.30"]);
+        assert_eq!(cmds(Control::FontScale { percent: 85 }), ["settings put system font_scale 0.85"]);
+        assert_eq!(
+            cmds(Control::Display { width: Some(720), height: Some(1600), density: Some(320) }),
+            ["wm size 720x1600", "wm density 320"]
+        );
+        assert_eq!(cmds(Control::Display { width: None, height: None, density: Some(280) }), ["wm density 280"]);
+        assert_eq!(cmds(Control::ResetDisplay), ["wm size reset", "wm density reset"]);
+        assert_eq!(failure("Can't find service: locale").as_deref(), Some("Can't find service: locale"));
+    }
 
     #[test]
     fn finds_the_console_port_of_an_emulator() {
