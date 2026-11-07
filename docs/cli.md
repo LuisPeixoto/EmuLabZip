@@ -152,10 +152,32 @@ Looks inside a Flutter debug or profile app through its Dart VM service. `--uri 
 is not in the log; `tree` has `--depth <n>`, `frames` has `-s, --seconds <n>` (default 10), `memory` has `--top <n>`.
 All accept `--json`.
 
-### `emulabzip rn tree|heap|console <app>`
+### `emulabzip rn tree|heap|console|state <app>`
 
 Looks inside a React Native development app through Metro (`--metro <port>`, default 8081). `tree` has `--depth <n>`,
-`console` has `-s, --seconds <n>`. All accept `--json`. Metro lets one debugger connect at a time.
+`console` has `-s, --seconds <n>`. `state` reads Redux, React Query, contexts and registered stores; `--watch` follows Redux
+actions and prints what changed. See [React Native state](react-native-state.md). All accept `--json`. Metro lets one
+debugger connect at a time.
+
+### `emulabzip state save|restore|show|diff`
+
+`save <app> -o file.ezstate [--external]` writes an app's data to one file. `restore <file> --yes` replaces the app's data
+with it, after saving what it replaces. `show <file>` says what a file holds. `diff <a> [b]` lists the tables, columns,
+indexes and keys that changed between two files, or between one and the app now. See [App state](app-state.md).
+
+### `emulabzip edit`
+
+Changes data on the device: `cell` (`-t <table>`, `--rowid <n>` or `--pk col=value`, `--set`, `--text`, `--null`), `insert`,
+`delete`, `pref-set <key> <value> [--as type]`, `pref-remove`, `plist-set <key/path> <value> [--as type]`, `plist-remove`
+and `undo <folder>`. Each takes the app and the file, and **every one needs `--yes`**. See
+[Changing an app's data](storage-editing.md).
+
+### `emulabzip avd`, `sim` and `snapshot`
+
+`avd` and `sim` have `list`, `options`, `create <name> --image <id> --model <id>`, `boot <device>` (`--headless`, `--cold`,
+`--wipe`), `shutdown`, `wipe` (`erase` on `sim`) and `delete`. `snapshot` has `list`, `save`, `load` and `delete` for the
+running emulator picked with `-d`. `wipe`, `delete`, `boot --wipe`, `snapshot load` and `snapshot delete` need `--yes`.
+`emulabzip devices --all` also lists devices that are not running. See [Devices](devices.md).
 
 ### `emulabzip session` and `emulabzip ci`
 

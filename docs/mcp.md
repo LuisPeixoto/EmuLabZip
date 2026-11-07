@@ -45,6 +45,10 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `detect_frameworks` | The UI frameworks an app is built with |
 | `flutter_widget_tree`, `flutter_frames`, `flutter_memory` | Inside a running Flutter debug or profile app: its widgets with their source lines, frame times over a few seconds (at most 30), and the Dart heap |
 | `react_tree` | The component tree of a React Native development app, through Metro |
+| `react_state` | The [state](react-native-state.md) of a React Native development app: Redux, React Query, contexts and registered stores, cut to a size an assistant can read |
+| `list_all_devices` | Every emulator and simulator, running or not |
+| `list_states`, `diff_state` | The saved [app states](app-state.md) by name, and what changed in the structure of the data between two of them, or between one and the app now |
+| `list_emulator_snapshots` | The snapshots of a running Android emulator |
 | `analyze_heap` | Takes a heap dump of an Android app and lists leaked Activities and Fragments with their paths |
 | `list_files`, `read_file` | An app's storage roots, folders and files (text, or base64 for binary; cut at 256 KB) |
 | `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints, read with the [mapping, source map or dSYM](symbolication.md) kept for its app and version (`original: true` keeps the device's names) |
@@ -65,6 +69,9 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `control_location`, `control_appearance`, `control_status_bar`, `control_battery` | Changes the device, or puts it back |
 | `control_permission`, `control_notification`, `open_url` | Grants or revokes a permission, posts a notification or push, opens a link |
 | `run_plugin` | Runs a plugin you enabled |
+| `boot_device`, `shutdown_device` | Starts a [device](devices.md) that is not running (never wiping it), or stops one |
+| `save_state` | Saves an app's data to a state file kept by EmuLabZip (stops the app) |
+| `save_emulator_snapshot` | Saves the running emulator's state as a snapshot |
 
 Mistakes come back as tool errors with the same plain messages the app shows, so the assistant can read them and try
 again.
@@ -76,6 +83,8 @@ the same checks as the app (see [Controls](controls.md#safety)): a link to `file
 and nothing reaches a shell unquoted.
 
 - It cannot run a plugin you have not enabled. `run_plugin` refuses it and says so.
+- It cannot throw data away or rewrite it. Restoring a state, wiping or deleting a device, loading or deleting an emulator
+  snapshot, and every [edit](storage-editing.md) are **not** offered. `diff_state` takes the names `list_states` shows, never a path.
 - It cannot download anything. `trace_summary` and `trace_query` need the Perfetto trace processor, which is only
   downloaded after you agree in the app or run `emulabzip trace summary` once.
 - It reads only what the device exposes to the tools above: the files of apps you can already browse, and only when
