@@ -51,8 +51,7 @@ impl Backend for Fake {
 
     async fn input(&self, _: &str) -> Result<Stream<InputEvent>> {
         Ok(Stream::spawn(4, |tx| async move {
-            let tap =
-                InputEvent { t_ms: 5, kind: InputKind::Tap, x: 100, y: 200, x2: 100, y2: 200, duration_ms: 60 };
+            let tap = InputEvent { t_ms: 5, kind: InputKind::Tap, x: 100, y: 200, x2: 100, y2: 200, duration_ms: 60 };
             let _ = tx.send(tap).await;
             std::future::pending::<()>().await;
         }))
