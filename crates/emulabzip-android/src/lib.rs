@@ -5,6 +5,7 @@
 //! without pushing any agent onto the device.
 
 pub mod apps;
+pub mod avd;
 pub mod backend;
 pub mod cert;
 pub mod clock;

@@ -519,3 +519,64 @@ async fn writes_saves_and_restores_an_apps_data() {
     backend.remove_file(&id, APP, "data", "files/live/other.txt").await.unwrap();
     std::fs::remove_dir_all(dir).ok();
 }
+
+/// Makes an emulator of its own (named `elz_life_<pid>`, so no emulator of yours is touched), starts it, saves, loads and
+/// deletes a snapshot, stops it, wipes it and deletes it. Needs an SDK with a system image and a few minutes.
+#[tokio::test]
+#[ignore = "starts a second emulator; takes minutes"]
+async fn makes_starts_snapshots_stops_wipes_and_deletes_an_emulator() {
+    let avd_is = emulabzip_android::avd::same_avd;
+    use emulabzip_core::{BootOptions, CreateDevice, SnapshotAction};
+    let backend = AndroidBackend::new();
+    let name = format!("elz_life_{}", std::process::id());
+    let options = backend.device_options().await.unwrap();
+    let image = options
+        .images
+        .iter()
+        .find(|i| i.id.contains("android-35") && i.id.contains("google_apis") && i.id.ends_with("x86_64"))
+        .or_else(|| options.images.first())
+        .expect("a system image")
+        .id
+        .clone();
+    let model = options.models.iter().find(|m| m.id == "pixel_6").expect("pixel_6").id.clone();
+    println!("{name}: {image} on {model}");
+
+    let made = backend.create_device(&CreateDevice { name: name.clone(), image, model }).await.unwrap();
+    assert_eq!((made.id.as_str(), made.state), (format!("avd:{name}").as_str(), DeviceState::Shutdown));
+    let all = backend.all_devices().await.unwrap();
+    assert!(all.iter().any(|d| d.id == made.id), "it is listed though it is not running");
+    assert!(
+        !backend.devices().await.unwrap().iter().any(|d| avd_is(&d.name, &name)),
+        "and it is not among the running ones"
+    );
+    // A second one with the same name is refused.
+    assert!(
+        backend
+            .create_device(&CreateDevice { name: name.clone(), image: "x".into(), model: "y".into() })
+            .await
+            .is_err()
+    );
+
+    let booted =
+        backend.boot_device(&made.id, &BootOptions { headless: true, cold: true, ..Default::default() }).await.unwrap();
+    println!("booted as {}", booted.id);
+    assert!(avd_is(&booted.name, &name), "{} is {name}", booted.name);
+    assert_eq!(booted.state, DeviceState::Online);
+    // It is running now: it cannot be wiped or deleted, or started twice.
+    assert!(backend.delete_device(&made.id).await.unwrap_err().to_string().contains("running"));
+    assert!(backend.boot_device(&made.id, &BootOptions::default()).await.is_err());
+
+    assert!(backend.emulator_snapshots(&booted.id).await.unwrap().is_empty());
+    backend.emulator_snapshot(&booted.id, SnapshotAction::Save, "live_one").await.unwrap();
+    let saved = backend.emulator_snapshots(&booted.id).await.unwrap();
+    assert!(saved.iter().any(|s| s.name == "live_one"), "{saved:?}");
+    backend.emulator_snapshot(&booted.id, SnapshotAction::Load, "live_one").await.unwrap();
+    backend.emulator_snapshot(&booted.id, SnapshotAction::Delete, "live_one").await.unwrap();
+    assert!(!backend.emulator_snapshots(&booted.id).await.unwrap().iter().any(|s| s.name == "live_one"));
+
+    backend.shutdown_device(&booted.id).await.unwrap();
+    assert!(!backend.devices().await.unwrap().iter().any(|d| avd_is(&d.name, &name)));
+    backend.wipe_device(&made.id).await.unwrap();
+    backend.delete_device(&made.id).await.unwrap();
+    assert!(!backend.all_devices().await.unwrap().iter().any(|d| avd_is(&d.name, &name)), "it is gone");
+}

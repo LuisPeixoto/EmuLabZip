@@ -14,7 +14,7 @@ use tokio::task::JoinSet;
 
 use crate::props::Props;
 use crate::{
-    apps, cert, clock, controls, crashes, energy, heapdump, info, layout, logcat, meminfo, network, perf, startup,
+    apps, avd, cert, clock, controls, crashes, energy, heapdump, info, layout, logcat, meminfo, network, perf, startup,
     state, storage, trace,
 };
 
@@ -35,6 +35,28 @@ impl AndroidBackend {
 
     pub fn adb(&self) -> &AdbClient {
         &self.adb
+    }
+
+    /// The AVD an id names, which has to exist and not be running. An id of a running emulator is refused: it has to be
+    /// shut down first.
+    async fn stopped_avd(&self, id: &str) -> Result<avd::Avd> {
+        let name = match emulabzip_core::avd_name(id) {
+            Some(name) => name.to_string(),
+            None => {
+                let running = self.devices().await?.into_iter().find(|d| d.id == id);
+                return Err(Error::failed(match running {
+                    Some(d) => format!("{} is running. Shut it down first.", d.name),
+                    None => "Give an emulator that is not running as avd:<name>.".to_string(),
+                }));
+            }
+        };
+        if self.devices().await?.iter().any(|d| avd::same_avd(&d.name, &name)) {
+            return Err(Error::failed(format!("{name} is running. Shut it down first.")));
+        }
+        avd::list()
+            .into_iter()
+            .find(|a| a.name == name)
+            .ok_or_else(|| Error::NotFound(format!("there is no emulator called {name}")))
     }
 
     /// Turns an adb device entry into a [`Device`], reading its properties when it is online.
@@ -206,6 +228,59 @@ impl Backend for AndroidBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.adb, id, app, root, path).await
+    }
+
+    async fn all_devices(&self) -> Result<Vec<Device>> {
+        let mut devices = self.devices().await?;
+        let running: Vec<String> = devices.iter().map(|d| d.name.clone()).collect();
+        devices.extend(
+            avd::list().iter().filter(|a| !running.iter().any(|r| avd::same_avd(r, &a.name))).map(avd::as_device),
+        );
+        Ok(devices)
+    }
+
+    async fn device_options(&self) -> Result<emulabzip_core::DeviceOptions> {
+        avd::options().await
+    }
+
+    async fn create_device(&self, request: &emulabzip_core::CreateDevice) -> Result<Device> {
+        avd::create(request).await
+    }
+
+    async fn boot_device(&self, id: &str, options: &emulabzip_core::BootOptions) -> Result<Device> {
+        let name = emulabzip_core::avd_name(id).ok_or_else(|| {
+            Error::failed("Only an emulator that is not running can be started: give it as avd:<name>.")
+        })?;
+        if self.devices().await?.iter().any(|d| avd::same_avd(&d.name, name)) {
+            return Err(Error::failed(format!("{name} is running already.")));
+        }
+        let serial = avd::boot(&self.adb, name, options).await?;
+        self.devices().await?.into_iter().find(|d| d.id == serial).ok_or(Error::DeviceNotFound(serial))
+    }
+
+    async fn shutdown_device(&self, id: &str) -> Result<()> {
+        if emulabzip_core::avd_name(id).is_some() {
+            return Err(Error::failed("That emulator is not running."));
+        }
+        avd::shutdown(&self.adb, id).await
+    }
+
+    async fn wipe_device(&self, id: &str) -> Result<()> {
+        let avd = self.stopped_avd(id).await?;
+        avd::wipe(&avd)
+    }
+
+    async fn delete_device(&self, id: &str) -> Result<()> {
+        let avd = self.stopped_avd(id).await?;
+        avd::delete(&avd.name).await
+    }
+
+    async fn emulator_snapshots(&self, id: &str) -> Result<Vec<emulabzip_core::EmulatorSnapshot>> {
+        avd::snapshots(id).await
+    }
+
+    async fn emulator_snapshot(&self, id: &str, action: emulabzip_core::SnapshotAction, name: &str) -> Result<()> {
+        avd::snapshot(id, action, name).await
     }
 
     async fn stop_app(&self, id: &str, app: &str) -> Result<()> {
