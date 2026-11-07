@@ -41,7 +41,7 @@
     if (!info || !app.target) return;
     const m = info.meta;
     const ok = await confirmed(
-      `Replace the data of ${m.app} on ${app.device?.name ?? "the device"} with the state saved from ${m.device} on ${dateTime(m.takenMs)}?\n\nEverything the app has stored now is replaced. The data as it is now is saved first, so this can be undone by restoring that file.`,
+      `Replace the data of ${m.app} on ${app.device?.name ?? "the device"} with the state saved from ${m.device} on ${dateTime(m.takenMs / 1000)}?\n\nEverything the app has stored now is replaced. The data as it is now is saved first, so this can be undone by restoring that file.`,
       "Restore app state",
       "Replace the data",
     );
@@ -94,7 +94,7 @@
       <header class="flex items-start gap-3 border-b border-line px-5 py-3.5">
         <div class="min-w-0 flex-1">
           <p class="truncate text-[14px] font-semibold">{info.meta.app} {info.meta.appVersion ?? ""}</p>
-          <p class="text-[11.5px] text-muted">{info.meta.platform} · {info.meta.device} · {dateTime(info.meta.takenMs)} · {info.meta.files} files, {bytes(info.meta.bytes)}</p>
+          <p class="text-[11.5px] text-muted">{info.meta.platform} · {info.meta.device} · {dateTime(info.meta.takenMs / 1000)} · {info.meta.files} files, {bytes(info.meta.bytes)}</p>
           <p class="mono mt-0.5 truncate text-[10.5px] text-faint">{info.path}</p>
         </div>
         <button onclick={() => ((info = null), (diff = null))} aria-label="Close" class="text-muted hover:text-fg"><Icon name="x" size={16} /></button>
