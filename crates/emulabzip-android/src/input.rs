@@ -20,23 +20,18 @@ pub struct Touchscreen {
     pub path: String,
     pub max_x: u32,
     pub max_y: u32,
-    /// Where the last finger was left, as the device says now. The kernel reports an axis only when it changes, so a
-    /// tap at the same height as the one before carries no height; this is what stands in for it.
-    pub x: i64,
-    pub y: i64,
 }
 
 /// Finds the touchscreen in the output of `getevent -pl`: the device with `ABS_MT_POSITION_X`.
 pub fn find_touchscreen(text: &str) -> Option<Touchscreen> {
     let mut path = None::<String>;
     let (mut max_x, mut max_y) = (None, None);
-    let (mut now_x, mut now_y) = (0i64, 0i64);
     let mut found = None;
-    let mut finish = |path: &mut Option<String>, max_x: &mut Option<u32>, max_y: &mut Option<u32>, now: (i64, i64)| {
+    let mut finish = |path: &mut Option<String>, max_x: &mut Option<u32>, max_y: &mut Option<u32>| {
         if found.is_none()
             && let (Some(p), Some(x), Some(y)) = (path.take(), max_x.take(), max_y.take())
         {
-            found = Some(Touchscreen { path: p, max_x: x, max_y: y, x: now.0, y: now.1 });
+            found = Some(Touchscreen { path: p, max_x: x, max_y: y });
         }
         *path = None;
         *max_x = None;
@@ -44,24 +39,16 @@ pub fn find_touchscreen(text: &str) -> Option<Touchscreen> {
     };
     for line in text.lines() {
         if let Some(rest) = line.strip_prefix("add device ") {
-            finish(&mut path, &mut max_x, &mut max_y, (now_x, now_y));
-            (now_x, now_y) = (0, 0);
+            finish(&mut path, &mut max_x, &mut max_y);
             path = rest.split_once(": ").map(|(_, p)| p.trim().to_string());
         } else if line.contains("ABS_MT_POSITION_X") {
             max_x = axis_max(line);
-            now_x = axis_value(line).unwrap_or(0);
         } else if line.contains("ABS_MT_POSITION_Y") {
             max_y = axis_max(line);
-            now_y = axis_value(line).unwrap_or(0);
         }
     }
-    finish(&mut path, &mut max_x, &mut max_y, (now_x, now_y));
+    finish(&mut path, &mut max_x, &mut max_y);
     found.filter(|t| t.path.starts_with("/dev/input/") && t.max_x > 0 && t.max_y > 0)
-}
-
-fn axis_value(line: &str) -> Option<i64> {
-    let after = line.split("value ").nth(1)?;
-    after.split(|c: char| !(c.is_ascii_digit() || c == '-')).next()?.parse().ok()
 }
 
 fn axis_max(line: &str) -> Option<u32> {
@@ -92,15 +79,17 @@ pub struct Grouper {
     x: Option<i64>,
     y: Option<i64>,
     // The last place a finger was seen. The kernel only reports an axis when it changes, so a second tap at the same
-    // height says nothing about that height.
-    last_x: i64,
-    last_y: i64,
+    // height says nothing about that height. Nothing is known until the first report, and the device's own idea of
+    // where it was (`getevent -pl`) is not kept for multi-touch axes.
+    last_x: Option<i64>,
+    last_y: Option<i64>,
     time: f64,
     // The finger on the screen, if there is one.
     down: Option<Down>,
 }
 
 struct Down {
+    positioned: bool,
     t_ms: u64,
     x0: f64,
     y0: f64,
@@ -112,7 +101,6 @@ struct Down {
 
 impl Grouper {
     pub fn new(touchscreen: Touchscreen, screen: (u32, u32), clock: DeviceClock) -> Self {
-        let (last_x, last_y) = (touchscreen.x, touchscreen.y);
         Grouper {
             touchscreen,
             screen,
@@ -121,8 +109,8 @@ impl Grouper {
             tracking: None,
             x: None,
             y: None,
-            last_x,
-            last_y,
+            last_x: None,
+            last_y: None,
             time: 0.0,
             down: None,
         }
@@ -175,17 +163,15 @@ impl Grouper {
 
     fn report(&mut self) -> Option<InputEvent> {
         let (tracking, x, y) = (self.tracking.take(), self.x.take(), self.y.take());
-        if let Some(x) = x {
-            self.last_x = x;
-        }
-        if let Some(y) = y {
-            self.last_y = y;
-        }
-        let (px, py) = self.to_px(self.last_x, self.last_y);
+        self.last_x = x.or(self.last_x);
+        self.last_y = y.or(self.last_y);
+        let positioned = self.last_x.is_some() && self.last_y.is_some();
+        let (px, py) = self.to_px(self.last_x.unwrap_or(0), self.last_y.unwrap_or(0));
         let mut finished = None;
         match (&mut self.down, tracking) {
             (None, Some(id)) if id != -1 => {
                 self.down = Some(Down {
+                    positioned,
                     t_ms: self.epoch_ms(self.time),
                     x0: px,
                     y0: py,
@@ -220,6 +206,7 @@ impl Grouper {
             x2: d.x.round() as u32,
             y2: d.y.round() as u32,
             duration_ms: held,
+            positioned: d.positioned,
         })
     }
 }
@@ -260,7 +247,7 @@ mod tests {
     const TAP: &str = include_str!("../tests/fixtures/getevent-tap.txt");
 
     fn grouper() -> Grouper {
-        let screen = Touchscreen { path: "/dev/input/event2".into(), max_x: 32767, max_y: 32767, x: 0, y: 0 };
+        let screen = Touchscreen { path: "/dev/input/event2".into(), max_x: 32767, max_y: 32767 };
         // Boot at epoch 1_000_000 ms, so a reading of 134.837795 s is at 1_134_838.
         Grouper::new(screen, (1080, 2400), DeviceClock { offset_ms: 0, tz_minutes: 0, boot_epoch_ms: 1_000_000 })
     }
@@ -273,19 +260,26 @@ mod tests {
     #[test]
     fn finds_the_touchscreen_among_the_input_devices() {
         let t = find_touchscreen(PL).unwrap();
-        assert_eq!(t, Touchscreen { path: "/dev/input/event2".into(), max_x: 32767, max_y: 32767, x: 0, y: 0 });
+        assert_eq!(t, Touchscreen { path: "/dev/input/event2".into(), max_x: 32767, max_y: 32767 });
     }
 
     #[test]
-    fn the_axes_start_where_the_device_says_they_are() {
-        let text = "add device 1: /dev/input/event2\n  name: \"touch\"\n    ABS (0003): ABS_MT_POSITION_X     : value 16000, min 0, max 32767, fuzz 0\n                ABS_MT_POSITION_Y     : value 20000, min 0, max 32767, fuzz 0\n";
-        let t = find_touchscreen(text).unwrap();
-        assert_eq!((t.x, t.y), (16000, 20000));
-        // The first tap of a recording has no height of its own and takes the device's.
-        let mut g = Grouper::new(t, (1080, 2400), DeviceClock::default());
-        let tap = "[ 5.000000] EV_ABS ABS_MT_TRACKING_ID 00000001\n[ 5.000000] EV_SYN SYN_REPORT 00000000\n[ 5.100000] EV_ABS ABS_MT_TRACKING_ID ffffffff\n[ 5.100000] EV_SYN SYN_REPORT 00000000\n";
-        let events: Vec<_> = tap.lines().filter_map(|l| g.feed(l)).collect();
-        assert_eq!((events[0].x, events[0].y), (527, 1464));
+    fn a_touch_with_no_position_yet_is_kept_but_says_so() {
+        // The kernel reports an axis only when it changes, so the very first touch of a recording can be at the place
+        // the last one before it was, and carry no position at all.
+        let mut g = grouper();
+        let bare = "[ 5.000000] EV_ABS ABS_MT_TRACKING_ID 00000001\n[ 5.000000] EV_SYN SYN_REPORT 00000000\n[ 5.100000] EV_ABS ABS_MT_TRACKING_ID ffffffff\n[ 5.100000] EV_SYN SYN_REPORT 00000000\n";
+        let events: Vec<_> = bare.lines().filter_map(|l| g.feed(l)).collect();
+        assert_eq!(events.len(), 1);
+        assert!(!events[0].positioned, "{:?}", events[0]);
+
+        // Once a position is seen, later touches have one, even when they report none of their own.
+        let seen = lines(10.0, 10.1, &[], (16000, 20000), (16000, 20000));
+        let again = bare.replace("5.", "12.").replace("12.1", "12.1");
+        let events: Vec<_> = format!("{seen}{again}").lines().filter_map(|l| g.feed(l)).collect();
+        assert_eq!(events.len(), 2);
+        assert!(events[0].positioned && events[1].positioned, "{events:?}");
+        assert_eq!((events[1].x, events[1].y), (527, 1464));
     }
 
     #[test]
@@ -338,7 +332,7 @@ mod tests {
         let events = gestures(&format!("{first}{again}"));
         assert_eq!(events.len(), 2, "{events:?}");
         assert_eq!((events[0].x, events[0].y), (events[1].x, events[1].y));
-        assert!(events[1].y > 1000, "{:?}", events[1]);
+        assert!(events[1].y > 1000 && events[1].positioned, "{:?}", events[1]);
     }
 
     #[test]

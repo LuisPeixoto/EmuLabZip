@@ -179,3 +179,24 @@ fn a_run_of_slow_frames_is_one_burst() {
     assert_eq!(bursts[2].label, "Slow frame, 60 ms");
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn a_touch_with_no_known_position_is_labelled_without_one() {
+    let dir = scratch("unpositioned");
+    let clock = r#","clock":{"offsetMs":0,"tzMinutes":0,"bootEpochMs":0}"#;
+    let session = write(&dir, meta(clock), &[]);
+    drop(session);
+    std::fs::write(
+        dir.join("input.jsonl"),
+        format!(
+            "{{\"tMs\":{},\"kind\":\"tap\",\"x\":0,\"y\":0,\"x2\":0,\"y2\":0,\"durationMs\":80,\"positioned\":false}}\n{{\"tMs\":{},\"kind\":\"tap\",\"x\":5,\"y\":6,\"x2\":5,\"y2\":6,\"durationMs\":80}}\n",
+            START + 1000,
+            START + 2000
+        ),
+    )
+    .unwrap();
+    let t = timeline::build(&Session::open(&dir).unwrap());
+    let labels: Vec<_> = t.events.iter().filter(|e| e.lane == Lane::Taps).map(|e| e.label.as_str()).collect();
+    assert_eq!(labels, vec!["Tap", "Tap (5, 6)"], "an old line has no `positioned` and counts as known");
+    std::fs::remove_dir_all(dir).ok();
+}
