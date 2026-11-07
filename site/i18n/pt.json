@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código aberto · MIT · v0.10",
+    "eyebrow": "Código aberto · MIT · v0.11",
     "titleLead": "O laboratório de depuração do seu",
     "titleAccent": "emulador Android e simulador iOS",
     "lead": "O <strong>EmuLabZip</strong> reúne logs, tráfego de rede, desempenho, memória, armazenamento, crashes e acessibilidade dos seus <strong>emuladores Android e simuladores iOS</strong> em um único app nativo e rápido. Nada para instalar no dispositivo.",
@@ -59,7 +59,8 @@
       { "icon": "layout", "title": "Por dentro do Flutter e do React Native", "text": "A árvore de widgets, os tempos de quadros e a memória de apps Flutter, e a árvore React e o heap do Hermes de apps React Native, lidos pelos próprios depuradores." },
       { "icon": "network", "title": "GraphQL e gRPC", "text": "Operações e chamadas com nome na lista, consultas com suas variáveis, status e streaming do gRPC, e protobuf lido com ou sem seus arquivos .proto." },
       { "icon": "sessions", "title": "Linha do tempo, vídeo e replay", "text": "Toques, requisições, problemas do log, quadros lentos e crashes num só eixo de tempo, com a gravação da tela ao lado, e uma gravação da rede que responde ao app sem internet." },
-      { "icon": "rules", "title": "Reenviar e redes lentas", "text": "Reenvie uma requisição com mudanças, ou deixe a rede lenta, com atraso, com perdas ou sem conexão para ver como o app se comporta." }
+      { "icon": "rules", "title": "Reenviar e redes lentas", "text": "Reenvie uma requisição com mudanças, ou deixe a rede lenta, com atraso, com perdas ou sem conexão para ver como o app se comporta." },
+      { "icon": "storage", "title": "O estado do app como dado", "text": "Salve os dados de um app em um arquivo e restaure, veja o que uma migração mudou, edite linhas e preferências com Desfazer, crie e tire snapshots de emuladores, e leia Redux, React Query e Realm." }
     ]
   },
   "showcase": {
@@ -86,7 +87,11 @@
       { "id": "report-html", "shot": "bug-report-html", "label": "Um arquivo", "title": "Um arquivo HTML com tudo", "text": "Captura de tela, dispositivo, log, requisições que falharam e o crash legível, em um arquivo que abre em qualquer navegador.", "alt": "Um relatório de bug aberto no navegador com a captura, os dados do dispositivo e o crash legível" },
       { "id": "timeline", "shot": "timeline", "label": "Linha do tempo", "title": "O que aconteceu, e como estava a tela", "text": "Toques, requisições, problemas do log, quadros lentos, coletas de lixo e o crash num só eixo, com a gravação da tela que o acompanha.", "alt": "A linha do tempo de uma sessão com a gravação da tela no momento de um crash" },
       { "id": "replay", "shot": "replay", "label": "Replay", "title": "Rode o app sem internet", "text": "Responda ao app a partir de uma gravação: o que está nela volta como era, e o que não está falha com 504 e nunca chega a um servidor.", "alt": "A tela Network repetindo uma gravação, com uma requisição que não está nela" },
-      { "id": "report-video", "shot": "bug-report-video", "label": "Relatório com vídeo", "title": "O trecho do crash, dentro do relatório", "text": "Um relatório de bug feito a partir de uma sessão leva o pedaço da gravação da tela que contém o crash e uma faixa do último minuto, no mesmo arquivo.", "alt": "Um relatório de bug no navegador com o trecho do crash e uma faixa do último minuto" }
+      { "id": "report-video", "shot": "bug-report-video", "label": "Relatório com vídeo", "title": "O trecho do crash, dentro do relatório", "text": "Um relatório de bug feito a partir de uma sessão leva o pedaço da gravação da tela que contém o crash e uma faixa do último minuto, no mesmo arquivo.", "alt": "Um relatório de bug no navegador com o trecho do crash e uma faixa do último minuto" },
+      { "id": "state-compare", "shot": "state-compare", "label": "Estado do app", "title": "O que uma migração mudou", "text": "Salve os dados do app antes e depois, e veja as colunas, os índices e as tabelas que foram adicionados, removidos ou alterados.", "alt": "Dois estados salvos comparados no Storage: uma coluna, um índice e uma tabela foram adicionados" },
+      { "id": "storage-edit", "shot": "storage-edit", "label": "Modo de edição", "title": "Mude um valor, e volte atrás", "text": "Dê dois cliques numa célula ou numa preferência. O app é parado, o arquivo antigo é guardado, o novo é lido de volta, e Desfazer devolve o antigo.", "alt": "Storage no modo de edição, com uma célula da tabela cart sendo alterada" },
+      { "id": "storage-realm", "shot": "storage-realm", "label": "Realm e mais", "title": "Realm, DataStore, MMKV, Core Data", "text": "As tabelas e linhas do Realm são lidas do arquivo no dispositivo, ao lado de DataStore, MMKV, AsyncStorage e Core Data.", "alt": "Um banco Realm lido do dispositivo, com suas classes e as linhas de Person" },
+      { "id": "devices-manage", "shot": "devices-manage", "label": "Dispositivos", "title": "Ligue, desligue, apague e tire snapshots", "text": "Emuladores e simuladores, ligados ou não: crie, inicie, pare, apague, exclua e guarde snapshots, com cada passo destrutivo atrás de uma confirmação.", "alt": "A tela Dispositivos listando emuladores Android e simuladores iOS com Iniciar, Apagar e Excluir" }
     ]
   },
   "cli": {
@@ -141,7 +146,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Para onde o EmuLabZip está indo",
-    "lead": "Dez fases já foram concluídas. As seis próximas levam a uma versão 1.0 estável.",
+    "lead": "Onze fases já foram concluídas. As cinco próximas levam a uma versão 1.0 estável.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
       { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
@@ -151,8 +156,8 @@
       { "state": "done", "version": "v0.8", "title": "Por dentro dos frameworks", "text": "Flutter, React Native, Compose e SwiftUI; gRPC e GraphQL." },
       { "state": "done", "version": "v0.9", "title": "Stacks legíveis e relatórios de bug", "text": "Falhas simbolizadas (R8, dSYMs, source maps) e relatórios de bug com um clique." },
       { "state": "done", "version": "v0.10", "title": "Linha do tempo e replay", "text": "Uma linha do tempo de toques, logs e requisições, vídeo da tela e replay de rede." },
-      { "state": "next", "version": "v0.11", "title": "O estado do app como dado", "text": "Snapshots do sandbox e dos emuladores, modo de escrita no Storage e mais visualizadores." },
-      { "state": "later", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
+      { "state": "done", "version": "v0.11", "title": "O estado do app como dado", "text": "Snapshots do sandbox e dos emuladores, modo de escrita no Storage e mais visualizadores." },
+      { "state": "next", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
       { "state": "later", "version": "v0.13", "title": "Automação e apps híbridos", "text": "WebViews, entrada e fluxos gravados, testes de deep links e regras programáveis." },
       { "state": "later", "version": "v0.14", "title": "IA com contexto", "text": "A linha do tempo, o replay e os snapshots como ferramentas MCP, e prompts para perguntas comuns." },
       { "state": "later", "version": "v0.15", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas Apple." },
