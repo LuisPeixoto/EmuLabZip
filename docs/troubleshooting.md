@@ -151,6 +151,30 @@ crashes. On the iOS Simulator, macOS writes the `.ips` report a few seconds afte
 `~/Library/Logs/DiagnosticReports`; reports of apps that are not in a simulator's folder are not listed. Press
 **Refresh**, or run `emulabzip crashes`.
 
+## Crashes: the names are still scrambled
+
+A mapping is only used for the version of the app it was made for, and the crash says which one that is ("Add the
+mapping.txt of com.example 1.2.0 (42)"). Add the file with exactly that version: `emulabzip mappings add com.example
+"1.2.0 (42)" mapping.txt`. A file of another build would give wrong names, so it is not used. Frames also stay as they are
+when R8 had no line numbers to keep: add `-keepattributes SourceFile,LineNumberTable` to the rules of the next build.
+
+## Crashes: React Native shows `1:608617` instead of a file
+
+A release build runs a bundle, and its positions need the source map of that bundle. For Hermes use the composed map,
+`android/app/build/generated/sourcemaps/react/release/index.android.bundle.map`, not the `packager` or `compiler` ones.
+It also has to be the map of the build that crashed.
+
+## Crashes: iOS shows bare addresses
+
+Add the `.dSYM` of the build that crashed (`emulabzip mappings add com.example.app "1.2.0 (42)" MyApp.app.dSYM`). Its
+UUID has to match the app's, so a dSYM of another build, even of the same version, is not used. Reading addresses needs
+a Mac, because it uses `atos`.
+
+## Bug report: no failed requests
+
+Requests come from the proxy in Network. Start it and connect the device before the bug happens; a report made from a
+[session](sessions.md) recorded with `--network` has them too.
+
 ## Controls: the location does nothing on a device
 
 Only emulators accept a new location, through the emulator console. It needs the token in

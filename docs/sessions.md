@@ -46,6 +46,9 @@ of 5" count as one), crashes, requests with the slowest, and CPU and memory peak
 In the app the open session has tabs: **Overview**, **Logs** (filter by level and text), **Requests** (headers and body
 of each), **Timeline** (CPU and memory charts, with the crashes placed in time) and **Screens**.
 
+A session is also the easiest way to report a bug later: **Bug report** in the open session, or `emulabzip report
+--session run.ezsession`, packs it into one HTML file. See [Bug reports](bug-reports.md).
+
 An assistant can read sessions with the `list_sessions` and `session_summary` tools of the [MCP server](mcp.md).
 
 ## Good to know
