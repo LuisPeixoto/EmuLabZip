@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { api, errorText, type Framework } from "../../api";
   import { app } from "../../stores/app.svelte";
   import Icon from "../Icon.svelte";
@@ -10,20 +11,24 @@
   let loading = $state(false);
   let ticket = 0;
 
-  // Look at the app's files whenever another app or device is picked.
+  // Look at the app's files whenever another app or device is picked. The device is polled, which makes a new
+  // target object every time, so only what identifies the device and the app is watched.
   $effect(() => {
-    const target = app.target;
-    const id = app.appId;
-    found = null;
-    error = null;
-    if (!target || !id) return;
-    const mine = ++ticket;
-    loading = true;
-    api
-      .frameworksDetect(target, id)
-      .then((list) => mine === ticket && (found = list))
-      .catch((e) => mine === ticket && (error = errorText(e)))
-      .finally(() => mine === ticket && (loading = false));
+    const key = `${app.deviceKey}|${app.appId ?? ""}`;
+    untrack(() => {
+      const target = app.target;
+      const id = app.appId;
+      found = null;
+      error = null;
+      if (!key || !target || !id) return;
+      const mine = ++ticket;
+      loading = true;
+      api
+        .frameworksDetect(target, id)
+        .then((list) => mine === ticket && (found = list))
+        .catch((e) => mine === ticket && (error = errorText(e)))
+        .finally(() => mine === ticket && (loading = false));
+    });
   });
 
   const has = (id: string) => found?.some((f) => f.id === id) ?? false;
