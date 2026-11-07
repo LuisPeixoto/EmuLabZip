@@ -107,26 +107,7 @@ pub async fn a11y(lab: &Lab, device: Option<&str>, json: bool, fail_on: Option<S
     if json {
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        for f in &result.findings {
-            let tag = match f.severity {
-                Severity::Error => "error  ",
-                Severity::Warning => "warning",
-                Severity::Info => "note   ",
-            };
-            println!("{tag} {:<20} {}", f.rule, f.message);
-            println!(
-                "        {}",
-                output::dim(&format!(
-                    "{} at {},{} {}×{} — {}",
-                    f.class.rsplit('.').next().unwrap_or(&f.class),
-                    f.bounds.x,
-                    f.bounds.y,
-                    f.bounds.width,
-                    f.bounds.height,
-                    f.fix
-                ))
-            );
-        }
+        print_findings(&result.findings);
         if result.findings.is_empty() {
             println!("Nothing found on this screen.");
         }
@@ -145,5 +126,29 @@ pub async fn a11y(lab: &Lab, device: Option<&str>, json: bool, fail_on: Option<S
     match fail_on {
         Some(level) if result.fails(level) => Err(Exit(1).into()),
         _ => Ok(()),
+    }
+}
+
+/// One finding per two lines: what is wrong, and where it is and how to fix it.
+pub(crate) fn print_findings(findings: &[emulabzip_core::a11y::Finding]) {
+    for f in findings {
+        let tag = match f.severity {
+            Severity::Error => "error  ",
+            Severity::Warning => "warning",
+            Severity::Info => "note   ",
+        };
+        println!("{tag} {:<20} {}", f.rule, f.message);
+        println!(
+            "        {}",
+            output::dim(&format!(
+                "{} at {},{} {}×{} — {}",
+                f.class.rsplit('.').next().unwrap_or(&f.class),
+                f.bounds.x,
+                f.bounds.y,
+                f.bounds.width,
+                f.bounds.height,
+                f.fix
+            ))
+        );
     }
 }

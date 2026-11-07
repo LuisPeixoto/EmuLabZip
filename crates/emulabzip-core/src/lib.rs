@@ -16,6 +16,7 @@ pub mod error;
 pub mod events;
 pub mod files;
 pub mod frameworks;
+pub mod i18n;
 pub mod layout;
 pub mod lifecycle;
 pub mod log;

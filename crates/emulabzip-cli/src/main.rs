@@ -285,6 +285,11 @@ enum Command {
         #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
         fail_on: Option<emulabzip_core::Severity>,
     },
+    /// Find text that does not fit: cut off, off screen or not mirrored; on this screen or across languages and text sizes
+    I18n {
+        #[command(subcommand)]
+        action: I18nAction,
+    },
     /// Record logs, samples, requests and crashes into a session file, and read it back
     Session {
         #[command(subcommand)]
@@ -484,6 +489,41 @@ enum Command {
         offset: u64,
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum I18nAction {
+    /// Check the screen as it is now
+    Check {
+        /// The screen is shown in a right-to-left language: also check that the layout was mirrored
+        #[arg(long)]
+        rtl: bool,
+        #[arg(long)]
+        json: bool,
+        /// Exit with an error when something at least this serious is found: note, warning or error
+        #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
+        fail_on: Option<emulabzip_core::Severity>,
+    },
+    /// Try the screen in other languages and text sizes, and say what gets worse. The device is put back at the end
+    Sweep {
+        /// Languages to try, such as en-XA (long text) and ar-XB (right to left)
+        #[arg(long, value_delimiter = ',', default_value = "en-XA,ar-XB")]
+        locales: Vec<String>,
+        /// Text sizes to try, in percent of normal
+        #[arg(long, value_delimiter = ',', default_value = "100,130,200")]
+        scales: Vec<u32>,
+        /// The app whose language is changed (Android changes one app at a time)
+        #[arg(short, long)]
+        app: Option<String>,
+        /// How long to wait after each change, in milliseconds
+        #[arg(long, default_value_t = 1500)]
+        settle_ms: u64,
+        #[arg(long)]
+        json: bool,
+        /// Exit with an error when any setting is worse than the device as it is now
+        #[arg(long)]
+        fail_on_worse: bool,
     },
 }
 
@@ -1402,6 +1442,13 @@ async fn run() -> ExitCode {
         }
         Command::Layout { json, png, depth, app } => {
             cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
+        }
+        Command::I18n { action: I18nAction::Check { rtl, json, fail_on } } => {
+            cmd::i18n::check(&lab, device, rtl, json, fail_on).await
+        }
+        Command::I18n { action: I18nAction::Sweep { locales, scales, app, settle_ms, json, fail_on_worse } } => {
+            let args = cmd::i18n::SweepArgs { locales, scales, app, settle_ms, json, fail_on_worse };
+            cmd::i18n::sweep(&lab, device, args).await
         }
         Command::A11y { json, fail_on } => cmd::layout::a11y(&lab, device, json, fail_on).await,
         Command::Session {

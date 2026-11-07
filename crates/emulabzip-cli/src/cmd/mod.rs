@@ -8,6 +8,7 @@ pub mod edit;
 pub mod files;
 pub mod frameworks;
 pub mod heap;
+pub mod i18n;
 pub mod info;
 pub mod layout;
 pub mod lifecycle;

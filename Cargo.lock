@@ -1224,6 +1224,7 @@ dependencies = [
  "clap",
  "emulabzip-android",
  "emulabzip-apple",
+ "emulabzip-audit",
  "emulabzip-core",
  "emulabzip-frameworks",
  "emulabzip-heap",

@@ -158,3 +158,21 @@ fn bad_languages_sizes_and_displays_are_refused_without_a_device() {
     assert!(!run(&dir, &["control", "display", "--width", "720"]).status.success());
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn a_sweep_checks_its_arguments_before_looking_for_a_device() {
+    let dir = scratch("sweep");
+    for (args, said) in [
+        (vec!["i18n", "sweep", "--locales", "de_DE"], "language tag"),
+        (vec!["i18n", "sweep", "--locales", "en-XA;reboot"], "language tag"),
+        (vec!["i18n", "sweep", "--scales", "10"], "text size"),
+        (vec!["i18n", "sweep", "--scales", "100,130,150,175,200,250,300"], "at most"),
+        (vec!["i18n", "sweep", "--app", "a b"], "package name"),
+        (vec!["i18n", "sweep", "--settle-ms", "99999"], "settle"),
+    ] {
+        let o = run(&dir, &args);
+        assert!(!o.status.success(), "{args:?}");
+        assert!(err(&o).contains(said), "{args:?}: {}", err(&o));
+    }
+    std::fs::remove_dir_all(dir).ok();
+}
