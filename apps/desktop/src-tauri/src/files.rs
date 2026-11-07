@@ -123,7 +123,13 @@ pub async fn open_file(
             p.image = Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(&bytes)));
         }
         FileKind::Json | FileKind::Text => (p.text, p.truncated) = text(&bytes),
-        FileKind::Binary => {}
+        // The viewers for these come with the Storage view's new panels; until then they are shown as bytes.
+        FileKind::Binary
+        | FileKind::DataStore
+        | FileKind::ProtoDataStore
+        | FileKind::Mmkv
+        | FileKind::Realm
+        | FileKind::AsyncStorage => {}
     }
     if p.text.is_none() && p.image.is_none() && p.prefs.is_none() && p.plist.is_none() && p.tables.is_none() {
         p.hex = Some(hex_dump(&bytes[..bytes.len().min(HEX_BYTES)]));
