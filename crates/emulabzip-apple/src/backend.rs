@@ -10,7 +10,7 @@ use tokio::process::Command;
 
 use crate::devices::{self, SimDevice};
 use crate::info::{self, Extras};
-use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, storage, trace, video};
+use crate::{apps, controls, crashes, memory, network, oslog, perf, simctl, state, storage, trace, video};
 
 /// iOS simulators, through `xcrun simctl`. Only available on macOS.
 #[derive(Debug, Clone)]
@@ -218,6 +218,44 @@ impl Backend for AppleBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.root_path(id, app, root).await?, path).await
+    }
+
+    async fn stop_app(&self, id: &str, app: &str) -> Result<()> {
+        state::stop(id, app).await
+    }
+
+    async fn save_state(
+        &self,
+        id: &str,
+        app: &str,
+        out_dir: &std::path::Path,
+        _include_external: bool,
+    ) -> Result<emulabzip_core::StateFiles> {
+        let container = self.root_path(id, app, "data").await?;
+        let version =
+            self.apps(id).await.ok().and_then(|apps| apps.into_iter().find(|a| a.id == app)).and_then(|a| a.version);
+        state::stop(id, app).await?;
+        state::save(container, out_dir, version).await
+    }
+
+    async fn restore_state(
+        &self,
+        id: &str,
+        app: &str,
+        data: &std::path::Path,
+        _external: Option<&std::path::Path>,
+    ) -> Result<()> {
+        let container = self.root_path(id, app, "data").await?;
+        state::stop(id, app).await?;
+        state::restore(container, data).await
+    }
+
+    async fn write_file(&self, id: &str, app: &str, root: &str, path: &str, bytes: &[u8]) -> Result<()> {
+        storage::write(&self.root_path(id, app, root).await?, path, bytes).await
+    }
+
+    async fn remove_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<()> {
+        storage::remove(&self.root_path(id, app, root).await?, path).await
     }
 
     async fn trace_templates(&self, _id: &str) -> Result<Vec<String>> {

@@ -23,6 +23,7 @@ pub mod network;
 pub mod perf;
 pub mod props;
 pub mod startup;
+pub mod state;
 pub mod storage;
 pub mod trace;
 pub mod video;

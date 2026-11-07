@@ -483,3 +483,39 @@ async fn measures_energy_and_puts_the_battery_back() {
     let after = adb.shell(&id, "dumpsys battery").await.unwrap();
     assert_eq!(powered(&before), powered(&after), "the battery is back as it was");
 }
+
+/// An app's data is written, saved, changed and put back. Needs the Compose demo (`tools/compose-app/install.sh`),
+/// which is debuggable.
+#[tokio::test]
+#[ignore = "needs a running emulator with the Compose demo installed"]
+async fn writes_saves_and_restores_an_apps_data() {
+    use emulabzip_core::tarball;
+    const APP: &str = "dev.emulabzip.composedemo";
+    let backend = AndroidBackend::new();
+    let id = first_online(&backend).await;
+    let dir = std::env::temp_dir().join(format!("emulabzip-live-state-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+
+    backend.write_file(&id, APP, "data", "files/live/note.txt", b"one").await.unwrap();
+    backend.write_file(&id, APP, "data", "files/live/other.txt", b"keep").await.unwrap();
+    assert_eq!(backend.read_file(&id, APP, "data", "files/live/note.txt").await.unwrap(), b"one");
+
+    let saved = backend.save_state(&id, APP, &dir, false).await.unwrap();
+    let names: Vec<String> = tarball::check(&saved.data).unwrap().into_iter().map(|e| e.path).collect();
+    assert!(names.contains(&"files/live/note.txt".to_string()), "{names:?}");
+    assert!(!names.iter().any(|n| n.starts_with("cache")), "caches are left out: {names:?}");
+    println!("version: {:?}", saved.app_version);
+
+    // Change it, add to it, then put the saved state back.
+    backend.write_file(&id, APP, "data", "files/live/note.txt", b"two, longer").await.unwrap();
+    backend.write_file(&id, APP, "data", "files/live/added.txt", b"new").await.unwrap();
+    backend.restore_state(&id, APP, &saved.data, None).await.unwrap();
+    assert_eq!(backend.read_file(&id, APP, "data", "files/live/note.txt").await.unwrap(), b"one");
+    assert_eq!(backend.read_file(&id, APP, "data", "files/live/other.txt").await.unwrap(), b"keep");
+    assert!(backend.read_file(&id, APP, "data", "files/live/added.txt").await.is_err(), "what was added is gone");
+
+    backend.remove_file(&id, APP, "data", "files/live/note.txt").await.unwrap();
+    assert!(backend.read_file(&id, APP, "data", "files/live/note.txt").await.is_err());
+    backend.remove_file(&id, APP, "data", "files/live/other.txt").await.unwrap();
+    std::fs::remove_dir_all(dir).ok();
+}

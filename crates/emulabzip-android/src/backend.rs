@@ -15,7 +15,7 @@ use tokio::task::JoinSet;
 use crate::props::Props;
 use crate::{
     apps, cert, clock, controls, crashes, energy, heapdump, info, layout, logcat, meminfo, network, perf, startup,
-    storage, trace,
+    state, storage, trace,
 };
 
 /// Android emulators and devices, through the local ADB server.
@@ -206,6 +206,38 @@ impl Backend for AndroidBackend {
 
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>> {
         storage::read(&self.adb, id, app, root, path).await
+    }
+
+    async fn stop_app(&self, id: &str, app: &str) -> Result<()> {
+        state::stop(&self.adb, id, app).await
+    }
+
+    async fn save_state(
+        &self,
+        id: &str,
+        app: &str,
+        out_dir: &std::path::Path,
+        include_external: bool,
+    ) -> Result<emulabzip_core::StateFiles> {
+        state::save(&self.adb, id, app, out_dir, include_external).await
+    }
+
+    async fn restore_state(
+        &self,
+        id: &str,
+        app: &str,
+        data: &std::path::Path,
+        external: Option<&std::path::Path>,
+    ) -> Result<()> {
+        state::restore(&self.adb, id, app, data, external).await
+    }
+
+    async fn write_file(&self, id: &str, app: &str, root: &str, path: &str, bytes: &[u8]) -> Result<()> {
+        state::write(&self.adb, id, app, root, path, bytes).await
+    }
+
+    async fn remove_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<()> {
+        state::remove(&self.adb, id, app, root, path).await
     }
 
     async fn record_trace(
