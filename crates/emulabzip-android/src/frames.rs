@@ -96,6 +96,12 @@ pub struct Tracker {
 }
 
 impl Tracker {
+    /// Takes note of the frames that are already there, so they are not reported. Android keeps the last 120 frames of
+    /// a window however old they are, so the first reading is mostly from before the recording started.
+    pub fn prime(&mut self, frames: &[Frame]) {
+        self.last_seen_ns = frames.iter().map(|f| f.intended_vsync_ns).max().unwrap_or(0);
+    }
+
     /// The slow frames of `frames` that earlier readings did not have, oldest first.
     pub fn new_slow(&mut self, frames: &[Frame], clock: &DeviceClock) -> Vec<SlowFrame> {
         let newest = frames.iter().map(|f| f.intended_vsync_ns).max().unwrap_or(0);
@@ -122,8 +128,11 @@ pub async fn follow(adb: &AdbClient, serial: &str, app: &str) -> Result<Stream<S
     let clock = clock::measure(adb, serial).await?;
     let command = format!("dumpsys gfxinfo {} framestats", quote::quote(app));
     let (adb, serial) = (adb.clone(), serial.to_string());
+    let mut tracker = Tracker::default();
+    if let Ok(out) = adb.shell(&serial, &command).await {
+        tracker.prime(&parse(&out));
+    }
     Ok(Stream::spawn(64, |tx| async move {
-        let mut tracker = Tracker::default();
         let mut tick = tokio::time::interval(POLL);
         loop {
             tick.tick().await;
@@ -206,6 +215,21 @@ mod tests {
         assert!(!a.is_empty(), "the real table has slow frames");
         assert!(a.windows(2).all(|w| w[0].t_ms <= w[1].t_ms));
         assert!(tracker.new_slow(&first, &clock()).is_empty(), "nothing is new the second time");
+    }
+
+    #[test]
+    fn frames_from_before_the_recording_are_not_reported() {
+        let mut tracker = Tracker::default();
+        let table = parse(REAL);
+        tracker.prime(&table);
+        assert!(tracker.new_slow(&table, &clock()).is_empty(), "everything in the first reading is old");
+        let later = Frame {
+            flags: 0,
+            intended_vsync_ns: table.iter().map(|f| f.intended_vsync_ns).max().unwrap() + 1_000_000_000,
+            frame_completed_ns: table.iter().map(|f| f.intended_vsync_ns).max().unwrap() + 1_100_000_000,
+            deadline_ns: None,
+        };
+        assert_eq!(tracker.new_slow(&[later], &clock()).len(), 1, "a frame after it is reported");
     }
 
     #[test]
