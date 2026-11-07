@@ -67,11 +67,50 @@ impl Default for Baseline {
     }
 }
 
+/// Limits for the size of a build (`emulabzip size --budget`, `emulabzip ci --size`). Sizes are the compressed sizes
+/// in the file, in megabytes (1 MB = 1,048,576 bytes).
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SizeConfig {
+    pub max_total_mb: Option<f64>,
+    pub max_dex_mb: Option<f64>,
+    pub max_native_mb: Option<f64>,
+    pub max_resources_mb: Option<f64>,
+    /// Methods in all the dex files together; 65,536 is the limit of one dex file.
+    pub max_methods: Option<u32>,
+    /// How much bigger than a baseline build the total may be.
+    pub max_growth_percent: Option<f64>,
+}
+
+impl SizeConfig {
+    fn validate(&self) -> Result<()> {
+        for (name, v) in [
+            ("[size] max_total_mb (more than 0)", self.max_total_mb),
+            ("[size] max_dex_mb (more than 0)", self.max_dex_mb),
+            ("[size] max_native_mb (more than 0)", self.max_native_mb),
+            ("[size] max_resources_mb (more than 0)", self.max_resources_mb),
+        ] {
+            if let Some(v) = v
+                && !(v.is_finite() && v > 0.0)
+            {
+                return Err(Error::invalid(name, v.to_string()));
+            }
+        }
+        if let Some(g) = self.max_growth_percent
+            && !(0.0..=1000.0).contains(&g)
+        {
+            return Err(Error::invalid("[size] max_growth_percent (0 to 1000)", g.to_string()));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(default)]
     pub budget: Budget,
+    pub size: Option<SizeConfig>,
     pub startup: Option<StartupConfig>,
     #[serde(default)]
     pub baseline: Baseline,
@@ -87,6 +126,9 @@ impl Config {
             if s.runs == 0 || s.runs > emulabzip_core::startup::MAX_RUNS {
                 return Err(Error::invalid("[startup] runs (1 to 50)", s.runs.to_string()));
             }
+        }
+        if let Some(size) = &config.size {
+            size.validate()?;
         }
         if !(0.0..=1000.0).contains(&config.baseline.tolerance_percent) {
             return Err(Error::invalid(
@@ -130,6 +172,22 @@ mod tests {
         [baseline]
         tolerance_percent = 15
     "#;
+
+    #[test]
+    fn the_size_section_is_read_and_checked() {
+        let c =
+            Config::parse("[size]\nmax_total_mb = 25\nmax_dex_mb = 8.5\nmax_methods = 60000\nmax_growth_percent = 5\n")
+                .unwrap();
+        let s = c.size.unwrap();
+        assert_eq!(
+            (s.max_total_mb, s.max_dex_mb, s.max_methods, s.max_growth_percent),
+            (Some(25.0), Some(8.5), Some(60000), Some(5.0))
+        );
+        assert!(Config::parse("[size]\nmax_total_mb = 0\n").is_err());
+        assert!(Config::parse("[size]\nmax_growth_percent = -1\n").is_err());
+        assert!(Config::parse("[size]\nmax_total = 5\n").is_err(), "a typo is an error");
+        assert!(Config::parse("").unwrap().size.is_none());
+    }
 
     #[test]
     fn reads_every_key() {
