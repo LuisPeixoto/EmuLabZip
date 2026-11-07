@@ -8,7 +8,7 @@ use emulabzip_core::{Error, FileEntry, Result, StorageRoot};
 pub const DATA: &str = "data";
 pub const EXTERNAL: &str = "external";
 
-fn external_base(app: &str) -> String {
+pub(crate) fn external_base(app: &str) -> String {
     format!("/sdcard/Android/data/{app}")
 }
 
@@ -17,7 +17,7 @@ fn check(app: &str) -> Result<()> {
 }
 
 /// `run-as` prints an explanation instead of failing loudly; turn it into an error.
-fn run_as_error(out: &str) -> Option<Error> {
+pub(crate) fn run_as_error(out: &str) -> Option<Error> {
     let line = out.lines().find(|l| l.starts_with("run-as:"))?;
     let reason = line.trim_start_matches("run-as:").trim();
     Some(Error::Adb(if reason.contains("not debuggable") {
