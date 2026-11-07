@@ -19,3 +19,4 @@ node_modules
 
 # The built website
 /site/dist
+tools/crash-app-ios/*.dSYM/

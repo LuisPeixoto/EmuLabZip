@@ -4,6 +4,7 @@
 #
 #   tools/crash-app-ios/install.sh            # the booted simulator
 #   SIMULATOR=<udid> tools/crash-app-ios/install.sh
+#   tools/crash-app-ios/install.sh --stripped   # no symbols in the app; a Crashy.app.dSYM is written next to this script
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -19,6 +20,13 @@ echo "› compiling for the simulator ($arch)"
 xcrun --sdk iphonesimulator swiftc -target "$arch-apple-ios17.0-simulator" -g -Onone \
   -o "$app/Crashy" "$here/main.swift"
 cp "$here/Info.plist" "$app/Info.plist"
+if [ "${1:-}" = "--stripped" ]; then
+  # What a release app looks like: its symbols live only in the dSYM, so a crash shows bare addresses.
+  echo "› writing the dSYM and stripping the app"
+  rm -rf "$here/Crashy.app.dSYM"
+  xcrun dsymutil "$app/Crashy" -o "$here/Crashy.app.dSYM"
+  xcrun strip -x "$app/Crashy"
+fi
 codesign --force --sign - "$app"
 
 echo "› installing"
