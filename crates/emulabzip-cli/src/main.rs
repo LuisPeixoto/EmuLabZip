@@ -309,6 +309,16 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Audit an app for problems that are not about speed: secrets, plain HTTP, exposed components and more
+    Audit {
+        #[command(subcommand)]
+        action: AuditAction,
+    },
+    /// Where the bytes of an APK, an AAB or an IPA are, what changed between two builds, and a size budget
+    Size {
+        #[command(subcommand)]
+        action: SizeAction,
+    },
     /// Compare screenshots with a baseline, to see when the screen changes
     Visual {
         #[command(subcommand)]
@@ -373,6 +383,21 @@ enum Command {
         /// With --replay: fail the run when the app asked for something the recording does not hold
         #[arg(long, requires = "replay")]
         fail_on_miss: bool,
+        /// A build (APK, AAB or IPA) to hold to the [size] limits of emulabzip.toml
+        #[arg(long, value_name = "BUILD")]
+        size: Option<PathBuf>,
+        /// With --size: an earlier build to measure growth against
+        #[arg(long, value_name = "BUILD")]
+        size_baseline: Option<PathBuf>,
+        /// Audit the app's security and privacy after the command (needs --app), and fail on a finding at least this serious
+        #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
+        fail_on_security: Option<emulabzip_core::Severity>,
+        /// Compare the screen after the command with this baseline (see `emulabzip visual`)
+        #[arg(long, value_name = "NAME")]
+        visual: Option<String>,
+        /// With --visual: fail the run when the screen differs more than the limit
+        #[arg(long, requires = "visual")]
+        fail_on_visual: bool,
         /// The command to run
         #[arg(last = true, required = true, value_name = "COMMAND")]
         command: Vec<String>,
@@ -516,6 +541,62 @@ enum Command {
         limit: u64,
         #[arg(long, default_value_t = 0)]
         offset: u64,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum AuditAction {
+    /// Look for secrets and personal data in the log, preferences and databases, plain HTTP and secrets in requests, flags like
+    /// debuggable and allowBackup, exposed components, App Transport Security exceptions and privacy manifest gaps
+    Security {
+        /// The app: a package name or bundle id
+        app: String,
+        /// Requests to look at, from a HAR file (`emulabzip net --har`)
+        #[arg(long, value_name = "FILE")]
+        har: Option<PathBuf>,
+        /// Only these areas: manifest, logs, storage, traffic (default: all)
+        #[arg(long, value_delimiter = ',')]
+        only: Vec<String>,
+        #[arg(long)]
+        json: bool,
+        /// Exit with an error when something at least this serious is found: note, warning or error
+        #[arg(long, value_name = "LEVEL", value_parser = parse_severity)]
+        fail_on: Option<emulabzip_core::Severity>,
+    },
+}
+
+#[derive(Subcommand)]
+enum SizeAction {
+    /// Break a build down by kind, folder, ABI and dex file
+    Show {
+        /// An .apk, .aab or .ipa file
+        file: PathBuf,
+        /// How many of the biggest files to list
+        #[arg(long, default_value_t = 15)]
+        top: usize,
+        /// Hold the build to the [size] limits of emulabzip.toml; exit with an error over them
+        #[arg(long)]
+        budget: bool,
+        /// With --budget: the emulabzip.toml to read (default: the one in this folder)
+        #[arg(long, requires = "budget")]
+        config: Option<PathBuf>,
+        /// With --budget: an earlier build, to measure growth against
+        #[arg(long, requires = "budget")]
+        baseline: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// What changed from one build to another
+    Diff {
+        before: PathBuf,
+        after: PathBuf,
+        #[arg(long, default_value_t = 15)]
+        top: usize,
+        /// Exit with an error when the build grew more than this percentage
+        #[arg(long, value_name = "PERCENT")]
+        fail_on_growth: Option<f64>,
         #[arg(long)]
         json: bool,
     },
@@ -1558,6 +1639,15 @@ async fn run() -> ExitCode {
         Command::Layout { json, png, depth, app } => {
             cmd::layout::layout(&lab, device, json, png, depth, app.as_deref()).await
         }
+        Command::Audit { action: AuditAction::Security { app, har, only, json, fail_on } } => {
+            cmd::audit::security(&lab, device, cmd::audit::SecurityArgs { app, har, only, json, fail_on }).await
+        }
+        Command::Size { action: SizeAction::Show { file, top, budget, config, baseline, json } } => {
+            cmd::size::show(&file, json, top, budget, config, baseline)
+        }
+        Command::Size { action: SizeAction::Diff { before, after, top, fail_on_growth, json } } => {
+            cmd::size::diff(&before, &after, json, top, fail_on_growth)
+        }
         Command::Analytics { service, port, no_connect, firebase_log, json } => {
             let args = cmd::analytics::Args {
                 device: cli.device.clone(),
@@ -1646,6 +1736,11 @@ async fn run() -> ExitCode {
             passthrough,
             timing,
             fail_on_miss,
+            size,
+            size_baseline,
+            fail_on_security,
+            visual,
+            fail_on_visual,
             command,
         } => {
             let replay = replay.map(|file| cmd::net::ReplayArgs { file, passthrough, timing });
@@ -1664,6 +1759,11 @@ async fn run() -> ExitCode {
                 taps,
                 replay,
                 fail_on_miss,
+                size,
+                size_baseline,
+                fail_on_security,
+                visual,
+                fail_on_visual,
                 command,
             };
             cmd::ci::run(&lab, device, args).await
