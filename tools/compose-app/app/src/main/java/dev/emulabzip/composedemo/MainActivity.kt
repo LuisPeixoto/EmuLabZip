@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
 
 /** Nested calls, so a crash has a few frames of the app's own to read. */
 class Cart(private val prices: List<Int>) {
-    fun average(): Int = prices.sum() / prices.count { it == 0 }
+    fun average(): Int = prices.sum() / prices.count { it > 100 }
 }
 
 class Checkout(private val cart: Cart) {
