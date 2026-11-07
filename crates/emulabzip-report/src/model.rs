@@ -343,12 +343,19 @@ fn now_ms() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
-/// The last minute before the crash, or before the end of the run, as marks on one axis.
-fn strip_of(timeline: &Timeline, crash_at: Option<u64>) -> Option<Strip> {
+/// The last minute before the crash, or before the end of the run, as marks on one axis. A part the person left out of
+/// the report is left out of the strip too: its marks carry the text of the log and the addresses of the requests.
+fn strip_of(timeline: &Timeline, crash_at: Option<u64>, options: &Options) -> Option<Strip> {
+    let crash_at = crash_at.filter(|_| options.include_crashes);
     let end = crash_at.unwrap_or(timeline.duration_ms);
     let start = end.saturating_sub(STRIP_WINDOW_MS);
-    let lane =
-        |l: Lane| matches!(l, Lane::Taps | Lane::Requests | Lane::Logs | Lane::Frames | Lane::Gc | Lane::Crashes);
+    let lane = |l: Lane| match l {
+        Lane::Taps | Lane::Frames => true,
+        Lane::Requests => options.include_requests,
+        Lane::Logs | Lane::Gc => options.include_logs,
+        Lane::Crashes => options.include_crashes,
+        Lane::Screens | Lane::Video => false,
+    };
     let mut marks: Vec<StripMark> = timeline
         .events
         .iter()
@@ -459,9 +466,7 @@ impl BugReport {
         }
         let timeline = emulabzip_session::timeline::build(session);
         let crash_at = timeline.events.iter().filter(|e| e.lane == Lane::Crashes).map(|e| e.t_ms).max();
-        if options.include_logs || options.include_requests || options.include_crashes {
-            report.strip = strip_of(&timeline, crash_at);
-        }
+        report.strip = strip_of(&timeline, crash_at, options);
         if options.include_video && !session.video.is_empty() {
             match video_clip(session, crash_at) {
                 Ok(clip) => report.video = Some(clip),
