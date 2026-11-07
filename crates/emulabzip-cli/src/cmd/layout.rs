@@ -152,3 +152,33 @@ pub(crate) fn print_findings(findings: &[emulabzip_core::a11y::Finding]) {
         );
     }
 }
+
+/// `a11y --simulate`: the screen as someone with colour blindness sees it, and the text that stops being readable.
+pub async fn simulate(
+    lab: &Lab,
+    device: Option<&str>,
+    vision: emulabzip_core::Vision,
+    output: Option<PathBuf>,
+    json: bool,
+    fail_on: Option<Severity>,
+) -> Result<()> {
+    let device = lab.resolve(device).await?;
+    let snapshot = lab.layout(&device.target()).await?;
+    let sim = emulabzip_core::vision::simulate(&snapshot, vision)?;
+    if let Some(path) = &output {
+        std::fs::write(path, &sim.png).with_context(|| format!("could not write {}", path.display()))?;
+        eprintln!("Wrote {}", path.display());
+    }
+    if json {
+        println!("{}", serde_json::to_string_pretty(&sim.audit)?);
+    } else {
+        print_findings(&sim.audit.findings);
+        if sim.audit.findings.is_empty() {
+            println!("Every text that is readable normally is still readable with {}.", vision.label());
+        }
+    }
+    match fail_on {
+        Some(level) if sim.audit.fails(level) => Err(Exit(1).into()),
+        _ => Ok(()),
+    }
+}

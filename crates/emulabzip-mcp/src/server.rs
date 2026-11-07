@@ -699,6 +699,33 @@ impl EmuLabServer {
     }
 
     #[tool(
+        description = "Show the screen as someone with colour blindness sees it (protanopia, deuteranopia, tritanopia or achromatopsia): returns the findings of text that was readable normally and is not any more, and the changed screenshot."
+    )]
+    async fn simulate_color_blindness(&self, Parameters(a): Parameters<args::ColorBlindness>) -> CallToolResult {
+        let made = async {
+            let vision = emulabzip_core::Vision::parse(&a.vision).ok_or_else(|| {
+                format!(
+                    "`{}` is not a kind of colour blindness: use protanopia, deuteranopia, tritanopia or achromatopsia",
+                    a.vision
+                )
+            })?;
+            let snapshot = self.lab.layout(&self.target(&a.device).await?).await.map_err(|e| e.to_string())?;
+            emulabzip_core::vision::simulate(&snapshot, vision).map_err(|e| e.to_string())
+        }
+        .await;
+        match made {
+            Ok(sim) => match json(&sim.audit) {
+                Ok(text) => CallToolResult::success(vec![
+                    ContentBlock::text(text),
+                    ContentBlock::image(base64::engine::general_purpose::STANDARD.encode(sim.png), "image/png"),
+                ]),
+                Err(message) => reply(Err(message)),
+            },
+            Err(message) => reply(Err(message)),
+        }
+    }
+
+    #[tool(
         description = "List the sessions recorded with EmuLabZip (`emulabzip session record`, `emulabzip ci`, or the app), newest first."
     )]
     async fn list_sessions(&self) -> CallToolResult {
