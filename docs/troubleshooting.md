@@ -129,6 +129,28 @@ change it with SQL in the app instead. An edit that reads back differently puts 
 Run `emulator -avd <name>` yourself to see its own message. A running emulator is never wiped or deleted: shut it down
 first.
 
+## Audit: "the area could not be read"
+
+The log needs the app to be **running**, so its lines can be told from the system's: start it and use it, then audit again.
+Storage on Android needs a debuggable app, as in [Storage](storage.md). Requests come from the proxy (start it on the
+Network view, or pass `--har`).
+
+## Language: "Android changes the language of one app at a time"
+
+Android has no way to change a device's language from the shell, only an app's (`cmd locale set-app-locales`, Android 13
+and newer). Pass `--app`, or pick the app in the toolbar. The iOS Simulator changes language for every app, and each takes it
+when it starts again.
+
+## Text checks: a label is reported that is not cut off
+
+`text-cut-off` is a heuristic: a single line whose box was held to the room its container (or the next view in its row)
+left, and whose text runs to the end of the box. Check it at 130% and 200%; if it fits, ignore it.
+
+## Visual: "the screenshots are not the same size"
+
+They come from different devices, orientations or display sizes. Compare like with like: the same device, orientation and
+display size (`control reset-display` puts an Android one back).
+
 ## Network: a Gradle build cannot download its distribution
 
 Not an EmuLabZip matter, but it comes up with the demo apps: some networks let `curl` reach the Gradle servers while

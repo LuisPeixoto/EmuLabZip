@@ -6,6 +6,43 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-08
+
+Phase 12: quality beyond performance.
+
+### Added
+
+- **Security and privacy audit.** `emulabzip audit security`, the **Audit** view and the `audit_security` MCP tool look for
+  secrets and personal data in the log, preferences and databases, plain HTTP and secrets in requests, `debuggable` and
+  `allowBackup`, components other apps can reach, App Transport Security exceptions and privacy manifest gaps. Secrets are
+  cut down in every output. `ci --fail-on-security` fails a run. See [Security audit](docs/security-audit.md).
+- **Build size.** `emulabzip size show|diff` and the **Build size** view take an APK, an AAB or an IPA apart by kind, ABI and
+  dex file, and compare two builds. A `[size]` section of `emulabzip.toml` is a budget, checked by `size show --budget` and
+  `ci --size`. See [Build size](docs/package-size.md).
+- **Language, text size and display controls.** `control locale|font-scale|display`: per-app languages on Android
+  (including `en-XA` and `ar-XB`), the simulator's language and Dynamic Type size, and Android's display size and density,
+  all reversible, in the **Controls** view and over MCP.
+- **Text that does not fit.** `emulabzip i18n check` finds text that is cut off, off screen, clipped by its container or not
+  mirrored in a right-to-left language; `i18n sweep` tries a screen in several languages and text sizes and says what
+  gets worse, then puts the device back. See [localization](docs/localization.md).
+- **More accessibility checks.** A `focus-order` rule, and `a11y --simulate` for protanopia, deuteranopia, tritanopia and
+  achromatopsia, which writes the changed screenshot and lists text that stops being readable.
+- **Visual regression.** `emulabzip visual capture|update|compare|list|diff|session` and the **Visual** view compare the screen
+  with a baseline, draw the difference, and exit 1 over a limit. `[visual]` in `emulabzip.toml`, and `ci --visual`. See
+  [Visual regression](docs/visual-regression.md).
+- **Analytics inspector.** `emulabzip analytics` and the **Analytics** view decode Segment, Amplitude, Mixpanel and Firebase
+  Analytics events from the proxy, and Firebase's debug log. See [Analytics inspector](docs/analytics.md).
+- **MCP:** `audit_security`, `analyze_package`, `diff_packages`, `check_text`, `simulate_color_blindness`,
+  `visual_compare`, `control_locale`, `control_font_scale` and `control_display_size`.
+- The Compose demo has a deliberately weak mode (`--es weak 1`) for the audits to find.
+
+### Known limits
+
+The audit cannot see the `exported` attribute and judges text by pattern; the size analyzer reads sizes, folders and dex
+headers, not bytecode, and not an installed app yet; cut-off text is a heuristic; Android changes the language per app, not
+per device; the Firebase decoder was tested on payloads made to Google's layout, not on live traffic; there is no analytics
+tool over MCP.
+
 ## [0.11.0] - 2026-11-08
 
 Phase 11: app state as data.

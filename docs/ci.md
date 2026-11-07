@@ -26,6 +26,11 @@ one-line result.
 | `--replay FILE` | Answer the app's requests from a HAR file or a session, so the run does not depend on any server. Needs `--network`. See [Replaying a recording](replay.md) |
 | `--passthrough` | With `--replay`: let requests that are not in the recording reach the real server |
 | `--fail-on-miss` | With `--replay`: fail the run when the app asked for something the recording does not hold |
+| `--size BUILD` | Hold an APK, AAB or IPA to the `[size]` limits of `emulabzip.toml`. Read before the run. See [Build size](package-size.md) |
+| `--size-baseline BUILD` | With `--size`: an earlier build, to measure growth against |
+| `--fail-on-security LEVEL` | Audit the app's security and privacy after the command (needs `--app`; the proxy's requests are included) and fail on a finding at least this serious: `note`, `warning` or `error`. See [Security audit](security-audit.md) |
+| `--visual NAME` | Compare the screen after the command with a baseline. See [Visual regression](visual-regression.md) |
+| `--fail-on-visual` | With `--visual`: fail the run when the screen differs more than the limit |
 
 The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, a [budget](budgets.md) is broken or a regression was asked to fail the run, it is 1; if you press Ctrl+C,
 130. When the `GITHUB_STEP_SUMMARY` environment variable is set (GitHub Actions), the Markdown report is appended to it

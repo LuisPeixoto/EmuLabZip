@@ -46,6 +46,11 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `flutter_widget_tree`, `flutter_frames`, `flutter_memory` | Inside a running Flutter debug or profile app: its widgets with their source lines, frame times over a few seconds (at most 30), and the Dart heap |
 | `react_tree` | The component tree of a React Native development app, through Metro |
 | `react_state` | The [state](react-native-state.md) of a React Native development app: Redux, React Query, contexts and registered stores, cut to a size an assistant can read |
+| `audit_security` | The [security and privacy audit](security-audit.md) of an installed app: secrets and personal data in the log and storage, flags, exposed components, App Transport Security. Secrets are cut down |
+| `analyze_package`, `diff_packages` | An `.apk`, `.aab` or `.ipa` taken apart by kind, ABI and dex file, and what changed between two ([Build size](package-size.md)). Only files with those extensions are read |
+| `check_text` | Text that is cut off, off screen, clipped or not mirrored on the screen ([localization](localization.md)) |
+| `simulate_color_blindness` | The screen as someone with colour blindness sees it, and the text that stops being readable: the picture and the findings |
+| `visual_compare` | The screen against a baseline made with `emulabzip visual capture`: how much changed, where, and a picture of it ([Visual regression](visual-regression.md)) |
 | `list_all_devices` | Every emulator and simulator, running or not |
 | `list_states`, `diff_state` | The saved [app states](app-state.md) by name, and what changed in the structure of the data between two of them, or between one and the app now |
 | `list_emulator_snapshots` | The snapshots of a running Android emulator |
@@ -69,6 +74,7 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `control_location`, `control_appearance`, `control_status_bar`, `control_battery` | Changes the device, or puts it back |
 | `control_permission`, `control_notification`, `open_url` | Grants or revokes a permission, posts a notification or push, opens a link |
 | `run_plugin` | Runs a plugin you enabled |
+| `control_locale`, `control_font_scale`, `control_display_size` | Show an app in another language (including `en-XA` and `ar-XB`), change the text size, change the Android display size; each can be put back |
 | `boot_device`, `shutdown_device` | Starts a [device](devices.md) that is not running (never wiping it), or stops one |
 | `save_state` | Saves an app's data to a state file kept by EmuLabZip (stops the app) |
 | `save_emulator_snapshot` | Saves the running emulator's state as a snapshot |

@@ -73,6 +73,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
   changed; [make, start, stop, wipe and snapshot](docs/devices.md) emulators and simulators; [edit rows and
   preferences](docs/storage-editing.md) with a confirmation and Undo; read DataStore, MMKV, AsyncStorage, Core Data and
   Realm files; and read [Redux, React Query and context state](docs/react-native-state.md) from a React Native app.
+- **Quality beyond speed.** A [security and privacy audit](docs/security-audit.md), a [build size](docs/package-size.md)
+  analyzer with a budget for CI, [language and text size](docs/localization.md) checks with a sweep, colour blindness
+  simulation, [visual regression](docs/visual-regression.md) against a baseline, and an [analytics
+  inspector](docs/analytics.md) for Segment, Amplitude, Mixpanel and Firebase.
 - **Find leaks, start times and energy.** A built-in leak finder for heap dumps (destroyed Activities still alive, with
   the path that keeps them), cold, warm and hot start times, energy per app, and budgets that fail a CI run when it gets
   slower.
@@ -158,6 +162,17 @@ request, record a whole run and compare two devices. It ships as a native deskto
   <tr>
     <td width="50%"><img src="docs/images/state-compare.png" alt="Two saved states compared: a column, an index and a table added" /><br /><sub><b>App state</b>: what a migration changed between two saved states.</sub></td>
     <td width="50%"><img src="docs/images/devices-manage.png" alt="The Devices view with emulators, running or not" /><br /><sub><b>Devices</b>: start, stop, wipe, delete and snapshot emulators and simulators.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/audit-security.png" alt="The security audit of an app: a bearer token in the log, an exported receiver, allowBackup" /><br /><sub><b>Security audit</b>: secrets in the log and storage, exposed components, risky flags. Secrets are cut down.</sub></td>
+    <td width="50%"><img src="docs/images/size-diff.png" alt="Two builds compared: what grew, by kind and by file" /><br /><sub><b>Build size</b>: an APK, AAB or IPA by kind, ABI and dex file, and what changed between two builds.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/visual-diff.png" alt="A screen compared with its baseline, with the changes drawn in red" /><br /><sub><b>Visual regression</b>: the screen against a baseline, with the changed area drawn.</sub></td>
+    <td width="50%"><img src="docs/images/analytics.png" alt="Analytics events from Segment and Mixpanel, with one opened" /><br /><sub><b>Analytics</b>: the events an app sends to Segment, Amplitude, Mixpanel and Firebase.</sub></td>
   </tr>
 </table>
 
@@ -251,6 +266,7 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | Readable crashes (R8 `mapping.txt`, React Native source maps, dSYM) and one-click bug reports | ✅ | ✅ (dSYM needs a Mac) |
 | Timeline, screen video in sessions and reports, and network replay | ✅ | ✅ (no touches, no slow frames or GC) |
 | App state snapshots, editing data, the device lifecycle and the new viewers | ✅ (debuggable apps) | ✅ |
+| Security audit, build size, text and colour checks, visual regression and the analytics inspector | ✅ | ✅ (language per simulator; no display size) |
 | React Native state (Redux, React Query, context, registered stores) | ✅ | ✅ |
 
 See the [roadmap](docs/roadmap.md) for what each phase contains.
@@ -331,6 +347,11 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [Readable stacks](docs/symbolication.md) | `mapping.txt`, source maps and dSYMs, kept per app and version |
 | [Bug reports](docs/bug-reports.md) | One HTML file, and a pre-filled issue for GitHub, GitLab or Jira |
 | [Timeline and screen video](docs/timeline.md) | One time axis for touches, log problems, requests, slow frames, GC and crashes, and the video that follows it |
+| [Security audit](docs/security-audit.md) | Secrets and personal data, plain HTTP, exposed components, App Transport Security, privacy manifests |
+| [Build size](docs/package-size.md) | An APK, AAB or IPA by kind, ABI and dex file; what changed between two builds; a size budget |
+| [Language and text](docs/localization.md) | Change language and text size, find text that does not fit, sweep a screen |
+| [Visual regression](docs/visual-regression.md) | Baselines of the screen, and what changed since |
+| [Analytics inspector](docs/analytics.md) | The events an app sends to Segment, Amplitude, Mixpanel and Firebase |
 | [App state](docs/app-state.md) | Save, restore and compare what an app keeps; the schema diff |
 | [Changing an app's data](docs/storage-editing.md) | Edit mode: rows and preferences, with a confirmation, a backup and Undo |
 | [Devices](docs/devices.md) | Make, start, stop, wipe, delete and snapshot emulators and simulators |

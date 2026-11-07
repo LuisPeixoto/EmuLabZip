@@ -64,6 +64,12 @@ fixed, and credit you in the release notes unless you prefer to stay anonymous.
   came from, and do not attach it to an issue. Opening one checks every tar entry before anything is written: no
   absolute paths, `..`, hard links, devices or symbolic links that leave the app's folder.
 - **Device names** given to `avdmanager`, `emulator` and `simctl` are letters, digits, `.`, `_` and `-` only.
+- **Audits read what is sensitive, and never repeat it.** The security audit reads the log, preferences, databases and
+  recorded requests of an app. Findings carry the first two and last two characters of a secret and its length, never the
+  value. The audit changes nothing on the device. Visual baselines are screenshots and can hold anything that was on the
+  screen; do not commit one of a screen with personal data.
+- **Language, text size and display size** are changed on a device for a test and put back by the sweep, also when it
+  fails. Names given to the device (language tags) are letters, digits and hyphens only.
 - **Assistants** (MCP) can save states and compare them, start and stop devices, and save emulator snapshots. They
   cannot restore, edit, wipe, delete or load: those need a person.
 - React Native state is read through Metro's debugger and can contain whatever the app keeps in memory. Watching Redux
