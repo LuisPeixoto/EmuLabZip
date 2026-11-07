@@ -127,6 +127,10 @@ impl Backend for AndroidBackend {
         crate::input::follow(&self.adb, id).await
     }
 
+    async fn slow_frames(&self, id: &str, app: &str) -> Result<Stream<emulabzip_core::SlowFrame>> {
+        crate::frames::follow(&self.adb, id, app).await
+    }
+
     async fn clock(&self, id: &str) -> Result<emulabzip_core::DeviceClock> {
         clock::measure(&self.adb, id).await
     }

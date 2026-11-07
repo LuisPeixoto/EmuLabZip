@@ -11,6 +11,7 @@ pub mod clock;
 pub mod controls;
 pub mod crashes;
 pub mod energy;
+pub mod frames;
 pub mod frameworks;
 pub mod heapdump;
 pub mod info;
