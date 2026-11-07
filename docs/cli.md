@@ -159,10 +159,16 @@ Looks inside a React Native development app through Metro (`--metro <port>`, def
 
 ### `emulabzip session` and `emulabzip ci`
 
-`session record -o run.ezsession [--app <id>] [--network] [--screens <s>] [--duration <s>]` records until
-<kbd>Ctrl+C</kbd>; `session show <file> [--json | --markdown]` summarizes a session or the `.partial` folder of one that
-was cut short. `ci -o run.ezsession [--app <id>] [--network] [--screens <s>] [--fail-on-crash] [--summary <file>] --
-<command…>` records around a command and exits with its code. See [Sessions](sessions.md) and [CI mode](ci.md).
+`session record -o run.ezsession [--app <id>] [--network] [--screens <s>] [--duration <s>] [--video [<s>]] [--taps]
+[--replay <file> [--passthrough] [--timing]]` records until <kbd>Ctrl+C</kbd>; `--video` records the screen in pieces
+(30 s by default, 1 to 180), `--taps` records touches, and `--replay` answers the app's requests from a recording
+meanwhile (it needs `--network`). `session show <file> [--json | --markdown]` summarizes a session or the `.partial`
+folder of one that was cut short. `session timeline <file> [--lane <name>…] [--json]` prints touches, requests, log
+problems, slow frames, garbage collections, crashes, screenshots and video on one time axis, and `session video <file> [-o
+<dir>]` writes the pieces of the screen recording out. `ci -o run.ezsession [--app <id>] [--network] [--screens <s>]
+[--fail-on-crash] [--summary <file>] [--video [<s>]] [--taps] [--replay <file> [--fail-on-miss]] -- <command…>` records
+around a command and exits with its code. See [Sessions](sessions.md), [Timeline and screen video](timeline.md),
+[Replaying a recording](replay.md) and [CI mode](ci.md).
 
 ### `emulabzip compare <a> <b>`
 
@@ -186,7 +192,7 @@ pasted, from a file or standard input. See [Readable stacks](symbolication.md).
 ### `emulabzip report`
 
 Writes what a bug report needs into one HTML file: `[--session <file>] [-a, --app <id>] [-o <file>] [--title <text>]
-[--description <text>] [--without screenshot|logs|requests|crashes] [--issue github:owner/repo | gitlab:[host/]group/project |
+[--description <text>] [--without screenshot|logs|requests|crashes|video] [--issue github:owner/repo | gitlab:[host/]group/project |
 jira:site/PROJECTID/ISSUETYPEID] [--open]`. With `--issue` it prints a link that opens the issue with a summary filled
 in, and `--open` opens it in the browser. See [Bug reports](bug-reports.md).
 

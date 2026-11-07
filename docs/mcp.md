@@ -53,6 +53,7 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `get_layout` | The views on screen as a tree, with names, sizes and positions |
 | `audit_accessibility` | Missing labels, small touch targets, low contrast and duplicate names on the screen |
 | `list_sessions`, `session_summary` | Recorded [sessions](sessions.md), and the summary of one |
+| `session_timeline` | What a session recorded on one [time axis](timeline.md): touches, log problems, requests, slow frames, garbage collections, crashes, screenshots and video, oldest first, by lane and capped |
 | `control_info` | What the device supports changing, and an app's permissions |
 | `list_plugins` | The installed plugins and whether each is enabled |
 

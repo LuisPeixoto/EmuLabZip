@@ -114,6 +114,8 @@ The **Proto** column shows what the proxy spoke to the server: `h1`, `h2` or `h3
 - **GraphQL and gRPC**: operations are named in the list, and bodies are read the way their protocol means. See
   [GraphQL](graphql.md) and [gRPC and protobuf](grpc.md).
 - **Network conditions**: a slow, laggy, lossy or missing connection. See [Network conditions](network-conditions.md).
+- **Replay**: answer from a HAR file or a recorded session, so the app runs without the internet. See
+  [Replaying a recording](replay.md).
 - **HTTP/3**: see below.
 
 ![The editor to send a GraphQL request again with another variable](images/network-resend.png)
@@ -160,6 +162,7 @@ emulabzip net --json | jq 'select(.status >= 400)'
 emulabzip net --no-connect --port 9191   # only run the proxy
 emulabzip net --rules rules.json    # mock, delay or block requests
 emulabzip net --http3               # talk HTTP/3 to servers that offer it
+emulabzip net --replay run.ezsession   # answer from a recording; --passthrough lets the rest through
 emulabzip net import capture.pcap   # read a packet capture
 emulabzip ca install                # make the device trust the certificate
 emulabzip ca path                   # where the certificate file is

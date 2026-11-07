@@ -26,6 +26,9 @@ Every field that is set has to match.
 
 Flows that a rule touched show a **MOCK** or **RULE** badge in the list and in the details.
 
+A rule is for one thing you chose. To answer *everything* from a recording, see [Replaying a recording](replay.md). A rule
+still wins over the recording.
+
 ## In the app
 
 Open **Network**, then **Rules**. Pick a preset (a JSON answer, a 500, a slow network, a block, a breakpoint) or start

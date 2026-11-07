@@ -21,6 +21,11 @@ one-line result.
 | `--config FILE` | Limits to hold the run to (default: `./emulabzip.toml`, when there is one). See [Budgets](budgets.md) |
 | `--baseline FILE` | An earlier session to compare with |
 | `--fail-on-regression` | Fail when a number got worse than the baseline by more than the tolerance |
+| `--video [N]` | Record the screen, in pieces of N seconds (default 30). See [Timeline and screen video](timeline.md) |
+| `--taps` | Record touches (Android) |
+| `--replay FILE` | Answer the app's requests from a HAR file or a session, so the run does not depend on any server. Needs `--network`. See [Replaying a recording](replay.md) |
+| `--passthrough` | With `--replay`: let requests that are not in the recording reach the real server |
+| `--fail-on-miss` | With `--replay`: fail the run when the app asked for something the recording does not hold |
 
 The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, a [budget](budgets.md) is broken or a regression was asked to fail the run, it is 1; if you press Ctrl+C,
 130. When the `GITHUB_STEP_SUMMARY` environment variable is set (GitHub Actions), the Markdown report is appended to it
