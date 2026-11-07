@@ -23,6 +23,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+    // A demo: the release lint needs more downloads than the app is worth.
+    lint { checkReleaseBuilds = false }
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
