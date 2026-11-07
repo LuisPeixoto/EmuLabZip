@@ -137,3 +137,24 @@ fn bad_names_and_rows_are_refused_without_a_device() {
     }
     std::fs::remove_dir_all(dir).ok();
 }
+
+#[test]
+fn bad_languages_sizes_and_displays_are_refused_without_a_device() {
+    let dir = scratch("locale");
+    for (args, said) in [
+        (vec!["control", "locale", "de_DE", "--app", "com.example"], "locale"),
+        (vec!["control", "locale", "de;reboot", "--app", "com.example"], "locale"),
+        (vec!["control", "locale", "de", "--app", "com.example; rm"], "app"),
+        (vec!["control", "font-scale", "20"], "text size"),
+        (vec!["control", "font-scale", "900"], "text size"),
+        (vec!["control", "display", "--density", "5"], "density"),
+        (vec!["control", "display"], "display"),
+    ] {
+        let o = run(&dir, &args);
+        assert!(!o.status.success(), "{args:?}");
+        assert!(err(&o).contains(said), "{args:?}: {}", err(&o));
+    }
+    // A width needs its height, which the parser says before anything else happens.
+    assert!(!run(&dir, &["control", "display", "--width", "720"]).status.success());
+    std::fs::remove_dir_all(dir).ok();
+}
