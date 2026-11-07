@@ -12,6 +12,7 @@ pub mod control;
 pub mod crash;
 pub mod device;
 pub mod energy;
+pub mod events;
 pub mod error;
 pub mod files;
 pub mod frameworks;
@@ -36,6 +37,7 @@ pub use crash::{
 };
 pub use device::{App, Device, DeviceKind, DeviceState, InfoSection, Platform, Target};
 pub use energy::{EnergyComponent, EnergyReport, Wakelock};
+pub use events::{DeviceClock, InputEvent, InputKind, MAX_SEGMENT_SECS, SlowFrame, VideoSegment};
 pub use error::{Error, Result};
 pub use files::{FileEntry, StorageRoot};
 pub use frameworks::Framework;
