@@ -10,6 +10,7 @@ pub mod mmkv;
 pub mod plist;
 pub mod prefs;
 pub mod proto;
+pub mod realm;
 pub mod schema;
 pub mod snapshot;
 pub mod sqlite;
