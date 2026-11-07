@@ -1097,6 +1097,33 @@ enum ControlAction {
     },
     /// Open a web address, or a link of an app, on the device
     Open { url: String },
+    /// Show an app in another language: a tag such as de-DE, or the pseudo-locales en-XA and ar-XB
+    Locale {
+        locale: String,
+        /// The app (Android changes one app at a time; on iOS the whole simulator changes)
+        #[arg(short, long)]
+        app: Option<String>,
+    },
+    /// Put the language back
+    ResetLocale {
+        #[arg(short, long)]
+        app: Option<String>,
+    },
+    /// Make text bigger or smaller: 100 is normal, 130 and 200 are common accessibility settings
+    FontScale { percent: u32 },
+    /// Change the screen size and density (Android)
+    Display {
+        /// Width in pixels; give the height too
+        #[arg(long, requires = "height")]
+        width: Option<u32>,
+        #[arg(long, requires = "width")]
+        height: Option<u32>,
+        /// Density in dpi
+        #[arg(long)]
+        density: Option<u32>,
+    },
+    /// Put the screen size and density back (Android)
+    ResetDisplay,
 }
 
 #[derive(Subcommand)]
@@ -1195,6 +1222,20 @@ async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> 
             apply(lab, device, Control::Notification { app, title, body, payload }, "Notification sent").await
         }
         ControlAction::Open { url } => apply(lab, device, Control::OpenUrl { url }, "Link opened").await,
+        ControlAction::Locale { locale, app } => {
+            let said = format!("Language set to {locale}");
+            apply(lab, device, Control::Locale { locale, app }, &said).await
+        }
+        ControlAction::ResetLocale { app } => {
+            apply(lab, device, Control::ResetLocale { app }, "Language back to normal").await
+        }
+        ControlAction::FontScale { percent } => {
+            apply(lab, device, Control::FontScale { percent }, &format!("Text size set to {percent}%")).await
+        }
+        ControlAction::Display { width, height, density } => {
+            apply(lab, device, Control::Display { width, height, density }, "Display changed").await
+        }
+        ControlAction::ResetDisplay => apply(lab, device, Control::ResetDisplay, "Display back to normal").await,
     }
 }
 
