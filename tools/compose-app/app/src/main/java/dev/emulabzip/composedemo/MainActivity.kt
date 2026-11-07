@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,7 +39,10 @@ class MainActivity : ComponentActivity() {
         if (intent.getStringExtra("crash") != null) Checkout(Cart(listOf(3, 0))).total()
         // `--es data 1` writes what the Data demo keeps; `--es data 2` migrates the database to its second version.
         intent.getStringExtra("data")?.toIntOrNull()?.let { DemoData.write(applicationContext, it) }
-        setContent { Demo() }
+        // `--es weak 1` does what an app should not, so the audits have something to find (see WeakDemo.kt).
+        val weak = intent.getStringExtra("weak") != null
+        if (weak) WeakDemo.run(applicationContext)
+        setContent { Demo(weak) }
     }
 }
 
@@ -65,7 +69,7 @@ fun fetch(address: String): String =
     }
 
 @Composable
-fun Demo() {
+fun Demo(weak: Boolean = false) {
     var count by remember { mutableIntStateOf(0) }
     var enabled by remember { mutableStateOf(true) }
     var said by remember { mutableStateOf("nothing yet") }
@@ -80,6 +84,15 @@ fun Demo() {
             Button(onClick = { scope.launch { said = withContext(Dispatchers.IO) { fetch("http://example.com/").take(40) } } }, Modifier.padding(start = 8.dp).testTag("fetch-other")) { Text("Fetch another page") }
         }
         Text("Server said: $said", Modifier.testTag("said"))
+        if (weak) {
+            // A label that cannot fit: one line, as wide as the screen, with far more text than that.
+            Text(
+                "An order confirmation label that is much longer than this row can ever show on one line",
+                Modifier.fillMaxWidth().testTag("long-label"),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
         val context = androidx.compose.ui.platform.LocalContext.current
         Button(onClick = { scope.launch(Dispatchers.IO) { DemoData.write(context.applicationContext) } }, Modifier.testTag("write-data")) { Text("Write demo data") }
         Row {
