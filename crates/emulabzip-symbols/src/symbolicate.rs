@@ -53,6 +53,14 @@ pub struct Applied {
     pub frames: usize,
 }
 
+impl Applied {
+    /// `mapping.txt (mapping.txt, 1 frame)`: what was used and what it did, for a person to read.
+    pub fn describe(&self) -> String {
+        let n = self.frames;
+        format!("{} ({}, {n} frame{})", self.source, self.kind.label(), if n == 1 { "" } else { "s" })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Symbolicated {
     pub report: CrashReport,
