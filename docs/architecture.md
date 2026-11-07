@@ -33,13 +33,13 @@ app and the CLI) use them the same way.
 | `emulabzip-android` | Implements `Backend` for Android on top of `emulabzip-adb`. Parsers for `getprop`, logcat, `dumpsys battery`, `wm`, `ps` and `pm`. |
 | `emulabzip-apple` | Implements `Backend` for the iOS Simulator with `xcrun simctl`. Parsers for the device list, ndjson logs and app lists. |
 | `emulabzip-storage` | Viewers that do not depend on a platform: file type detection, a read-only SQLite inspector, SharedPreferences and property lists. |
-| `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding, streamed gRPC, GraphQL and gRPC classification and decoding, resending, network conditions (and HTTP/3 to servers through `quinn` and `h3`), rules that mock, delay, block or hold requests, a WebSocket frame parser, a reader for packet captures, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
+| `emulabzip-net` | The debugging proxy: a certificate authority, TLS interception, HTTP/1.1 and HTTP/2 forwarding, streamed gRPC, GraphQL and gRPC classification and decoding, resending, network conditions (and HTTP/3 to servers through `quinn` and `h3`), rules that mock, delay, block or hold requests, **replay** of a HAR recording (a `ReplaySet` the proxy asks before any server), a WebSocket frame parser, a reader for packet captures, a bounded store of flows with a change feed, body decoding and HAR export. No platform code. |
 | `emulabzip-trace` | Making sense of recordings: the flame graph model, parsers for simpleperf reports and `xctrace` exports, Perfetto configurations, the trace processor (download, SQL, summaries), the one-shot server for the Perfetto UI, and the library of recordings. No platform code. |
 | `emulabzip-frameworks` | Looking inside Flutter and React Native apps: a small JSON-over-WebSocket client (`Rpc`), the Dart VM service (widget tree, frames, memory) and Metro with Hermes (React tree, heap, console). Reaches a device port through `Lab::connect_port`, so no platform code lives here. |
 | `emulabzip-symbols` | Making crash stacks readable: the R8 and ProGuard `mapping.txt` retracer (with inlined frames), source maps with a VLQ decoder (Metro and Hermes composed maps), dSYM lookups through `atos`, the per-app and per-version store of these files, and `symbolicate`, which applies whatever fits a crash and says what is missing. Works on text and numbers, so it runs on files with no device. |
 | `emulabzip-report` | Bug reports: gathers the device, a screenshot, the log, failed requests and readable crashes (from a device or a session), writes one self-contained HTML file and a Markdown summary, and builds pre-filled issue links for GitHub, GitLab and Jira. Sends nothing. |
 | `emulabzip-heap` | Reading `.hprof` heap dumps and finding leaks: a two-pass parser, the object graph, dominators and retained sizes, and the leak rules. No platform code and no dependencies, so it also runs on a dump from a file. |
-| `emulabzip-session` | Sessions: the `.ezsession` format, a recorder that follows a device through `Lab`, a reader that also opens the folder of a killed recording, the summary, the `emulabzip.toml` budgets and the comparison with a baseline. |
+| `emulabzip-session` | Sessions: the `.ezsession` format (version 2, with the device's clock), a recorder that follows a device through `Lab` (logs, samples, crashes, screenshots, touches, slow frames and pieces of video), a reader that also opens the folder of a killed recording and still opens version 1 files, the summary, the **timeline** that puts every stream on one axis, the loader of a recording to replay, the `emulabzip.toml` budgets and the comparison with a baseline. |
 | `emulabzip-mcp` | The MCP server: tools over `Lab`, served on standard input and output with `rmcp`. |
 | `emulabzip-plugin` | Plugins: manifests, the approval step, the JSON-lines protocol and the runner. No platform code. |
 | `emulabzip-cli` | The `emulabzip` command. |
@@ -67,6 +67,10 @@ pub trait Backend: Send + Sync {
     async fn read_file(&self, id: &str, app: &str, root: &str, path: &str) -> Result<Vec<u8>>;
     async fn trace_templates(&self, id: &str) -> Result<Vec<String>>;
     async fn record_trace(&self, id: &str, request: &TraceRequest, out_dir: &Path, stop: watch::Receiver<bool>) -> Result<TraceFile>;
+    async fn clock(&self, id: &str) -> Result<DeviceClock>;
+    async fn input(&self, id: &str) -> Result<Stream<InputEvent>>;
+    async fn slow_frames(&self, id: &str, app: &str) -> Result<Stream<SlowFrame>>;
+    async fn record_video(&self, id: &str, out_dir: &Path, segment_secs: u32, stop: watch::Receiver<bool>, segments: mpsc::UnboundedSender<VideoSegment>) -> Result<()>;
     async fn crashes(&self, id: &str, app: Option<&str>) -> Result<Vec<CrashSummary>>;
     async fn crash(&self, id: &str, crash_id: &str) -> Result<CrashReport>;
     async fn controls(&self, id: &str, app: Option<&str>) -> Result<ControlInfo>;
@@ -90,6 +94,16 @@ In the desktop app, each stream is a *session* owned by the Tauri state. Lines a
 interface over a Tauri IPC channel. A batch holds at most 4,000 lines; any surplus is counted and reported as dropped
 rather than slowing the device or the UI. The interface keeps its own bounded buffer and renders only the visible rows.
 
+## One time axis
+
+Every stream stamps time its own way (the log prints the device's local time without a year, samples count from when
+they started, touches and frames count from when the device booted), so a recording keeps a `DeviceClock`: the device's
+wall clock against this computer's, its time zone, and when its monotonic clock read zero. `emulabzip-session`'s
+`timeline::build` uses it to put touches, log problems, requests, slow frames, garbage collections, crashes,
+screenshots and video on one axis, in milliseconds from the start. A slow frame is placed with the `Uptime` the
+`gfxinfo` dump prints, which is the clock the frame times are on. Screen video is recorded in short pieces (see
+[Timeline and screen video](timeline.md)), each reported once complete, so a killed recording keeps what it had.
+
 ## The proxy
 
 `emulabzip-net` knows nothing about devices. The backends only decide how a device reaches it and how it comes to
@@ -104,6 +118,11 @@ trust the certificate; the CLI and the desktop app start the proxy and hand it a
                  no  ─► copy bytes both ways, record a tunnel
               handshake refused ─► remember the host, pass it through next time
 ```
+
+A **replay** is one more step before the server is asked: after the rules, `forward` looks the request up in the
+`ReplaySet` and answers from it, or answers 504 when it is not there. While a recording is replayed the paths that
+cannot be answered from a HAR (a tunnel the proxy cannot decode, a WebSocket, a gRPC call, a resend) are refused, so
+nothing reaches the network. See [Replaying a recording](replay.md).
 
 Response bodies stream to the client while a copy is recorded (up to 10 MB), so downloads and event streams keep
 working. Request bodies are read in full before forwarding. WebSocket upgrades are tunnelled after the handshake, and
