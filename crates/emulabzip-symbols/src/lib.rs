@@ -7,3 +7,4 @@
 //! Everything here works on text and numbers, so it can be tested with real files and without a device.
 
 pub mod retrace;
+pub mod sourcemap;
