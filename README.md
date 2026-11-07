@@ -152,6 +152,17 @@ request, record a whole run and compare two devices. It ships as a native deskto
 
 <table>
   <tr>
+    <td width="50%"><img src="docs/images/storage-edit.png" alt="Storage in edit mode: a cell of the cart table being changed" /><br /><sub><b>Edit mode</b>: double-click a value; the app is stopped, the old file kept, and Undo puts it back.</sub></td>
+    <td width="50%"><img src="docs/images/storage-realm.png" alt="A Realm database read from the device, with its classes and rows" /><br /><sub><b>Realm</b>: classes, column types and rows, read from the file on the device.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/state-compare.png" alt="Two saved states compared: a column, an index and a table added" /><br /><sub><b>App state</b>: what a migration changed between two saved states.</sub></td>
+    <td width="50%"><img src="docs/images/devices-manage.png" alt="The Devices view with emulators, running or not" /><br /><sub><b>Devices</b>: start, stop, wipe, delete and snapshot emulators and simulators.</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
     <td width="50%"><img src="docs/images/replay.png" alt="Network: a recording is replayed, three requests are answered from it and one that is not in it fails" /><br /><sub><b>Replay</b>: the app runs against a recording. What is not in it fails with a 504 and never reaches the internet.</sub></td>
     <td width="50%"><img src="docs/images/bug-report-video.png" alt="A bug report in a browser with the clip of the crash and a strip of the last minute" /><br /><sub><b>Video in the report</b>: the clip around the crash, and the last minute on a strip, in the same file.</sub></td>
   </tr>

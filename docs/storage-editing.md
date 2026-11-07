@@ -1,5 +1,9 @@
 # Changing an app's data
 
+<p align="center">
+  <img src="images/storage-edit.png" alt="Storage in edit mode: a value of the cart table is being changed" />
+</p>
+
 [Storage](storage.md) is read-only until you turn on **Edit**. Editing changes the app's real files on the device, so it
 is built to be careful: every change asks first, stops the app, keeps the file it replaces, reads the new file back to
 check it, and can be undone.
