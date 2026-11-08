@@ -100,7 +100,7 @@
         <p class="flex items-center gap-1.5 text-md font-medium"><Icon name="alert" size={14} class="text-warn" />Some text may be hard to read</p>
         <ul class="mt-1.5 space-y-0.5 text-sm text-muted">
           {#each problems as p (p.what)}
-            <li>{p.what}: {p.ratio ? p.ratio.toFixed(1) : "?"}:1, needs {p.needed}:1</li>
+            <li>{p.what}: {p.ratio ? (Math.floor(p.ratio * 10) / 10).toFixed(1) : "?"}:1, needs {p.needed}:1</li>
           {/each}
         </ul>
       </div>
