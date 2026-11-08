@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { untrack } from "svelte";
   import { api, errorText, type Framework } from "../../api";
   import { app } from "../../stores/app.svelte";
@@ -35,7 +36,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] space-y-4 p-6">
+  <div class="mx-auto {arrange.pageMax} space-y-4 p-6">
     <header>
       <h1 class="text-3xl font-semibold tracking-tight">Frameworks</h1>
       <p class="text-md text-muted">

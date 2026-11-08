@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { onDestroy, untrack } from "svelte";
   import { app } from "../../stores/app.svelte";
   import { perf } from "../../stores/perf.svelte";
@@ -41,7 +42,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] p-6">
+  <div class="mx-auto {arrange.pageMax} p-6">
     <header class="mb-5 flex flex-wrap items-center gap-3">
       <div class="min-w-0 flex-1">
         <h1 class="text-3xl font-semibold tracking-tight">Performance</h1>

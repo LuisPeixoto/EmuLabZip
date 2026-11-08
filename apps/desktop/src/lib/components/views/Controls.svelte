@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import type { Appearance, Grant } from "../../api";
   import { app } from "../../stores/app.svelte";
   import { PLACES, SERVICES, controls } from "../../stores/controls.svelte";
@@ -56,7 +57,7 @@
 {/snippet}
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] p-6">
+  <div class="mx-auto {arrange.pageMax} p-6">
     <header class="mb-5">
       <h1 class="text-3xl font-semibold tracking-tight">Controls</h1>
       <p class="text-md text-muted">Try your app somewhere else, in the dark, with a clean status bar or one permission less.</p>

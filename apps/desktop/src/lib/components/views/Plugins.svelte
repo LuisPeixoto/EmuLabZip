@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { api } from "../../api";
@@ -7,6 +8,7 @@
   import LineChart from "../charts/LineChart.svelte";
   import StatTile from "../charts/StatTile.svelte";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
 
   onMount(() => {
     plugins.refresh();
@@ -26,7 +28,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] p-6">
+  <div class="mx-auto {arrange.pageMax} p-6">
     <header class="mb-5 flex flex-wrap items-center gap-3">
       <div class="min-w-0 flex-1">
         <h1 class="text-3xl font-semibold tracking-tight">Plugins</h1>
@@ -47,8 +49,10 @@
         <p class="mt-1 max-w-[480px] text-md text-muted">Start one with <span class="mono">emulabzip plugin new my-plugin</span>, or install the examples with <span class="mono">emulabzip plugin install examples/plugins/top-processes</span>. Plugins live in <span class="mono break-all">{plugins.list.dir}</span>.</p>
       </div>
     {:else if plugins.list}
-      <div class="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
-        <aside class="rounded-2xl border border-line bg-panel p-2">
+      <Cols id="plugins.list" initial={300} min={200} max={520}>
+{#snippet first()}
+{#if plugins.list}
+<aside class="rounded-2xl border border-line bg-panel p-2">
           <ul class="space-y-0.5">
             {#each plugins.list.plugins as row (row.manifest.name)}
               <li>
@@ -70,8 +74,11 @@
             <p class="mt-2 border-t border-line px-3 pt-2 text-xs text-warn" title={problem.dir}><Icon name="alert" size={11} class="mr-1 inline" />{problem.dir.split(/[\\/]/).pop()}: {problem.message}</p>
           {/each}
         </aside>
-
-        <section class="min-w-0 space-y-4">
+{/if}
+{/snippet}
+{#snippet second()}
+{#if plugins.list}
+<section class="min-w-0 space-y-4">
           {#if p}
             <div class="rounded-2xl border border-line bg-panel p-4">
               <div class="flex flex-wrap items-start gap-3">
@@ -164,7 +171,9 @@
             {/if}
           {/if}
         </section>
-      </div>
+{/if}
+{/snippet}
+</Cols>
     {/if}
   </div>
 </div>

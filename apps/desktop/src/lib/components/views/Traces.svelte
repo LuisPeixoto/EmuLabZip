@@ -9,6 +9,7 @@
   import SqlConsole from "../traces/SqlConsole.svelte";
   import Summary from "../traces/Summary.svelte";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
   import PlatformIcon from "../PlatformIcon.svelte";
 
   onMount(() => {
@@ -42,8 +43,9 @@
       <p class="text-md text-muted">Record what the system and an app did, then find out why it was slow.</p>
     </header>
 
-    <div class="grid items-start gap-5 lg:grid-cols-[340px_1fr]">
-      <div class="space-y-4">
+    <Cols id="traces.list" initial={340} min={240} max={620}>
+{#snippet first()}
+<div class="space-y-4">
         <Recorder />
 
         <section class="rounded-2xl border border-line bg-panel p-2">
@@ -77,8 +79,9 @@
           </ul>
         </section>
       </div>
-
-      <section class="min-w-0">
+{/snippet}
+{#snippet second()}
+<section class="min-w-0">
         {#if !rec}
           <div class="grid place-items-center rounded-2xl border border-dashed border-line-strong bg-panel/50 px-6 py-24 text-center">
             <Icon name="route" size={26} class="mb-3 text-faint" />
@@ -141,6 +144,7 @@
           {/if}
         {/if}
       </section>
-    </div>
+{/snippet}
+</Cols>
   </div>
 </div>

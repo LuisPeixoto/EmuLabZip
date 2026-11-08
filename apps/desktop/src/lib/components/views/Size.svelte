@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { api, errorText, type PackageDiff, type PackageView } from "../../api";
   import { bytes } from "../../format";
   import Icon from "../Icon.svelte";
@@ -51,7 +52,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1000px] p-6">
+  <div class="mx-auto {arrange.pageMid} p-6">
     <header class="mb-4 flex items-center gap-3">
       <div class="flex-1">
         <h1 class="text-3xl font-semibold tracking-tight">Build size</h1>

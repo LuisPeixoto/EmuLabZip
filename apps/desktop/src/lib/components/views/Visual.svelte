@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { onMount } from "svelte";
   import { api, errorText, type VisualResult } from "../../api";
   import { app } from "../../stores/app.svelte";
   import { confirmed } from "../../confirm";
   import { bytes } from "../../format";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
 
   let baselines = $state<[string, number][]>([]);
   let name = $state("");
@@ -72,7 +74,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1100px] p-6">
+  <div class="mx-auto {arrange.pageMid} p-6">
     <header class="mb-4">
       <h1 class="text-3xl font-semibold tracking-tight">Visual</h1>
       <p class="text-md text-muted">Keep a picture of how a screen should look, and see what changed when it does not.</p>
@@ -86,8 +88,9 @@
       <label class="flex items-center gap-1.5 text-base"><input type="checkbox" bind:checked={cleanBar} class="accent-[var(--accent)]" /> Clean status bar</label>
       <label class="flex items-center gap-1.5 text-base text-muted">Limit <input type="number" min="0" max="100" step="0.05" bind:value={threshold} class="mono h-8 w-20 rounded-lg border border-line bg-panel-2 px-2 text-base text-fg" />%</label>
     </div>
-    <div class="grid gap-5 lg:grid-cols-[260px_1fr]">
-      <section class="rounded-2xl border border-line bg-panel p-2">
+    <Cols id="visual.list" initial={260} min={180} max={520}>
+{#snippet first()}
+<section class="rounded-2xl border border-line bg-panel p-2">
         {#each baselines as [n, size] (n)}
           <div class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 {selected === n ? 'bg-accent-soft' : ''}">
             <span class="min-w-0 flex-1 truncate text-md font-medium">{n}</span>
@@ -99,7 +102,9 @@
           <p class="p-4 text-center text-base text-muted">No baselines yet. Open the screen you want to keep, name it and save it.</p>
         {/each}
       </section>
-      <section>
+{/snippet}
+{#snippet second()}
+<section>
         {#if result}
           <div class="mb-3 flex flex-wrap items-center gap-3">
             <p class="text-lg font-semibold {result.exceeds ? 'text-err' : 'text-ok'}">
@@ -118,6 +123,7 @@
           <p class="rounded-2xl border border-line bg-panel px-4 py-12 text-center text-md text-muted">Pick a baseline and press Compare to see what changed on the screen in front of you.</p>
         {/if}
       </section>
-    </div>
+{/snippet}
+</Cols>
   </div>
 </div>
