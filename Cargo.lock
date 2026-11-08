@@ -1162,7 +1162,7 @@ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 
 [[package]]
 name = "emulabzip-adb"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "emulabzip-core",
  "serde",
@@ -1173,7 +1173,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-android"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "emulabzip-adb",
@@ -1189,7 +1189,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-apple"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "core-foundation",
@@ -1204,7 +1204,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-audit"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "emulabzip-core",
  "emulabzip-storage",
@@ -1218,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-cli"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -1246,7 +1246,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-core"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
@@ -1261,7 +1261,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-desktop"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "base64 0.22.1",
  "emulabzip-android",
@@ -1292,7 +1292,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-frameworks"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "emulabzip-core",
  "futures-util",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-heap"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1313,7 +1313,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-mcp"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "base64 0.22.1",
  "emulabzip-audit",
@@ -1335,7 +1335,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-net"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "base64 0.22.1",
  "brotli 8.0.4",
@@ -1372,7 +1372,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-plugin"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "emulabzip-core",
  "serde",
@@ -1384,7 +1384,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-report"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "base64 0.22.1",
  "emulabzip-core",
@@ -1398,7 +1398,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-session"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "emulabzip-core",
@@ -1413,7 +1413,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-storage"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -1429,7 +1429,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-symbols"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "emulabzip-core",
  "serde",
@@ -1438,7 +1438,7 @@ dependencies = [
 
 [[package]]
 name = "emulabzip-trace"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "emulabzip-core",
