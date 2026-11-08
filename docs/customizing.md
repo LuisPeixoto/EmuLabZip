@@ -2,6 +2,8 @@
 
 Everything in EmuLabZip that is split in two can be resized, and the rest can be tuned in **Settings** (⌘,).
 
+![The Logs view with a collapsed sidebar and a resized detail pane](images/layout-custom.png)
+
 ## Resizing panes
 
 Drag the line between two panes to change their sizes. **Double-click** it to restore its size, or focus it with Tab and
