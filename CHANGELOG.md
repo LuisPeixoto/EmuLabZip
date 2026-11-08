@@ -6,6 +6,34 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-08
+
+A new look, and a layout that is yours to arrange.
+
+### Added
+
+- **Themes.** Ten built-in themes, a theme editor (colours, fonts, roundness, contrast warnings, and a whole theme from one
+  accent), import and export as `.json`, and a **community gallery** read from the website, with a button that opens a
+  pull request to share yours. Imported themes can only hold colours and font names. See [Themes](docs/themes.md).
+- **Resizable panes.** Every split in the app has a draggable, keyboard-friendly divider with a remembered size; a double
+  click restores it.
+- **Sidebar.** Collapse it to icons (⌘\), reorder its entries and hide the ones you do not use.
+- **Fine-tuning.** Text size, density, interface scale (⌘+, ⌘-, ⌘0), roundness and fonts, and the width of the centred
+  pages. See [Customizing the layout](docs/customizing.md).
+- **Settings** is now a wide dialog with General, Appearance, Layout and Gallery.
+
+### Changed
+
+- **A lighter dark.** The default dark theme, **Midnight**, is easier to read than the near-black of earlier versions,
+  which stays as **Classic Dark**. A saved dark or light choice moves to Midnight or Daylight. The colours are painted
+  before the window shows, so there is no flash.
+- Text sizes are tokens instead of 868 fixed pixel sizes; at 100% nothing looks different, but the text-size setting now
+  reaches all of it.
+
+### Fixed
+
+- On macOS the close, minimize and maximize buttons are centred vertically in the toolbar, at any interface scale.
+
 ## [0.12.0] - 2026-11-08
 
 Phase 12: quality beyond performance.
