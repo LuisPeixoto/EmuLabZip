@@ -80,10 +80,10 @@
 </script>
 
 <div class="flex items-center gap-1.5">
-  <button onclick={save} disabled={!pkg || busy != null} title="Save everything the app keeps to one file" class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
+  <button onclick={save} disabled={!pkg || busy != null} title="Save everything the app keeps to one file" class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
     <Icon name={busy === "save" ? "refresh" : "download"} size={13} class={busy === "save" ? "animate-spin" : ""} /> Save state…
   </button>
-  <button onclick={open} disabled={busy != null} title="Open a saved state to restore it or compare it" class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
+  <button onclick={open} disabled={busy != null} title="Open a saved state to restore it or compare it" class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
     <Icon name="folderOpen" size={13} /> Open state…
   </button>
 </div>
@@ -93,32 +93,32 @@
     <div class="flex max-h-[80vh] w-[640px] max-w-full flex-col rounded-2xl border border-line bg-panel shadow-2xl" role="dialog" aria-label="Saved state">
       <header class="flex items-start gap-3 border-b border-line px-5 py-3.5">
         <div class="min-w-0 flex-1">
-          <p class="truncate text-[14px] font-semibold">{info.meta.app} {info.meta.appVersion ?? ""}</p>
-          <p class="text-[11.5px] text-muted">{info.meta.platform} · {info.meta.device} · {dateTime(info.meta.takenMs / 1000)} · {info.meta.files} files, {bytes(info.meta.bytes)}</p>
-          <p class="mono mt-0.5 truncate text-[10.5px] text-faint">{info.path}</p>
+          <p class="truncate text-xl font-semibold">{info.meta.app} {info.meta.appVersion ?? ""}</p>
+          <p class="text-sm text-muted">{info.meta.platform} · {info.meta.device} · {dateTime(info.meta.takenMs / 1000)} · {info.meta.files} files, {bytes(info.meta.bytes)}</p>
+          <p class="mono mt-0.5 truncate text-2xs text-faint">{info.path}</p>
         </div>
         <button onclick={() => ((info = null), (diff = null))} aria-label="Close" class="text-muted hover:text-fg"><Icon name="x" size={16} /></button>
       </header>
       <div class="flex flex-wrap gap-2 border-b border-line px-5 py-3">
-        <button onclick={compareNow} disabled={busy != null || !pkg || pkg !== info.meta.app} title={pkg !== info.meta.app ? "Pick this state's app first" : ""} class="h-8 rounded-lg border border-line px-3 text-[12px] font-medium hover:bg-hover disabled:opacity-40">Compare with the app now</button>
-        <button onclick={compareFile} disabled={busy != null} class="h-8 rounded-lg border border-line px-3 text-[12px] font-medium hover:bg-hover disabled:opacity-40">Compare with another file…</button>
+        <button onclick={compareNow} disabled={busy != null || !pkg || pkg !== info.meta.app} title={pkg !== info.meta.app ? "Pick this state's app first" : ""} class="h-8 rounded-lg border border-line px-3 text-base font-medium hover:bg-hover disabled:opacity-40">Compare with the app now</button>
+        <button onclick={compareFile} disabled={busy != null} class="h-8 rounded-lg border border-line px-3 text-base font-medium hover:bg-hover disabled:opacity-40">Compare with another file…</button>
         <span class="flex-1"></span>
-        <button onclick={restore} disabled={busy != null || !pkg || pkg !== info.meta.app} title={pkg !== info.meta.app ? "Pick this state's app first" : ""} class="h-8 rounded-lg bg-err px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">Restore…</button>
+        <button onclick={restore} disabled={busy != null || !pkg || pkg !== info.meta.app} title={pkg !== info.meta.app ? "Pick this state's app first" : ""} class="h-8 rounded-lg bg-err px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">Restore…</button>
       </div>
       <div class="selectable min-h-0 flex-1 overflow-auto px-5 py-3">
         {#if diff}
-          <p class="mb-2 text-[12px] font-semibold">{diff.title}</p>
+          <p class="mb-2 text-base font-semibold">{diff.title}</p>
           {#each diff.result.changes as c, i (i)}
-            <p class="mono py-0.5 text-[11.5px] {c.change === 'added' ? 'text-ok' : c.change === 'removed' ? 'text-err' : 'text-warn'}">{sign(c.change)} {diff.result.lines[i]?.slice(2)}</p>
+            <p class="mono py-0.5 text-sm {c.change === 'added' ? 'text-ok' : c.change === 'removed' ? 'text-err' : 'text-warn'}">{sign(c.change)} {diff.result.lines[i]?.slice(2)}</p>
           {:else}
-            <p class="text-[12px] text-muted">No difference in the structure of the data: the same tables, columns, indexes and keys.</p>
+            <p class="text-base text-muted">No difference in the structure of the data: the same tables, columns, indexes and keys.</p>
           {/each}
         {:else}
-          <p class="mb-2 text-[12px] font-semibold">What is inside</p>
+          <p class="mb-2 text-base font-semibold">What is inside</p>
           {#each info.files as f (f.path)}
-            <p class="mono flex justify-between gap-3 py-0.5 text-[11.5px]"><span class="truncate">{f.path}</span><span class="shrink-0 text-faint">{f.tables.length ? `${f.tables.length} tables` : `${f.keys.length} keys`}</span></p>
+            <p class="mono flex justify-between gap-3 py-0.5 text-sm"><span class="truncate">{f.path}</span><span class="shrink-0 text-faint">{f.tables.length ? `${f.tables.length} tables` : `${f.keys.length} keys`}</span></p>
           {:else}
-            <p class="text-[12px] text-muted">No database or preferences file.</p>
+            <p class="text-base text-muted">No database or preferences file.</p>
           {/each}
         {/if}
       </div>

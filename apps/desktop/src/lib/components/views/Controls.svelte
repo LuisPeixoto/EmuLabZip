@@ -16,9 +16,9 @@
     controls.refresh();
   });
 
-  const button = "flex h-8 items-center justify-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40";
-  const primary = "flex h-8 items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40";
-  const field = "h-8 w-full rounded-lg border border-line bg-panel-2 px-2.5 text-[12px] outline-none focus:border-accent";
+  const button = "flex h-8 items-center justify-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40";
+  const primary = "flex h-8 items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40";
+  const field = "h-8 w-full rounded-lg border border-line bg-panel-2 px-2.5 text-base outline-none focus:border-accent";
 
   function setAppearance(appearance: Appearance) {
     controls.apply("appearance", { action: "appearance", appearance }, `Appearance set to ${appearance}`);
@@ -49,8 +49,8 @@
   <header class="mb-3 flex items-start gap-2.5">
     <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent"><Icon name={icon} size={15} /></span>
     <div class="min-w-0">
-      <h2 class="text-[13px] font-semibold">{title}</h2>
-      <p class="text-[11.5px] leading-snug text-muted">{hint}</p>
+      <h2 class="text-lg font-semibold">{title}</h2>
+      <p class="text-sm leading-snug text-muted">{hint}</p>
     </div>
   </header>
 {/snippet}
@@ -58,22 +58,22 @@
 <div class="h-full overflow-y-auto">
   <div class="mx-auto max-w-[1180px] p-6">
     <header class="mb-5">
-      <h1 class="text-[18px] font-semibold tracking-tight">Controls</h1>
-      <p class="text-[12.5px] text-muted">Try your app somewhere else, in the dark, with a clean status bar or one permission less.</p>
+      <h1 class="text-3xl font-semibold tracking-tight">Controls</h1>
+      <p class="text-md text-muted">Try your app somewhere else, in the dark, with a clean status bar or one permission less.</p>
     </header>
 
     {#if controls.error}
-      <div class="mb-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-[12.5px] text-err"><Icon name="alert" size={14} />{controls.error}</div>
+      <div class="mb-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-md text-err"><Icon name="alert" size={14} />{controls.error}</div>
     {/if}
     {#each controls.info?.notes ?? [] as note (note)}
-      <p class="mb-2 flex items-start gap-2 text-[11.5px] text-muted"><Icon name="info" size={12} class="mt-0.5 shrink-0 text-faint" />{note}</p>
+      <p class="mb-2 flex items-start gap-2 text-sm text-muted"><Icon name="info" size={12} class="mt-0.5 shrink-0 text-faint" />{note}</p>
     {/each}
 
     <div class="mt-3 grid gap-4 lg:grid-cols-2">
       {#if controls.supports("fontScale")}
         <section class="rounded-2xl border border-line bg-panel p-4">
           {@render card("Text size and language", "code", "See how the app copes with big text and long or right-to-left languages.")}
-          <label class="text-[11px] text-muted">Text size: {textSize}%
+          <label class="text-xs text-muted">Text size: {textSize}%
             <input type="range" min="85" max="200" step="5" bind:value={textSize} class="mt-1 w-full accent-[var(--accent)]" />
           </label>
           <div class="mt-2 flex gap-2">
@@ -84,14 +84,14 @@
             <div class="mt-4 border-t border-line pt-3">
               <div class="mb-2 flex flex-wrap gap-1.5">
                 {#each LOCALES as l (l[0])}
-                  <button onclick={() => (locale = l[0])} title={l[1]} class="rounded-full border px-2.5 py-0.5 text-[11.5px] {locale === l[0] ? 'border-accent text-accent' : 'border-line text-muted hover:text-fg'}">{l[0]}</button>
+                  <button onclick={() => (locale = l[0])} title={l[1]} class="rounded-full border px-2.5 py-0.5 text-sm {locale === l[0] ? 'border-accent text-accent' : 'border-line text-muted hover:text-fg'}">{l[0]}</button>
                 {/each}
               </div>
               <div class="flex gap-2">
                 <button class={primary} disabled={busy != null || (!ios && !packageName)} onclick={() => controls.apply("locale", { action: "locale", locale, app: packageName }, `Language set to ${locale}`)}>Show in {locale}</button>
                 <button class={button} disabled={busy != null || (!ios && !packageName)} onclick={() => controls.apply("locale", { action: "resetLocale", app: packageName }, "Language back to normal")}>Reset</button>
               </div>
-              <p class="mt-2 text-[11px] leading-snug text-faint">{ios ? "The simulator changes language for every app; each picks it up when it starts again." : packageName ? "Android changes the language of the picked app (Android 13 and newer)." : "Pick an app in the toolbar: Android changes the language of one app at a time."}</p>
+              <p class="mt-2 text-xs leading-snug text-faint">{ios ? "The simulator changes language for every app; each picks it up when it starts again." : packageName ? "Android changes the language of the picked app (Android 13 and newer)." : "Pick an app in the toolbar: Android changes the language of one app at a time."}</p>
             </div>
           {/if}
         </section>
@@ -100,9 +100,9 @@
         <section class="rounded-2xl border border-line bg-panel p-4">
           {@render card("Display size", "smartphone", "A smaller or denser screen, to see how the layout copes.")}
           <div class="grid grid-cols-3 gap-2">
-            <label class="text-[11px] text-muted">Width<input class="{field} mono mt-1" type="number" bind:value={width} /></label>
-            <label class="text-[11px] text-muted">Height<input class="{field} mono mt-1" type="number" bind:value={height} /></label>
-            <label class="text-[11px] text-muted">Density<input class="{field} mono mt-1" type="number" bind:value={density} /></label>
+            <label class="text-xs text-muted">Width<input class="{field} mono mt-1" type="number" bind:value={width} /></label>
+            <label class="text-xs text-muted">Height<input class="{field} mono mt-1" type="number" bind:value={height} /></label>
+            <label class="text-xs text-muted">Density<input class="{field} mono mt-1" type="number" bind:value={density} /></label>
           </div>
           <div class="mt-3 flex gap-2">
             <button class={primary} disabled={busy != null} onclick={() => controls.apply("display", { action: "display", width, height, density }, "Display changed")}>Apply</button>
@@ -115,12 +115,12 @@
           {@render card("Location", "globe", ios ? "The simulator's GPS position." : "The emulator's GPS position, through its console.")}
           <div class="mb-2 flex flex-wrap gap-1.5">
             {#each PLACES as p (p.name)}
-              <button onclick={() => { d.lat = p.lat; d.lon = p.lon; }} class="rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-muted hover:border-line-strong hover:text-fg">{p.name}</button>
+              <button onclick={() => { d.lat = p.lat; d.lon = p.lon; }} class="rounded-full border border-line px-2.5 py-0.5 text-sm text-muted hover:border-line-strong hover:text-fg">{p.name}</button>
             {/each}
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <label class="text-[11px] text-muted">Latitude<input class="{field} mono mt-1" bind:value={d.lat} inputmode="decimal" /></label>
-            <label class="text-[11px] text-muted">Longitude<input class="{field} mono mt-1" bind:value={d.lon} inputmode="decimal" /></label>
+            <label class="text-xs text-muted">Latitude<input class="{field} mono mt-1" bind:value={d.lat} inputmode="decimal" /></label>
+            <label class="text-xs text-muted">Longitude<input class="{field} mono mt-1" bind:value={d.lon} inputmode="decimal" /></label>
           </div>
           <div class="mt-3 flex gap-2">
             <button class={primary} disabled={busy != null} onclick={() => controls.apply("location", { action: "location", lat: d.lat, lon: d.lon }, "Location set")}>Set location</button>
@@ -139,7 +139,7 @@
                 aria-checked={controls.info?.appearance === id}
                 disabled={busy != null}
                 onclick={() => setAppearance(id as Appearance)}
-                class="flex h-8 items-center gap-1.5 rounded-lg px-4 text-[12px] font-medium disabled:opacity-50 {controls.info?.appearance === id ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}"
+                class="flex h-8 items-center gap-1.5 rounded-lg px-4 text-base font-medium disabled:opacity-50 {controls.info?.appearance === id ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}"
               ><Icon name={icon} size={13} />{text}</button>
             {/each}
           </div>
@@ -150,10 +150,10 @@
         <section class="rounded-2xl border border-line bg-panel p-4">
           {@render card("Status bar", "smartphone", "A clean bar for screenshots: a fixed time, full battery, full signal.")}
           <div class="grid grid-cols-2 gap-3">
-            <label class="text-[11px] text-muted">Time<input class="{field} mono mt-1" bind:value={d.time} placeholder="9:41" /></label>
-            <label class="text-[11px] text-muted">Battery <span class="mono text-fg">{d.battery}%</span><input type="range" min="0" max="100" bind:value={d.battery} class="mt-2.5 w-full accent-[var(--accent)]" /></label>
+            <label class="text-xs text-muted">Time<input class="{field} mono mt-1" bind:value={d.time} placeholder="9:41" /></label>
+            <label class="text-xs text-muted">Battery <span class="mono text-fg">{d.battery}%</span><input type="range" min="0" max="100" bind:value={d.battery} class="mt-2.5 w-full accent-[var(--accent)]" /></label>
           </div>
-          <div class="mt-2 flex gap-5 text-[12px]">
+          <div class="mt-2 flex gap-5 text-base">
             <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" bind:checked={d.wifi} class="accent-[var(--accent)]" /> Wi-Fi</label>
             <label class="flex cursor-pointer items-center gap-2"><input type="checkbox" bind:checked={d.cellular} class="accent-[var(--accent)]" /> Cellular</label>
           </div>
@@ -167,8 +167,8 @@
       {#if controls.supports("battery")}
         <section class="rounded-2xl border border-line bg-panel p-4">
           {@render card("Battery", "zap", "Pretend the battery is low or charging, to see how the app reacts.")}
-          <label class="text-[11px] text-muted">Level <span class="mono text-fg">{d.level}%</span><input type="range" min="0" max="100" bind:value={d.level} class="mt-2 w-full accent-[var(--accent)]" /></label>
-          <label class="mt-2 flex cursor-pointer items-center gap-2 text-[12px]"><input type="checkbox" bind:checked={d.charging} class="accent-[var(--accent)]" /> Charging</label>
+          <label class="text-xs text-muted">Level <span class="mono text-fg">{d.level}%</span><input type="range" min="0" max="100" bind:value={d.level} class="mt-2 w-full accent-[var(--accent)]" /></label>
+          <label class="mt-2 flex cursor-pointer items-center gap-2 text-base"><input type="checkbox" bind:checked={d.charging} class="accent-[var(--accent)]" /> Charging</label>
           <div class="mt-3 flex gap-2">
             <button class={primary} disabled={busy != null} onclick={() => controls.apply("battery", { action: "battery", level: d.level, charging: d.charging }, "Battery overridden")}>Apply</button>
             <button class={button} disabled={busy != null} onclick={() => controls.apply("battery", { action: "resetBattery" }, "Battery back to normal")}>Reset</button>
@@ -189,11 +189,11 @@
               {/each}
             </div>
           {:else if controls.info?.permissions.length}
-            <p class="mb-2 text-[11.5px] text-muted">{granted} of {controls.info.permissions.length} granted.</p>
+            <p class="mb-2 text-sm text-muted">{granted} of {controls.info.permissions.length} granted.</p>
             <ul class="grid gap-x-6 sm:grid-cols-2">
               {#each controls.info.permissions as p (p.name)}
                 <li class="flex items-center gap-3 border-b border-line py-1.5 last:border-b-0">
-                  <span class="mono min-w-0 flex-1 truncate text-[11.5px]" title={p.name}>{p.name.replace("android.permission.", "")}</span>
+                  <span class="mono min-w-0 flex-1 truncate text-sm" title={p.name}>{p.name.replace("android.permission.", "")}</span>
                   <button
                     role="switch"
                     aria-checked={p.granted}
@@ -206,12 +206,12 @@
               {/each}
             </ul>
           {:else}
-            <p class="text-[12px] text-muted">This app asks for no runtime permissions.</p>
+            <p class="text-base text-muted">This app asks for no runtime permissions.</p>
           {/if}
         </section>
       {/if}
       {#if !controls.supports("permission") && controls.info}
-        <section class="rounded-2xl border border-dashed border-line-strong bg-panel/50 p-4 text-[12px] text-muted lg:col-span-2">
+        <section class="rounded-2xl border border-dashed border-line-strong bg-panel/50 p-4 text-base text-muted lg:col-span-2">
           <Icon name="shield" size={14} class="mr-1.5 inline text-faint" />Pick an app in the toolbar to change its permissions.
         </section>
       {/if}

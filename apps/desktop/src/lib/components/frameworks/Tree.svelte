@@ -35,9 +35,9 @@
       <button onclick={() => (open = !expanded)} class="grid size-5 shrink-0 place-items-center text-faint hover:text-fg" aria-label="Expand or collapse"><Icon name={expanded ? "chevronDown" : "chevronRight"} size={11} /></button>
     {:else}<span class="size-5 shrink-0"></span>{/if}
     <span class="mr-1.5 size-1.5 shrink-0 rounded-full {node.own ? 'bg-accent' : 'bg-line-strong'}" title={node.own ? "Made by the app's own code" : "Made by the framework or a package"}></span>
-    <span class="mono min-w-0 truncate py-0.5 text-[12px] {node.own ? 'font-medium' : 'text-muted'}">{node.label}</span>
-    {#if node.detail}<span class="mono ml-2 min-w-0 truncate text-[11px] text-faint">{node.detail}</span>{/if}
-    {#if !expanded && node.children.length}<span class="mono ml-2 text-[10.5px] text-faint">{node.children.length}</span>{/if}
+    <span class="mono min-w-0 truncate py-0.5 text-base {node.own ? 'font-medium' : 'text-muted'}">{node.label}</span>
+    {#if node.detail}<span class="mono ml-2 min-w-0 truncate text-xs text-faint">{node.detail}</span>{/if}
+    {#if !expanded && node.children.length}<span class="mono ml-2 text-2xs text-faint">{node.children.length}</span>{/if}
   </div>
   {#if expanded}
     {#each shown as child, i (i)}

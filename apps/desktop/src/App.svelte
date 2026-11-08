@@ -101,8 +101,8 @@
           <div class="grid h-full place-items-center text-center">
             <div>
               <span class="mx-auto mb-4 block size-3 rounded-full {app.device.state === 'booting' ? 'live-dot bg-warn' : 'bg-faint'}"></span>
-              <p class="text-[15px] font-semibold">{app.device.name} is {app.device.state}</p>
-              <p class="mt-1 text-[12.5px] text-muted">
+              <p class="text-2xl font-semibold">{app.device.name} is {app.device.state}</p>
+              <p class="mt-1 text-md text-muted">
                 {app.device.state === "unauthorized"
                   ? "Accept the USB debugging prompt on the device."
                   : app.device.state === "booting"

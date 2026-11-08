@@ -81,9 +81,9 @@
 
 <section class="rounded-2xl border border-line bg-panel p-4">
   <header class="mb-2 flex items-center gap-3">
-    <h3 class="flex-1 text-[12.5px] font-semibold">{title}</h3>
+    <h3 class="flex-1 text-md font-semibold">{title}</h3>
     {#if series.length > 1}
-      <div class="flex items-center gap-3 text-[11px] text-muted">
+      <div class="flex items-center gap-3 text-xs text-muted">
         {#each series as s (s.label)}
           <span class="flex items-center gap-1.5"><span class="h-0.5 w-3 rounded-full" style="background:{s.color}"></span>{s.label}</span>
         {/each}
@@ -125,7 +125,7 @@
 
     {#if hover != null}
       <div
-        class="shadow-pop pointer-events-none absolute top-1 z-10 rounded-lg border border-line bg-elevated px-2.5 py-1.5 text-[11.5px]"
+        class="shadow-pop pointer-events-none absolute top-1 z-10 rounded-lg border border-line bg-elevated px-2.5 py-1.5 text-sm"
         style="left:{Math.min(x(hover) + 12, width - 150)}px"
       >
         {#each series as s (s.label)}

@@ -47,45 +47,45 @@
 
 <section class="rounded-2xl border border-line bg-panel p-5">
   <header class="mb-3 flex flex-wrap items-center gap-2">
-    <h2 class="flex-1 text-[13px] font-semibold">Start time</h2>
+    <h2 class="flex-1 text-lg font-semibold">Start time</h2>
     <div class="flex rounded-lg border border-line bg-panel-2 p-0.5" role="group" aria-label="Kind of start">
       {#each kinds as k (k.id)}
         <button
           onclick={() => (kind = k.id)}
           disabled={ios && k.id === "warm"}
           title={ios && k.id === "warm" ? "The simulator has no back button to close a screen and keep the process" : ""}
-          class="h-7 rounded-md px-2.5 text-[11.5px] disabled:opacity-40 {kind === k.id ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
+          class="h-7 rounded-md px-2.5 text-sm disabled:opacity-40 {kind === k.id ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
         >{k.label}</button>
       {/each}
     </div>
-    <label class="flex items-center gap-1.5 text-[11.5px] text-muted">
+    <label class="flex items-center gap-1.5 text-sm text-muted">
       Runs
-      <input type="number" min="1" max="50" bind:value={runs} class="mono h-7 w-14 rounded-md border border-line bg-panel-2 px-1.5 text-[11.5px] outline-none focus:border-accent" />
+      <input type="number" min="1" max="50" bind:value={runs} class="mono h-7 w-14 rounded-md border border-line bg-panel-2 px-1.5 text-sm outline-none focus:border-accent" />
     </label>
     <button
       onclick={measure}
       disabled={!app.selectedApp || busy}
-      class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
+      class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40"
     >
       <Icon name={busy ? "refresh" : "play"} size={13} class={busy ? "animate-spin" : ""} />{busy ? "Measuring…" : "Measure"}
     </button>
   </header>
 
   {#if error}
-    <p class="flex items-center gap-2 text-[12.5px] text-err"><Icon name="alert" size={14} />{error}</p>
+    <p class="flex items-center gap-2 text-md text-err"><Icon name="alert" size={14} />{error}</p>
   {:else if !report}
-    <p class="text-[12.5px] text-muted">
+    <p class="text-md text-muted">
       {app.selectedApp ? "Opens the app several times and takes the median. It closes and opens the app on the device." : "Pick an app in the toolbar."}
     </p>
   {:else}
     <div class="mb-3 flex flex-wrap items-baseline gap-x-5 gap-y-1">
-      <p class="mono text-[26px] font-semibold tracking-tight">{ms(report.medianMs)}</p>
-      <p class="text-[12px] text-muted">median {report.kind} start over {report.runs.length} {report.runs.length === 1 ? "run" : "runs"}</p>
-      <p class="mono ml-auto text-[11.5px] text-faint">fastest {ms(report.minMs)} · 90th percentile {ms(report.p90Ms)} · slowest {ms(report.maxMs)}</p>
+      <p class="mono text-5xl font-semibold tracking-tight">{ms(report.medianMs)}</p>
+      <p class="text-base text-muted">median {report.kind} start over {report.runs.length} {report.runs.length === 1 ? "run" : "runs"}</p>
+      <p class="mono ml-auto text-sm text-faint">fastest {ms(report.minMs)} · 90th percentile {ms(report.p90Ms)} · slowest {ms(report.maxMs)}</p>
     </div>
     <div class="space-y-1.5">
       {#each report.runs as r, i (i)}
-        <div class="grid grid-cols-[28px_1fr_70px] items-center gap-3 text-[11.5px]">
+        <div class="grid grid-cols-[28px_1fr_70px] items-center gap-3 text-sm">
           <span class="mono text-faint">#{i + 1}</span>
           <span class="h-2 overflow-hidden rounded-full bg-hover">
             <span class="block h-full rounded-full bg-series-1" style="width:{Math.max(2, (r.totalMs / slowest) * 100)}%"></span>

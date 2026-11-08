@@ -88,7 +88,7 @@
         <button
           onclick={() => (logs.filter.minLevel = l)}
           title="{l[0].toUpperCase() + l.slice(1)} and above"
-          class="lv-{l} mono grid h-6 w-7 place-items-center rounded-md text-[11px] font-semibold transition {on ? 'lv-badge' : 'text-faint hover:text-muted'}"
+          class="lv-{l} mono grid h-6 w-7 place-items-center rounded-md text-xs font-semibold transition {on ? 'lv-badge' : 'text-faint hover:text-muted'}"
         >{letter(l)}</button>
       {/each}
     </div>
@@ -99,7 +99,7 @@
         bind:value={logs.filter.tag}
         spellcheck="false"
         placeholder="Tag"
-        class="h-8 w-[150px] rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel"
+        class="h-8 w-[150px] rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-base outline-none placeholder:text-faint focus:border-accent focus:bg-panel"
       />
     </label>
 
@@ -110,14 +110,14 @@
         bind:value={logs.filter.text}
         spellcheck="false"
         placeholder={logs.filter.regex ? "Regular expression, e.g. skipped \\d+ frames" : "Search messages and tags  (⌘F)"}
-        class="h-8 w-full rounded-lg border bg-panel-2 pr-10 pl-8 text-[12px] outline-none placeholder:text-faint focus:bg-panel {logs.compiled.error
+        class="h-8 w-full rounded-lg border bg-panel-2 pr-10 pl-8 text-base outline-none placeholder:text-faint focus:bg-panel {logs.compiled.error
           ? 'border-err'
           : 'border-line focus:border-accent'}"
       />
       <button
         onclick={() => (logs.filter.regex = !logs.filter.regex)}
         title={logs.compiled.error ?? "Regular expression"}
-        class="mono absolute right-1.5 grid h-6 w-7 place-items-center rounded-md text-[11px] font-semibold {logs.filter.regex
+        class="mono absolute right-1.5 grid h-6 w-7 place-items-center rounded-md text-xs font-semibold {logs.filter.regex
           ? 'bg-accent-soft text-accent'
           : 'text-faint hover:text-muted'}">.*</button
       >
@@ -127,7 +127,7 @@
       onclick={() => (logs.filter.onlyApp = !logs.filter.onlyApp)}
       disabled={!appFilterReady}
       title={appFilterReady ? `Only lines from ${app.selectedApp?.name}` : "Pick an app in the toolbar first"}
-      class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium disabled:opacity-40 {logs.filter.onlyApp
+      class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-base font-medium disabled:opacity-40 {logs.filter.onlyApp
         ? 'border-accent bg-accent-soft text-accent'
         : 'border-line text-muted hover:bg-hover hover:text-fg'}"
     >
@@ -152,10 +152,10 @@
       </button>
       {#if exportOpen}
         <div class="shadow-pop absolute top-10 right-0 z-40 w-[200px] rounded-xl border border-line bg-elevated p-1.5">
-          <button onclick={() => exportAs("txt")} class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] hover:bg-hover">
+          <button onclick={() => exportAs("txt")} class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-md hover:bg-hover">
             <Icon name="file" size={14} class="text-muted" /> Plain text (.txt)
           </button>
-          <button onclick={() => exportAs("jsonl")} class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] hover:bg-hover">
+          <button onclick={() => exportAs("jsonl")} class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-md hover:bg-hover">
             <Icon name="code" size={14} class="text-muted" /> JSON lines (.jsonl)
           </button>
         </div>
@@ -164,7 +164,7 @@
   </div>
 
   <!-- Column headers -->
-  <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-[10.5px] tracking-wide text-faint uppercase">
+  <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-2xs tracking-wide text-faint uppercase">
     <span class="w-[132px] shrink-0">Time</span>
     <span class="w-[52px] shrink-0 text-right">PID</span>
     <span class="w-[22px] shrink-0"></span>
@@ -185,7 +185,7 @@
                 onclick={() => (logs.selected = logs.selected?.seq === e.seq ? null : e)}
                 ondblclick={() => copyLine(e)}
                 style="height:{ROW}px"
-                class="lv-{e.level} mono flex items-center gap-3 border-b border-line/40 px-3 text-[11.5px] {logs.selected?.seq === e.seq
+                class="lv-{e.level} mono flex items-center gap-3 border-b border-line/40 px-3 text-sm {logs.selected?.seq === e.seq
                   ? 'bg-select'
                   : e.level === 'error'
                     ? 'lv-row-error hover:bg-hover'
@@ -195,7 +195,7 @@
               >
                 <span class="w-[132px] shrink-0 text-faint">{e.time}</span>
                 <span class="w-[52px] shrink-0 text-right text-muted">{e.pid}</span>
-                <span class="lv-badge grid h-[16px] w-[22px] shrink-0 place-items-center rounded text-[10px] font-bold">{letter(e.level)}</span>
+                <span class="lv-badge grid h-[16px] w-[22px] shrink-0 place-items-center rounded text-tiny font-bold">{letter(e.level)}</span>
                 <span class="w-[170px] shrink-0 truncate font-medium" style="color: hsl({hue(e.tag)} 55% var(--tag-l, 62%))" title={e.tag}>{e.tag}</span>
                 <span class="min-w-0 flex-1 truncate {e.level === 'verbose' ? 'text-muted' : 'text-fg'}" title={e.message.length > 120 ? e.message.slice(0, 600) : undefined}>{e.message}</span>
               </div>
@@ -207,12 +207,12 @@
           <div>
             <Icon name="terminal" size={26} class="mx-auto mb-3 text-faint" />
             {#if logs.entries.length}
-              <p class="text-[13px] font-medium">No line matches the filters</p>
-              <button onclick={() => logs.resetFilter()} class="mt-2 text-[12px] text-accent hover:underline">Reset filters</button>
+              <p class="text-lg font-medium">No line matches the filters</p>
+              <button onclick={() => logs.resetFilter()} class="mt-2 text-base text-accent hover:underline">Reset filters</button>
             {:else if logs.live}
-              <p class="text-[13px] font-medium">Waiting for log lines…</p>
+              <p class="text-lg font-medium">Waiting for log lines…</p>
             {:else}
-              <p class="text-[13px] font-medium">{app.online ? "Connecting to the log…" : "Logs appear when a device is online"}</p>
+              <p class="text-lg font-medium">{app.online ? "Connecting to the log…" : "Logs appear when a device is online"}</p>
             {/if}
           </div>
         </div>
@@ -221,7 +221,7 @@
     {#if !follow && rows.length}
       <button
         onclick={jumpToEnd}
-        class="shadow-pop absolute right-5 bottom-4 flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90"
+        class="shadow-pop absolute right-5 bottom-4 flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90"
       >
         <Icon name="arrowDownToLine" size={14} /> Jump to latest
       </button>
@@ -232,25 +232,25 @@
   {#if logs.selected}
     {@const e = logs.selected}
     <div class="lv-{e.level} max-h-[38%] shrink-0 overflow-y-auto border-t border-line bg-panel-2">
-      <div class="flex items-center gap-2 px-4 pt-3 text-[11.5px]">
-        <span class="lv-badge rounded px-1.5 py-px text-[10.5px] font-bold uppercase">{e.level}</span>
+      <div class="flex items-center gap-2 px-4 pt-3 text-sm">
+        <span class="lv-badge rounded px-1.5 py-px text-2xs font-bold uppercase">{e.level}</span>
         <span class="font-semibold" style="color: hsl({hue(e.tag)} 55% var(--tag-l, 62%))">{e.tag}</span>
         <span class="mono text-faint">{e.time} · pid {e.pid} · tid {e.tid}</span>
-        {#if e.subsystem}<span class="mono rounded-md border border-line px-1.5 text-[10.5px] text-muted">{e.subsystem}</span>{/if}
+        {#if e.subsystem}<span class="mono rounded-md border border-line px-1.5 text-2xs text-muted">{e.subsystem}</span>{/if}
         <span class="flex-1"></span>
-        <button onclick={() => copyLine(e)} class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg">
+        <button onclick={() => copyLine(e)} class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-sm text-muted hover:bg-hover hover:text-fg">
           <Icon name="copy" size={13} /> Copy
         </button>
         <button onclick={() => (logs.selected = null)} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close">
           <Icon name="x" size={13} />
         </button>
       </div>
-      <pre class="mono selectable px-4 pt-2 pb-4 text-[12px] break-words whitespace-pre-wrap text-fg">{e.message}</pre>
+      <pre class="mono selectable px-4 pt-2 pb-4 text-base break-words whitespace-pre-wrap text-fg">{e.message}</pre>
     </div>
   {/if}
 
   <!-- Status -->
-  <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-[11px] text-muted">
+  <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-xs text-muted">
     {#if logs.paused}
       <span class="flex items-center gap-1.5 font-medium text-warn"><Icon name="pause" size={11} /> Paused</span>
     {:else if logs.live}

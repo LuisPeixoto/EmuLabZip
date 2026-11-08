@@ -42,35 +42,35 @@
   <div class="flex h-[46%] min-h-[220px] shrink-0 flex-col border-t-2 border-warn bg-panel-2">
     <header class="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2">
       <span class="grid size-6 place-items-center rounded-md bg-warn/15 text-warn"><Icon name="pause" size={13} /></span>
-      <span class="text-[12.5px] font-semibold">Held {item.phase}</span>
+      <span class="text-md font-semibold">Held {item.phase}</span>
       {#if net.paused.length > 1}
         <span class="flex items-center gap-1">
           {#each net.paused as p, i (p.id)}
-            <button onclick={() => (index = i)} class="mono h-5 min-w-5 rounded px-1 text-[10.5px] {item.id === p.id ? 'bg-warn/20 font-semibold text-warn' : 'text-faint hover:text-fg'}">{i + 1}</button>
+            <button onclick={() => (index = i)} class="mono h-5 min-w-5 rounded px-1 text-2xs {item.id === p.id ? 'bg-warn/20 font-semibold text-warn' : 'text-faint hover:text-fg'}">{i + 1}</button>
           {/each}
         </span>
       {/if}
-      <span class="mono min-w-0 flex-1 truncate text-[11.5px] text-muted" title={item.url}>{item.method} {item.url}</span>
+      <span class="mono min-w-0 flex-1 truncate text-sm text-muted" title={item.url}>{item.method} {item.url}</span>
       {#if net.paused.length > 1}
-        <button onclick={() => net.resumeAll()} class="h-7 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">Continue all</button>
+        <button onclick={() => net.resumeAll()} class="h-7 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg">Continue all</button>
       {/if}
-      <button onclick={() => net.resume(item.id, true)} class="h-7 rounded-lg px-2.5 text-[12px] font-medium text-err hover:bg-err/10">Abort</button>
-      <button onclick={go} class="h-7 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">Continue</button>
+      <button onclick={() => net.resume(item.id, true)} class="h-7 rounded-lg px-2.5 text-base font-medium text-err hover:bg-err/10">Abort</button>
+      <button onclick={go} class="h-7 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90">Continue</button>
     </header>
 
     <div class="grid min-h-0 flex-1 grid-cols-2 gap-3 p-3">
       <label class="flex min-h-0 flex-col">
-        <span class="mb-1 flex items-center text-[11px] font-medium text-muted">
+        <span class="mb-1 flex items-center text-xs font-medium text-muted">
           Headers
           {#if item.phase === "response"}
-            <span class="ml-auto flex items-center gap-1.5">Status <input type="number" min="100" max="599" bind:value={status} class="mono h-6 w-16 rounded-md border border-line bg-panel px-1.5 text-[11.5px] outline-none focus:border-accent" /></span>
+            <span class="ml-auto flex items-center gap-1.5">Status <input type="number" min="100" max="599" bind:value={status} class="mono h-6 w-16 rounded-md border border-line bg-panel px-1.5 text-sm outline-none focus:border-accent" /></span>
           {/if}
         </span>
-        <textarea bind:value={headers} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-[11.5px] outline-none focus:border-accent"></textarea>
+        <textarea bind:value={headers} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:border-accent"></textarea>
       </label>
       <label class="flex min-h-0 flex-col">
-        <span class="mb-1 text-[11px] font-medium text-muted">Body {#if item.bodyText == null}<span class="font-normal text-faint">· not text, sent as it is</span>{/if}</span>
-        <textarea bind:value={body} disabled={item.bodyText == null} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-[11.5px] outline-none focus:border-accent disabled:opacity-50"></textarea>
+        <span class="mb-1 text-xs font-medium text-muted">Body {#if item.bodyText == null}<span class="font-normal text-faint">· not text, sent as it is</span>{/if}</span>
+        <textarea bind:value={body} disabled={item.bodyText == null} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:border-accent disabled:opacity-50"></textarea>
       </label>
     </div>
   </div>

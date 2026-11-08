@@ -149,14 +149,14 @@
       <button
         onclick={() => pick(t)}
         title={t.sql}
-        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] {!queryMode && table?.name === t.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover'}"
+        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-base {!queryMode && table?.name === t.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover'}"
       >
         <Icon name={t.kind === "view" ? "eye" : "database"} size={13} class="shrink-0 text-faint" />
         <span class="min-w-0 flex-1 truncate">{t.name}</span>
-        <span class="mono text-[10.5px] text-faint">{t.rows.toLocaleString()}</span>
+        <span class="mono text-2xs text-faint">{t.rows.toLocaleString()}</span>
       </button>
     {:else}
-      <p class="p-3 text-[12px] text-muted">The database has no tables.</p>
+      <p class="p-3 text-base text-muted">The database has no tables.</p>
     {/each}
   </nav>
   <div class="flex min-w-0 flex-1 flex-col">
@@ -165,38 +165,38 @@
         bind:value={sql}
         spellcheck="false"
         placeholder="SELECT … (read-only)"
-        class="mono h-8 flex-1 rounded-lg border border-line bg-panel-2 px-2.5 text-[12px] outline-none placeholder:text-faint focus:border-accent"
+        class="mono h-8 flex-1 rounded-lg border border-line bg-panel-2 px-2.5 text-base outline-none placeholder:text-faint focus:border-accent"
       />
-      <button type="submit" class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">
+      <button type="submit" class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90">
         <Icon name="play" size={12} /> Run
       </button>
     </form>
     {#if error}
-      <p class="border-b border-line bg-err/8 px-3 py-2 text-[12px] text-err">{error}</p>
+      <p class="border-b border-line bg-err/8 px-3 py-2 text-base text-err">{error}</p>
     {/if}
     {#if editing && keyed && !keyed.editable && !queryMode}
-      <p class="border-b border-line bg-warn/10 px-3 py-2 text-[12px] text-warn">This table cannot be changed here: {keyed.reason ?? "it has no key to tell its rows apart"}.</p>
+      <p class="border-b border-line bg-warn/10 px-3 py-2 text-base text-warn">This table cannot be changed here: {keyed.reason ?? "it has no key to tell its rows apart"}.</p>
     {/if}
     {#if canEdit && table}
       <div class="shrink-0 border-b border-line px-3 py-2">
         {#if adding}
           <div class="flex flex-wrap items-end gap-2">
             {#each table.columns as c (c.name)}
-              <label class="text-[10.5px] text-muted">{c.name}<span class="text-faint"> {c.declType}</span>
-                <input bind:value={adding[c.name]} spellcheck="false" class="mono mt-0.5 block h-7 w-32 rounded-md border border-line bg-panel-2 px-2 text-[11.5px] text-fg outline-none focus:border-accent" />
+              <label class="text-2xs text-muted">{c.name}<span class="text-faint"> {c.declType}</span>
+                <input bind:value={adding[c.name]} spellcheck="false" class="mono mt-0.5 block h-7 w-32 rounded-md border border-line bg-panel-2 px-2 text-sm text-fg outline-none focus:border-accent" />
               </label>
             {/each}
-            <button onclick={insert} class="h-7 rounded-md bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">Add row</button>
-            <button onclick={() => (adding = null)} class="h-7 rounded-md border border-line px-3 text-[12px] text-muted hover:bg-hover">Cancel</button>
+            <button onclick={insert} class="h-7 rounded-md bg-accent px-3 text-base font-semibold text-white hover:opacity-90">Add row</button>
+            <button onclick={() => (adding = null)} class="h-7 rounded-md border border-line px-3 text-base text-muted hover:bg-hover">Cancel</button>
           </div>
         {:else}
-          <button onclick={() => (adding = Object.fromEntries(table!.columns.map((c) => [c.name, ""])))} class="flex h-7 items-center gap-1.5 rounded-md border border-line px-2.5 text-[12px] text-muted hover:bg-hover hover:text-fg"><Icon name="plus" size={12} /> New row</button>
+          <button onclick={() => (adding = Object.fromEntries(table!.columns.map((c) => [c.name, ""])))} class="flex h-7 items-center gap-1.5 rounded-md border border-line px-2.5 text-base text-muted hover:bg-hover hover:text-fg"><Icon name="plus" size={12} /> New row</button>
         {/if}
       </div>
     {/if}
     <div class="selectable min-h-0 flex-1 overflow-auto">
       {#if rows}
-        <table class="mono w-max min-w-full border-separate border-spacing-0 text-[11.5px]">
+        <table class="mono w-max min-w-full border-separate border-spacing-0 text-sm">
           <thead class="sticky top-0 bg-panel-2">
             <tr>
               {#if canEdit}<th class="w-8 border-b border-line"></th>{/if}
@@ -204,8 +204,8 @@
                 {@const col = !queryMode ? table?.columns.find((x) => x.name === c) : undefined}
                 <th class="border-b border-line px-3 py-1.5 text-left font-semibold whitespace-nowrap">
                   {c}
-                  {#if col?.primaryKey}<span class="ml-1 text-[9.5px] text-accent">PK</span>{/if}
-                  {#if col?.declType}<span class="ml-1 text-[10px] font-normal text-faint">{col.declType}</span>{/if}
+                  {#if col?.primaryKey}<span class="ml-1 text-tiny text-accent">PK</span>{/if}
+                  {#if col?.declType}<span class="ml-1 text-tiny font-normal text-faint">{col.declType}</span>{/if}
                 </th>
               {/each}
             </tr>
@@ -227,7 +227,7 @@
                         bind:value={editCell.text}
                         onkeydown={(e) => (e.key === "Enter" ? commit() : e.key === "Escape" ? (editCell = null) : null)}
                         onblur={() => (editCell = null)}
-                        class="mono h-7 w-full min-w-[120px] border-0 bg-accent-soft px-3 text-[11.5px] outline-none"
+                        class="mono h-7 w-full min-w-[120px] border-0 bg-accent-soft px-3 text-sm outline-none"
                       />
                     </td>
                   {:else}
@@ -248,14 +248,14 @@
       {/if}
     </div>
     {#if !queryMode && table && rows}
-      <footer class="flex shrink-0 items-center gap-2 border-t border-line px-3 py-1.5 text-[11.5px] text-muted">
+      <footer class="flex shrink-0 items-center gap-2 border-t border-line px-3 py-1.5 text-sm text-muted">
         <span class="mono">{(offset + 1).toLocaleString()}–{(offset + rows.rows.length).toLocaleString()} of {table.rows.toLocaleString()}</span>
         <span class="flex-1"></span>
         <button disabled={offset === 0} onclick={() => (offset = Math.max(0, offset - PAGE))} class="h-7 rounded-md border border-line px-2.5 hover:bg-hover disabled:opacity-40">Previous</button>
         <button disabled={!rows.truncated} onclick={() => (offset += PAGE)} class="h-7 rounded-md border border-line px-2.5 hover:bg-hover disabled:opacity-40">Next</button>
       </footer>
     {:else if queryMode && rows}
-      <footer class="shrink-0 border-t border-line px-3 py-1.5 text-[11.5px] text-muted">
+      <footer class="shrink-0 border-t border-line px-3 py-1.5 text-sm text-muted">
         {rows.rows.length.toLocaleString()} rows{rows.truncated ? " (first 1,000)" : ""}
       </footer>
     {/if}

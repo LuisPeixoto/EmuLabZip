@@ -148,8 +148,8 @@
   <div class="grid h-full place-items-center p-10 text-center">
     <div>
       <span class="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon name="database" size={22} /></span>
-      <p class="text-[15px] font-semibold">Pick an app to browse its files</p>
-      <p class="mt-1 max-w-[420px] text-[12.5px] text-muted">
+      <p class="text-2xl font-semibold">Pick an app to browse its files</p>
+      <p class="mt-1 max-w-[420px] text-md text-muted">
         {ios
           ? "Browse the data container, the bundle and app group containers, with viewers for SQLite databases and property lists."
           : "Browse the private data of debuggable apps and their shared storage, with viewers for SQLite databases and SharedPreferences."}
@@ -164,13 +164,13 @@
           <button
             onclick={() => open(r.id, "")}
             title={r.location}
-            class="flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] {r.id === rootId ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-hover hover:text-fg'}"
+            class="flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-base {r.id === rootId ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-hover hover:text-fg'}"
           >
             {#if r.unavailable}<span class="size-1.5 rounded-full bg-faint"></span>{/if}{r.label}
           </button>
         {/each}
       </div>
-      <nav class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-3 py-2 text-[12px]">
+      <nav class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-3 py-2 text-base">
         <button onclick={() => rootId && open(rootId, "")} class="shrink-0 text-muted hover:text-fg"><Icon name="folder" size={13} /></button>
         {#each crumbs as c, i (i)}
           <Icon name="chevronRight" size={12} class="shrink-0 text-faint" />
@@ -179,18 +179,18 @@
       </nav>
       <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
         {#if error}
-          <p class="p-3 text-[12px] text-err">{error}</p>
+          <p class="p-3 text-base text-err">{error}</p>
         {:else if root?.unavailable}
-          <div class="p-4 text-center text-[12px] text-muted">
+          <div class="p-4 text-center text-base text-muted">
             <Icon name="alert" size={18} class="mx-auto mb-2 text-faint" />
             {root.unavailable}
-            <p class="mono mt-2 text-[10.5px] break-all text-faint">{root.location}</p>
+            <p class="mono mt-2 text-2xs break-all text-faint">{root.location}</p>
           </div>
         {:else if !entries}
           {#each Array(6) as _, i (i)}<div class="skeleton m-2 h-5"></div>{/each}
         {:else}
           {#if path}
-            <button onclick={() => rootId && open(rootId, crumbs.slice(0, -1).join("/"))} class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] text-muted hover:bg-hover">
+            <button onclick={() => rootId && open(rootId, crumbs.slice(0, -1).join("/"))} class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-md text-muted hover:bg-hover">
               <Icon name="arrowUp" size={14} /> ..
             </button>
           {/if}
@@ -200,37 +200,37 @@
               class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left {previewAt?.root === rootId && previewAt?.path === e.path ? 'bg-accent-soft' : 'hover:bg-hover'}"
             >
               <Icon name={opening === e.path ? "refresh" : icon(e)} size={14} class="shrink-0 {e.isDir ? 'text-accent' : 'text-faint'} {opening === e.path ? 'animate-spin' : ''}" />
-              <span class="min-w-0 flex-1 truncate text-[12.5px]">{e.name}</span>
+              <span class="min-w-0 flex-1 truncate text-md">{e.name}</span>
               <span class="shrink-0 text-right leading-tight">
-                {#if !e.isDir}<span class="mono block text-[10.5px] text-muted">{bytes(e.size)}</span>{/if}
-                <span class="block text-[10px] text-faint">{dateTime(e.modified)}</span>
+                {#if !e.isDir}<span class="mono block text-2xs text-muted">{bytes(e.size)}</span>{/if}
+                <span class="block text-tiny text-faint">{dateTime(e.modified)}</span>
               </span>
             </button>
           {:else}
-            <p class="p-4 text-center text-[12px] text-muted">This folder is empty.</p>
+            <p class="p-4 text-center text-base text-muted">This folder is empty.</p>
           {/each}
         {/if}
       </div>
     </section>
     <section class="flex min-w-0 flex-1 flex-col bg-panel">
       <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-        <button onclick={turnOnEditing} aria-pressed={editing} title="Change rows and preferences on the device" class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium {editing ? 'border-warn bg-warn/10 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}">
+        <button onclick={turnOnEditing} aria-pressed={editing} title="Change rows and preferences on the device" class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-base font-medium {editing ? 'border-warn bg-warn/10 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}">
           <Icon name="lock" size={13} /> {editing ? "Editing" : "Edit"}
         </button>
         {#if lastEdit}
-          <button onclick={undo} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="history" size={13} /> Undo last change</button>
+          <button onclick={undo} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="history" size={13} /> Undo last change</button>
         {/if}
         <span class="flex-1"></span>
         <AppState onrestored={reload} />
       </div>
       {#if editing}
-        <p class="shrink-0 border-b border-line bg-warn/10 px-4 py-1.5 text-[11.5px] text-warn">Edit mode: double-click a value to change it. The app is stopped for each change.</p>
+        <p class="shrink-0 border-b border-line bg-warn/10 px-4 py-1.5 text-sm text-warn">Edit mode: double-click a value to change it. The app is stopped for each change.</p>
       {/if}
       <div class="min-h-0 flex-1">
       {#if preview}
         <FilePreview {preview} onsave={save} {at} {editing} initialTable={table} ontable={(n) => (table = n)} onedited={edited} />
       {:else}
-        <div class="grid h-full place-items-center text-center text-[12.5px] text-muted">
+        <div class="grid h-full place-items-center text-center text-md text-muted">
           <div>
             <Icon name="file" size={24} class="mx-auto mb-3 text-faint" />
             Select a file to preview it.<br />Databases, preferences, property lists, images and text open in place.

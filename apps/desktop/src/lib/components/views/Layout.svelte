@@ -96,30 +96,30 @@
 <div class="flex h-full flex-col">
   <header class="flex shrink-0 items-center gap-3 border-b border-line bg-panel px-4 py-3">
     <div class="min-w-0">
-      <h1 class="text-[15px] font-semibold tracking-tight">Layout</h1>
-      <p class="text-[11.5px] text-muted">
+      <h1 class="text-2xl font-semibold tracking-tight">Layout</h1>
+      <p class="text-sm text-muted">
         {#if result}{layout.nodes.length} views on a {screen?.width} × {screen?.height} {unit} screen{:else}The views on the screen, and what a screen reader would trip over{/if}
       </p>
     </div>
     <span class="flex-1"></span>
-    <label class="flex items-center gap-1.5 text-[12px] text-muted">
+    <label class="flex items-center gap-1.5 text-base text-muted">
       <input type="checkbox" bind:checked={layout.showAll} class="accent-[var(--accent)]" /> Outline every view
     </label>
-    <button onclick={() => layout.capture()} disabled={layout.loading || !app.online} class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">
+    <button onclick={() => layout.capture()} disabled={layout.loading || !app.online} class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">
       <Icon name="refresh" size={13} class={layout.loading ? "animate-spin" : ""} />{result ? "Capture again" : "Capture"}
     </button>
   </header>
 
   {#if layout.error}
-    <div class="m-4 flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-[12.5px] text-err"><Icon name="alert" size={14} class="mt-0.5 shrink-0" /><span>{layout.error}</span></div>
+    <div class="m-4 flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-md text-err"><Icon name="alert" size={14} class="mt-0.5 shrink-0" /><span>{layout.error}</span></div>
   {/if}
 
   {#if !result && !layout.error}
     <div class="grid flex-1 place-items-center px-6 text-center">
       <div class="max-w-[420px]">
         <span class="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon name="layers" size={22} /></span>
-        <p class="text-[13.5px] font-medium">{layout.loading ? "Reading the screen…" : "Capture the screen"}</p>
-        <p class="mt-1.5 text-[12.5px] leading-relaxed text-muted">Shows every view with its size and name, and checks labels, touch targets and contrast.</p>
+        <p class="text-xl font-medium">{layout.loading ? "Reading the screen…" : "Capture the screen"}</p>
+        <p class="mt-1.5 text-md leading-relaxed text-muted">Shows every view with its size and name, and checks labels, touch targets and contrast.</p>
       </div>
     </div>
   {:else if result && screen}
@@ -142,7 +142,7 @@
             {#if layout.selected}<div class="pointer-events-none absolute border-2 border-accent bg-accent/25" style={box(layout.selected.bounds)}></div>{/if}
           </div>
           {#if hovered}
-            <div class="mono pointer-events-none absolute bottom-2 left-2 max-w-[90%] truncate rounded-md bg-black/75 px-2 py-1 text-[11px] text-white">{title(hovered)} · {hovered.bounds.width} × {hovered.bounds.height}</div>
+            <div class="mono pointer-events-none absolute bottom-2 left-2 max-w-[90%] truncate rounded-md bg-black/75 px-2 py-1 text-xs text-white">{title(hovered)} · {hovered.bounds.width} × {hovered.bounds.height}</div>
           {/if}
         </div>
       </div>
@@ -151,11 +151,11 @@
       <aside class="flex w-[400px] shrink-0 flex-col border-l border-line bg-panel">
         <div class="flex shrink-0 items-center gap-1 border-b border-line px-3" role="tablist">
           {#each [["tree", "Views"], ["audit", "Accessibility"]] as [id, label] (id)}
-            <button role="tab" aria-selected={layout.tab === id} onclick={() => (layout.tab = id as "tree" | "audit")} class="-mb-px flex h-9 items-center gap-1.5 border-b-2 px-2.5 text-[12px] {layout.tab === id ? 'border-accent font-medium text-accent' : 'border-transparent text-muted hover:text-fg'}">
+            <button role="tab" aria-selected={layout.tab === id} onclick={() => (layout.tab = id as "tree" | "audit")} class="-mb-px flex h-9 items-center gap-1.5 border-b-2 px-2.5 text-base {layout.tab === id ? 'border-accent font-medium text-accent' : 'border-transparent text-muted hover:text-fg'}">
               {label}
               {#if id === "audit"}
-                {#if count("error")}<span class="mono rounded-full bg-err px-1.5 text-[10px] font-semibold text-white">{count("error")}</span>{/if}
-                {#if count("warning")}<span class="mono rounded-full bg-warn px-1.5 text-[10px] font-semibold text-white">{count("warning")}</span>{/if}
+                {#if count("error")}<span class="mono rounded-full bg-err px-1.5 text-tiny font-semibold text-white">{count("error")}</span>{/if}
+                {#if count("warning")}<span class="mono rounded-full bg-warn px-1.5 text-tiny font-semibold text-white">{count("warning")}</span>{/if}
                 {#if !findings.length}<Icon name="check" size={12} class="text-ok" />{/if}
               {/if}
             </button>
@@ -165,7 +165,7 @@
         {#if layout.tab === "tree"}
           <label class="relative m-2 flex shrink-0 items-center">
             <Icon name="search" size={12} class="pointer-events-none absolute left-2.5 text-faint" />
-            <input bind:value={layout.search} spellcheck="false" placeholder="Find by text, label or id" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-[12px] outline-none placeholder:text-faint focus:border-accent" />
+            <input bind:value={layout.search} spellcheck="false" placeholder="Find by text, label or id" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-base outline-none placeholder:text-faint focus:border-accent" />
           </label>
           <div bind:this={treeEl} class="min-h-0 flex-1 overflow-y-auto pb-2">
             {#each rows as { node, depth } (node.id)}
@@ -174,58 +174,58 @@
                 {#if node.children.length && !layout.matches}
                   <button onclick={() => layout.toggle(node.id)} class="grid size-5 shrink-0 place-items-center text-faint hover:text-fg" aria-label="Expand or collapse"><Icon name={layout.collapsed.has(node.id) ? "chevronRight" : "chevronDown"} size={11} /></button>
                 {:else}<span class="size-5 shrink-0"></span>{/if}
-                <button onclick={() => layout.select(node.id)} class="flex min-w-0 flex-1 items-center gap-2 py-1 pr-2 text-left text-[12px]">
-                  <span class="mono shrink-0 text-[10.5px] text-faint">{node.class.split(".").pop()}</span>
-                  {#if node.framework}<span class="shrink-0 rounded bg-accent-soft px-1 py-px text-[9.5px] font-semibold text-accent" title={frameworkName[node.framework]}>{node.framework === "react-native" ? "RN" : node.framework}</span>{/if}
+                <button onclick={() => layout.select(node.id)} class="flex min-w-0 flex-1 items-center gap-2 py-1 pr-2 text-left text-base">
+                  <span class="mono shrink-0 text-2xs text-faint">{node.class.split(".").pop()}</span>
+                  {#if node.framework}<span class="shrink-0 rounded bg-accent-soft px-1 py-px text-tiny font-semibold text-accent" title={frameworkName[node.framework]}>{node.framework === "react-native" ? "RN" : node.framework}</span>{/if}
                   <span class="min-w-0 flex-1 truncate {node.label || node.text ? '' : 'text-faint'}">{title(node)}</span>
                   {#if bad}<span class="size-2 shrink-0 rounded-full {tone[bad[0].severity]}"></span>{/if}
                 </button>
               </div>
             {:else}
-              <p class="px-4 py-6 text-center text-[12px] text-muted">Nothing matches.</p>
+              <p class="px-4 py-6 text-center text-base text-muted">Nothing matches.</p>
             {/each}
           </div>
           {#if layout.selected}
             <div class="max-h-[42%] shrink-0 overflow-y-auto border-t border-line bg-panel-2 px-4 py-3">
-              <dl class="selectable grid grid-cols-[72px_1fr] gap-x-3 gap-y-1 text-[11.5px]">
+              <dl class="selectable grid grid-cols-[72px_1fr] gap-x-3 gap-y-1 text-sm">
                 {#each props as [k, v] (k)}
                   <dt class="text-faint">{k}</dt><dd class="mono min-w-0 break-all">{v}</dd>
                 {/each}
               </dl>
               {#each layout.findingsByNode.get(layout.selected.id) ?? [] as f, i (i)}
-                <p class="mt-2 flex items-start gap-1.5 rounded-lg bg-hover px-2.5 py-1.5 text-[11.5px]"><span class="mt-1 size-2 shrink-0 rounded-full {tone[f.severity]}"></span>{f.message}</p>
+                <p class="mt-2 flex items-start gap-1.5 rounded-lg bg-hover px-2.5 py-1.5 text-sm"><span class="mt-1 size-2 shrink-0 rounded-full {tone[f.severity]}"></span>{f.message}</p>
               {/each}
               {#if layout.selected.resourceId}
-                <button onclick={() => copy(layout.selected!.resourceId!)} class="mt-2 flex h-6 items-center gap-1.5 rounded-md px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="copy" size={12} />Copy the id</button>
+                <button onclick={() => copy(layout.selected!.resourceId!)} class="mt-2 flex h-6 items-center gap-1.5 rounded-md px-2 text-sm text-muted hover:bg-hover hover:text-fg"><Icon name="copy" size={12} />Copy the id</button>
               {/if}
             </div>
           {/if}
         {:else}
           <div class="min-h-0 flex-1 overflow-y-auto">
             {#if layout.audit?.contrastSkipped}
-              <p class="border-b border-line bg-warn/10 px-4 py-2 text-[11.5px] text-warn">Contrast was not checked: the layout came without a screenshot.</p>
+              <p class="border-b border-line bg-warn/10 px-4 py-2 text-sm text-warn">Contrast was not checked: the layout came without a screenshot.</p>
             {/if}
-            <p class="px-4 pt-3 pb-1 text-[11.5px] text-muted">
+            <p class="px-4 pt-3 pb-1 text-sm text-muted">
               {layout.audit?.checked ?? 0} views checked: {count("error")} errors, {count("warning")} warnings, {count("info")} notes. This is a first pass; try the app with TalkBack or VoiceOver too.
             </p>
             {#each findings as f, i (i)}
               <button onclick={() => { layout.select(f.node); layout.reveal(f.node); }} class="block w-full border-b border-line/50 px-4 py-2.5 text-left hover:bg-hover {layout.selectedId === f.node ? 'bg-select' : ''}">
                 <span class="flex items-center gap-2">
                   <span class="size-2 shrink-0 rounded-full {tone[f.severity]}"></span>
-                  <span class="mono rounded bg-hover px-1.5 text-[10.5px] text-muted">{f.rule}</span>
-                  <span class="mono min-w-0 flex-1 truncate text-[10.5px] text-faint">{f.class.split(".").pop()}{f.resourceId ? ` · ${f.resourceId.split("/").pop()}` : ""}</span>
+                  <span class="mono rounded bg-hover px-1.5 text-2xs text-muted">{f.rule}</span>
+                  <span class="mono min-w-0 flex-1 truncate text-2xs text-faint">{f.class.split(".").pop()}{f.resourceId ? ` · ${f.resourceId.split("/").pop()}` : ""}</span>
                 </span>
-                <span class="mt-1 block text-[12px] leading-snug">{f.message}</span>
+                <span class="mt-1 block text-base leading-snug">{f.message}</span>
                 {#if layout.selectedId === f.node}
-                  <span class="mt-1.5 block text-[11.5px] leading-snug text-muted">{f.fix}</span>
-                  <span class="mono mt-1 block text-[10.5px] text-faint">WCAG {f.wcag}</span>
+                  <span class="mt-1.5 block text-sm leading-snug text-muted">{f.fix}</span>
+                  <span class="mono mt-1 block text-2xs text-faint">WCAG {f.wcag}</span>
                 {/if}
               </button>
             {:else}
               <div class="grid place-items-center px-6 py-12 text-center">
                 <span class="mb-3 grid size-10 place-items-center rounded-2xl bg-ok/12 text-ok"><Icon name="shieldCheck" size={20} /></span>
-                <p class="text-[13px] font-medium">Nothing found</p>
-                <p class="mt-1 text-[12px] text-muted">Labels, touch targets and contrast look fine on this screen.</p>
+                <p class="text-lg font-medium">Nothing found</p>
+                <p class="mt-1 text-base text-muted">Labels, touch targets and contrast look fine on this screen.</p>
               </div>
             {/each}
           </div>

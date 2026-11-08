@@ -31,20 +31,20 @@
         <Icon name={result.done ? "shieldCheck" : "shield"} size={17} />
       </span>
       <div class="min-w-0 flex-1">
-        <h2 class="text-[13.5px] font-semibold">{titles[result.kind]}</h2>
-        <p class="text-[11.5px] text-muted">Certificate for {app.device?.name}</p>
+        <h2 class="text-xl font-semibold">{titles[result.kind]}</h2>
+        <p class="text-sm text-muted">Certificate for {app.device?.name}</p>
       </div>
       <button onclick={onclose} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close"><Icon name="x" size={14} /></button>
     </header>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-      <p class="text-[12.5px] leading-relaxed">{result.message}</p>
+      <p class="text-md leading-relaxed">{result.message}</p>
 
       {#if result.steps.length}
         <ol class="mt-4 space-y-2.5">
           {#each result.steps as step, i (i)}
-            <li class="flex gap-3 text-[12.5px] leading-relaxed">
-              <span class="mono mt-px grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">{i + 1}</span>
+            <li class="flex gap-3 text-md leading-relaxed">
+              <span class="mono mt-px grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-2xs font-semibold text-accent">{i + 1}</span>
               <span>{step}</span>
             </li>
           {/each}
@@ -54,20 +54,20 @@
       {#if result.snippet}
         <div class="mt-4 overflow-hidden rounded-xl border border-line">
           <div class="flex items-center gap-2 border-b border-line bg-panel-2 px-3 py-1.5">
-            <span class="mono flex-1 text-[11px] text-muted">res/xml/network_security_config.xml</span>
-            <button onclick={copySnippet} class="flex h-6 items-center gap-1.5 rounded-md px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg"><Icon name="copy" size={12} />Copy</button>
+            <span class="mono flex-1 text-xs text-muted">res/xml/network_security_config.xml</span>
+            <button onclick={copySnippet} class="flex h-6 items-center gap-1.5 rounded-md px-2 text-sm text-muted hover:bg-hover hover:text-fg"><Icon name="copy" size={12} />Copy</button>
           </div>
-          <pre class="mono selectable overflow-x-auto bg-panel-2 px-3 py-2.5 text-[11.5px] leading-relaxed">{result.snippet}</pre>
+          <pre class="mono selectable overflow-x-auto bg-panel-2 px-3 py-2.5 text-sm leading-relaxed">{result.snippet}</pre>
         </div>
       {/if}
     </div>
 
     <footer class="flex items-center gap-2 border-t border-line bg-panel-2 px-5 py-3">
       {#if net.state?.caPath}
-        <button onclick={reveal} class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-muted hover:bg-hover hover:text-fg"><Icon name="folderOpen" size={13} />Show the certificate file</button>
+        <button onclick={reveal} class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base text-muted hover:bg-hover hover:text-fg"><Icon name="folderOpen" size={13} />Show the certificate file</button>
       {/if}
       <span class="flex-1"></span>
-      <button onclick={onclose} class="h-8 rounded-lg bg-accent px-4 text-[12px] font-semibold text-white hover:opacity-90">Done</button>
+      <button onclick={onclose} class="h-8 rounded-lg bg-accent px-4 text-base font-semibold text-white hover:opacity-90">Done</button>
     </footer>
   </div>
 </div>

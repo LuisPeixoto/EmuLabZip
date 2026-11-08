@@ -44,8 +44,8 @@
   <div class="mx-auto max-w-[1180px] p-6">
     <header class="mb-5 flex flex-wrap items-center gap-3">
       <div class="min-w-0 flex-1">
-        <h1 class="text-[18px] font-semibold tracking-tight">Performance</h1>
-        <p class="text-[12.5px] text-muted">
+        <h1 class="text-3xl font-semibold tracking-tight">Performance</h1>
+        <p class="text-md text-muted">
           {#if app.selectedApp}
             {app.selectedApp.name}
             {#if s?.pid != null}<span class="mono text-faint">· pid {s.pid}</span>{:else}<span class="text-warn">· not running</span>{/if}
@@ -58,13 +58,13 @@
         {#each intervals as i (i.ms)}
           <button
             onclick={() => (perf.intervalMs = i.ms)}
-            class="mono h-7 rounded-md px-2.5 text-[11.5px] {perf.intervalMs === i.ms ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
+            class="mono h-7 rounded-md px-2.5 text-sm {perf.intervalMs === i.ms ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
           >{i.label}</button>
         {/each}
       </div>
       <button
         onclick={() => (paused = !paused)}
-        class="flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium {paused ? 'border-warn/40 bg-warn/12 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}"
+        class="flex h-8 items-center gap-1.5 rounded-lg border px-3 text-base font-medium {paused ? 'border-warn/40 bg-warn/12 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}"
       >
         <Icon name={paused ? "play" : "pause"} size={13} />{paused ? "Resume" : "Pause"}
       </button>
@@ -130,15 +130,15 @@
           series={[{ label: "Used", color: "var(--series-2)", values: perf.series((x) => x.deviceMemoryUsedKb) }]}
         />
         <section class="flex flex-col justify-center rounded-2xl border border-line bg-panel p-5">
-          <p class="text-[12.5px] font-semibold">Device memory</p>
-          <p class="mono mt-2 text-[24px] font-semibold tracking-tight">{kb(memUsed)}</p>
-          <p class="text-[12px] text-muted">used of {kb(memTotal)}</p>
+          <p class="text-md font-semibold">Device memory</p>
+          <p class="mono mt-2 text-4xl font-semibold tracking-tight">{kb(memUsed)}</p>
+          <p class="text-base text-muted">used of {kb(memTotal)}</p>
           {#if memUsed != null && memTotal}
             <div class="mt-3 h-2 overflow-hidden rounded-full bg-hover">
               <div class="h-full rounded-full bg-series-2" style="width:{Math.min(100, (memUsed / memTotal) * 100)}%"></div>
             </div>
           {/if}
-          <p class="mt-4 text-[11.5px] leading-relaxed text-faint">
+          <p class="mt-4 text-sm leading-relaxed text-faint">
             CPU comes from <span class="mono">/proc</span>, frames from <span class="mono">dumpsys gfxinfo</span>. Values are
             percentages of all cores, the way Android Studio shows them.
           </p>

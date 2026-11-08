@@ -8,7 +8,7 @@
   {#each app.toasts as t (t.id)}
     <div
       transition:fly={{ y: 12, duration: 180 }}
-      class="shadow-pop pointer-events-auto flex max-w-[460px] items-start gap-2.5 rounded-xl border border-line bg-elevated px-3.5 py-2.5 text-[12.5px]"
+      class="shadow-pop pointer-events-auto flex max-w-[460px] items-start gap-2.5 rounded-xl border border-line bg-elevated px-3.5 py-2.5 text-md"
     >
       <Icon
         name={t.kind === "err" ? "alert" : t.kind === "ok" ? "check" : "info"}
