@@ -6,6 +6,7 @@
   import { fileStamp, hue, slug } from "../../format";
   import { clickOutside } from "../../actions";
   import Icon from "../Icon.svelte";
+  import Split from "../layout/Split.svelte";
 
   const ROW = 22;
   const OVERSCAN = 20;
@@ -163,6 +164,9 @@
     </div>
   </div>
 
+  <!-- The lines, with the detail of one below them: the handle between them sets how much each gets. -->
+  {#snippet listBlock()}
+    <div class="flex h-full min-h-0 flex-col">
   <!-- Column headers -->
   <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-2xs tracking-wide text-faint uppercase">
     <span class="w-[132px] shrink-0">Time</span>
@@ -228,10 +232,16 @@
     {/if}
   </div>
 
-  <!-- Detail -->
+    </div>
+  {/snippet}
+  <div class="min-h-0 flex-1">
+    {#if logs.selected}
+      <Split id="logs.detail" axis="y" side="second" initial={220} min={90} max={700} minOther={140}>
+        {#snippet first()}{@render listBlock()}{/snippet}
+        {#snippet second()}
   {#if logs.selected}
     {@const e = logs.selected}
-    <div class="lv-{e.level} max-h-[38%] shrink-0 overflow-y-auto border-t border-line bg-panel-2">
+    <div class="lv-{e.level} h-full overflow-y-auto bg-panel-2">
       <div class="flex items-center gap-2 px-4 pt-3 text-sm">
         <span class="lv-badge rounded px-1.5 py-px text-2xs font-bold uppercase">{e.level}</span>
         <span class="font-semibold" style="color: hsl({hue(e.tag)} 55% var(--tag-l, 62%))">{e.tag}</span>
@@ -248,6 +258,13 @@
       <pre class="mono selectable px-4 pt-2 pb-4 text-base break-words whitespace-pre-wrap text-fg">{e.message}</pre>
     </div>
   {/if}
+
+        {/snippet}
+      </Split>
+    {:else}
+      {@render listBlock()}
+    {/if}
+  </div>
 
   <!-- Status -->
   <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-xs text-muted">

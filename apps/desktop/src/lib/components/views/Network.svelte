@@ -7,6 +7,7 @@
   import Icon from "../Icon.svelte";
   import CertificateDialog from "../network/CertificateDialog.svelte";
   import FlowDetail from "../network/FlowDetail.svelte";
+  import Split from "../layout/Split.svelte";
   import BreakpointDrawer from "../network/BreakpointDrawer.svelte";
   import ResendDrawer from "../network/ResendDrawer.svelte";
   import RulesDialog from "../network/RulesDialog.svelte";
@@ -347,7 +348,9 @@
     <button onclick={() => net.clear()} disabled={!net.flows.length} title="Clear (⌘K)" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:opacity-40"><Icon name="trash" size={15} /></button>
   </div>
 
-  <!-- List -->
+  <!-- The list, with the detail below it: the handle between them sets how much each gets. -->
+  {#snippet listBlock()}
+    <div class="flex h-full min-h-0 flex-col">
   <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-2xs tracking-wide text-faint uppercase">
     <span class="w-[44px] shrink-0">Status</span>
     <span class="w-[58px] shrink-0">Method</span>
@@ -416,10 +419,18 @@
   <BreakpointDrawer />
   <ResendDrawer />
 
-  <!-- Detail -->
-  {#if net.selectedId != null}
-    <div class="h-[42%] min-h-[180px] shrink-0 border-t border-line"><FlowDetail /></div>
-  {/if}
+    </div>
+  {/snippet}
+  <div class="min-h-0 flex-1">
+    {#if net.selectedId != null}
+      <Split id="network.detail" axis="y" side="second" initial={340} min={160} max={900} minOther={160}>
+        {#snippet first()}{@render listBlock()}{/snippet}
+        {#snippet second()}<div class="h-full bg-panel"><FlowDetail /></div>{/snippet}
+      </Split>
+    {:else}
+      {@render listBlock()}
+    {/if}
+  </div>
 
   <!-- Status -->
   <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-xs text-muted">
