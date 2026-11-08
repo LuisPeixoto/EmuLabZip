@@ -23,11 +23,23 @@
   --color-select: var(--select);
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
-  --font-sans: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, Roboto, "Helvetica Neue", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Set by the theme at run time, so fonts and roundness can be changed without a rebuild. */
+  --font-sans: var(--ui-font-sans);
+  --font-mono: var(--ui-font-mono);
+  --radius-xs: calc(0.125rem * var(--roundness, 1));
+  --radius-sm: calc(0.25rem * var(--roundness, 1));
+  --radius-md: calc(0.375rem * var(--roundness, 1));
+  --radius-lg: calc(0.5rem * var(--roundness, 1));
+  --radius-xl: calc(0.75rem * var(--roundness, 1));
+  --radius-2xl: calc(1rem * var(--roundness, 1));
+  --radius-3xl: calc(1.5rem * var(--roundness, 1));
 }
 
 :root {
+  /* Fallbacks: a theme replaces all of these (see src/lib/theme). */
+  --ui-font-sans: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, Roboto, "Helvetica Neue", sans-serif;
+  --ui-font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace;
+  --roundness: 1;
   --bg: #f4f5f9;
   --panel: #ffffff;
   --panel-2: #f7f8fb;
@@ -113,7 +125,7 @@ body,
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans);
+  font-family: var(--ui-font-sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -167,14 +179,10 @@ button {
 /* A component class, so size utilities such as text-[28px] can override it. */
 @layer components {
   .mono {
-    font-family: var(--font-mono);
+    font-family: var(--ui-font-mono);
     font-size: 12px;
     font-variant-ligatures: none;
   }
-}
-
-.shadow-pop {
-  box-shadow: var(--shadow);
 }
 
 .shadow-pop {
@@ -198,7 +206,7 @@ button {
 
 /* Brand gradient, shared by the logo, empty states and the active device glow. */
 .brand-gradient {
-  background: linear-gradient(135deg, #8b6dff 0%, #5b5bf0 55%, #22d3ee 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 65%, #4f5bf0) 55%, var(--accent-2) 100%);
 }
 
 @keyframes pulse-ring {
