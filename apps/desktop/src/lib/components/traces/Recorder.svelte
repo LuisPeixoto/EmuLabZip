@@ -31,7 +31,7 @@
 </script>
 
 <section class="rounded-2xl border border-line bg-panel p-4">
-  <h2 class="text-[13.5px] font-semibold">Record</h2>
+  <h2 class="text-xl font-semibold">Record</h2>
 
   {#if traces.kinds.length > 1}
     <div class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-panel-2 p-1" role="tablist">
@@ -41,14 +41,14 @@
           aria-selected={s.kind === k}
           disabled={traces.recordingNow}
           onclick={() => (s.kind = k)}
-          class="flex h-8 items-center justify-center gap-1.5 rounded-lg text-[12px] font-medium disabled:opacity-60 {s.kind === k ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}"
+          class="flex h-8 items-center justify-center gap-1.5 rounded-lg text-base font-medium disabled:opacity-60 {s.kind === k ? 'bg-panel text-fg shadow-sm' : 'text-muted hover:text-fg'}"
         >
           <Icon name={kinds[k].icon} size={13} />{kinds[k].label}
         </button>
       {/each}
     </div>
   {/if}
-  <p class="mt-2 text-[11.5px] text-muted">{kinds[s.kind].hint}</p>
+  <p class="mt-2 text-sm text-muted">{kinds[s.kind].hint}</p>
 
   {#if s.kind === "perfetto"}
     <div class="mt-3 space-y-1.5" role="radiogroup" aria-label="Preset">
@@ -62,8 +62,8 @@
         >
           <Icon name={p.icon} size={15} class="mt-0.5 {s.preset === p.id ? 'text-accent' : 'text-faint'}" />
           <span class="min-w-0">
-            <span class="block text-[12.5px] font-medium">{p.label}</span>
-            <span class="block text-[11.5px] leading-snug text-muted">{p.detail}</span>
+            <span class="block text-md font-medium">{p.label}</span>
+            <span class="block text-sm leading-snug text-muted">{p.detail}</span>
           </span>
         </button>
       {/each}
@@ -75,26 +75,26 @@
           spellcheck="false"
           disabled={traces.recordingNow}
           placeholder="Perfetto TraceConfig in text form"
-          class="mono h-36 w-full resize-y rounded-xl border border-line bg-panel-2 p-2.5 text-[11.5px] outline-none focus:border-accent"
+          class="mono h-36 w-full resize-y rounded-xl border border-line bg-panel-2 p-2.5 text-sm outline-none focus:border-accent"
         ></textarea>
-        <button onclick={() => (s.customConfig = SAMPLE_CONFIG)} class="mt-1 text-[11.5px] text-accent hover:underline">Insert an example</button>
+        <button onclick={() => (s.customConfig = SAMPLE_CONFIG)} class="mt-1 text-sm text-accent hover:underline">Insert an example</button>
       </div>
     {/if}
   {:else if s.kind === "cpu"}
     <label class="mt-3 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line px-3 py-2.5 hover:border-line-strong">
       <input type="checkbox" bind:checked={s.systemWide} disabled={traces.recordingNow} class="mt-0.5 accent-[var(--accent)]" />
       <span>
-        <span class="block text-[12.5px] font-medium">Whole system</span>
-        <span class="block text-[11.5px] leading-snug text-muted">Samples every process. Needs an emulator image that allows root (no Google Play).</span>
+        <span class="block text-md font-medium">Whole system</span>
+        <span class="block text-sm leading-snug text-muted">Samples every process. Needs an emulator image that allows root (no Google Play).</span>
       </span>
     </label>
   {:else}
     <label class="mt-3 block">
-      <span class="text-[11.5px] text-muted">Template</span>
+      <span class="text-sm text-muted">Template</span>
       <select
         bind:value={s.template}
         disabled={traces.recordingNow || !traces.templates.length}
-        class="mt-1 h-9 w-full rounded-lg border border-line bg-panel-2 px-2 text-[12.5px] outline-none focus:border-accent"
+        class="mt-1 h-9 w-full rounded-lg border border-line bg-panel-2 px-2 text-md outline-none focus:border-accent"
       >
         {#each traces.templates as t (t)}<option value={t}>{t}</option>{/each}
         {#if !traces.templates.length}<option>Time Profiler</option>{/if}
@@ -104,12 +104,12 @@
 
   <div class="mt-3 flex items-center gap-3">
     <label class="flex-1">
-      <span class="flex items-center justify-between text-[11.5px] text-muted">Duration <span class="mono text-fg">{s.durationS} s</span></span>
+      <span class="flex items-center justify-between text-sm text-muted">Duration <span class="mono text-fg">{s.durationS} s</span></span>
       <input type="range" min="1" max={MAX_DURATION} bind:value={s.durationS} disabled={traces.recordingNow} class="mt-1 w-full accent-[var(--accent)]" />
     </label>
   </div>
 
-  <p class="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted">
+  <p class="mt-2 flex items-center gap-1.5 text-sm text-muted">
     <Icon name="smartphone" size={12} class="text-faint" />
     {#if app.device}
       {app.device.name}{" "}{#if appName} · focused on <span class="font-medium text-fg">{appName}</span>{:else} · no app picked{/if}
@@ -119,7 +119,7 @@
   </p>
 
   {#if traces.recordError}
-    <div class="mt-3 flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-3 py-2.5 text-[12px] text-err">
+    <div class="mt-3 flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-3 py-2.5 text-base text-err">
       <Icon name="alert" size={14} class="mt-0.5 shrink-0" /><span class="min-w-0 break-words">{traces.recordError}</span>
     </div>
   {/if}
@@ -131,7 +131,7 @@
       </div>
       <div class="mt-2 flex items-center gap-3">
         <span class="live-dot size-2 rounded-full bg-err"></span>
-        <span class="mono flex-1 text-[12.5px]">
+        <span class="mono flex-1 text-md">
           {#if traces.stopping || traces.elapsedMs >= s.durationS * 1000}
             Processing…
           {:else}
@@ -141,7 +141,7 @@
         <button
           onclick={() => traces.stop()}
           disabled={traces.stopping}
-          class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium hover:bg-hover disabled:opacity-50"
+          class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium hover:bg-hover disabled:opacity-50"
         >
           <Icon name="stop" size={12} /> Stop
         </button>
@@ -151,7 +151,7 @@
     <button
       onclick={() => traces.start()}
       disabled={!canRecord}
-      class="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-[12.5px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
+      class="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-md font-semibold text-white hover:opacity-90 disabled:opacity-40"
     >
       <Icon name="play" size={12} /> Record {s.durationS} s
     </button>

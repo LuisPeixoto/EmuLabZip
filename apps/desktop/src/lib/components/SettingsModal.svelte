@@ -30,8 +30,8 @@
 
 {#snippet row(label: string, hint: string)}
   <div class="min-w-0 flex-1">
-    <p class="text-[12.5px] font-medium">{label}</p>
-    <p class="text-[11.5px] text-muted">{hint}</p>
+    <p class="text-md font-medium">{label}</p>
+    <p class="text-sm text-muted">{hint}</p>
   </div>
 {/snippet}
 
@@ -40,21 +40,21 @@
   <div transition:scale={{ start: 0.97, duration: 160 }} class="shadow-pop relative w-[520px] overflow-hidden rounded-2xl border border-line bg-elevated">
     <div class="flex items-center gap-2 border-b border-line px-5 py-3.5">
       <Icon name="settings" size={15} class="text-accent" />
-      <h2 class="flex-1 text-[13.5px] font-semibold">Settings</h2>
+      <h2 class="flex-1 text-xl font-semibold">Settings</h2>
       <button onclick={close} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close">
         <Icon name="x" size={14} />
       </button>
     </div>
 
     <div class="space-y-1 p-3">
-      <p class="px-2 pt-1 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Appearance</p>
+      <p class="px-2 pt-1 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Appearance</p>
       <div class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Theme", "Dark is easier on the eyes next to an emulator.")}
         <div class="flex rounded-lg border border-line bg-panel-2 p-0.5">
           {#each ["dark", "light", "system"] as const as t (t)}
             <button
               onclick={() => theme.setMode(t)}
-              class="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] capitalize {theme.appearance.mode === t ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
+              class="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-base capitalize {theme.appearance.mode === t ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
             >
               <Icon name={t === "dark" ? "moon" : t === "light" ? "sun" : "laptop"} size={13} />{t}
             </button>
@@ -62,7 +62,7 @@
         </div>
       </div>
 
-      <p class="px-2 pt-3 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Logs</p>
+      <p class="px-2 pt-3 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Logs</p>
       <label class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Verbose and debug lines", "Turn off to keep busy devices readable. The iOS log is very chatty.")}
         <input type="checkbox" bind:checked={draft.logVerbose} class="size-4 accent-[var(--accent)]" />
@@ -76,13 +76,13 @@
         <input type="number" min="0" max="10000" step="100" bind:value={draft.logTail} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
       </label>
 
-      <p class="px-2 pt-3 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Devices</p>
+      <p class="px-2 pt-3 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Devices</p>
       <label class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Refresh every", "How often EmuLabZip looks for new emulators and simulators, in seconds.")}
         <input type="number" min="1" max="30" bind:value={draft.pollSeconds} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
       </label>
 
-      <p class="px-2 pt-3 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Network</p>
+      <p class="px-2 pt-3 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Network</p>
       <label class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Proxy port", "Where the proxy listens, on this computer only. Applies the next time it starts.")}
         <input type="number" min="1024" max="65535" bind:value={draft.proxyPort} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
@@ -90,10 +90,10 @@
     </div>
 
     <div class="flex items-center gap-2 border-t border-line bg-panel-2 px-5 py-3">
-      <button onclick={() => (draft = { ...defaultSettings })} class="text-[12px] text-muted hover:text-fg">Reset to defaults</button>
+      <button onclick={() => (draft = { ...defaultSettings })} class="text-base text-muted hover:text-fg">Reset to defaults</button>
       <span class="flex-1"></span>
-      <button onclick={close} class="h-8 rounded-lg border border-line px-3.5 text-[12px] font-medium hover:bg-hover">Cancel</button>
-      <button onclick={apply} class="h-8 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90">Save</button>
+      <button onclick={close} class="h-8 rounded-lg border border-line px-3.5 text-base font-medium hover:bg-hover">Cancel</button>
+      <button onclick={apply} class="h-8 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90">Save</button>
     </div>
   </div>
 </div>

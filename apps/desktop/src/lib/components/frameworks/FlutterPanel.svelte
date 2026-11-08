@@ -62,61 +62,61 @@
 
 <section class="rounded-2xl border border-line bg-panel">
   <header class="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
-    <h2 class="text-[13px] font-semibold">Flutter</h2>
+    <h2 class="text-lg font-semibold">Flutter</h2>
     <div class="flex rounded-lg border border-line bg-panel-2 p-0.5" role="tablist">
       {#each [["widgets", "Widgets"], ["frames", "Frames"], ["memory", "Memory"]] as [id, label] (id)}
-        <button role="tab" aria-selected={tab === id} onclick={() => (tab = id as Tab)} class="h-7 rounded-md px-2.5 text-[12px] {tab === id ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}">{label}</button>
+        <button role="tab" aria-selected={tab === id} onclick={() => (tab = id as Tab)} class="h-7 rounded-md px-2.5 text-base {tab === id ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}">{label}</button>
       {/each}
     </div>
     <span class="flex-1"></span>
-    <input bind:value={uri} spellcheck="false" placeholder="VM service address (found in the log when empty)" aria-label="VM service address" class="mono h-7 w-[300px] max-w-full rounded-md border border-line bg-panel-2 px-2 text-[11.5px] outline-none placeholder:text-faint focus:border-accent" />
+    <input bind:value={uri} spellcheck="false" placeholder="VM service address (found in the log when empty)" aria-label="VM service address" class="mono h-7 w-[300px] max-w-full rounded-md border border-line bg-panel-2 px-2 text-sm outline-none placeholder:text-faint focus:border-accent" />
   </header>
 
   {#if error}
-    <p class="flex items-start gap-2 border-b border-line bg-err/8 px-4 py-2.5 text-[12.5px] text-err"><Icon name="alert" size={14} class="mt-px shrink-0" />{error}</p>
+    <p class="flex items-start gap-2 border-b border-line bg-err/8 px-4 py-2.5 text-md text-err"><Icon name="alert" size={14} class="mt-px shrink-0" />{error}</p>
   {/if}
 
   {#if tab === "widgets"}
     <div class="flex items-center gap-2 border-b border-line px-4 py-2">
-      <button onclick={readTree} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">
+      <button onclick={readTree} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">
         <Icon name={busy === "widgets" ? "refresh" : "download"} size={12} class={busy === "widgets" ? "animate-spin" : ""} />{tree ? "Read again" : "Read the widget tree"}
       </button>
       {#if tree}
         <label class="relative flex flex-1 items-center">
           <Icon name="search" size={12} class="pointer-events-none absolute left-2.5 text-faint" />
-          <input bind:value={needle} spellcheck="false" placeholder="Find a widget or file" class="h-7 w-full rounded-md border border-line bg-panel-2 pr-2 pl-7 text-[12px] outline-none placeholder:text-faint focus:border-accent" />
+          <input bind:value={needle} spellcheck="false" placeholder="Find a widget or file" class="h-7 w-full rounded-md border border-line bg-panel-2 pr-2 pl-7 text-base outline-none placeholder:text-faint focus:border-accent" />
         </label>
-        <span class="mono text-[11px] text-faint">{tree.count} widgets</span>
+        <span class="mono text-xs text-faint">{tree.count} widgets</span>
       {/if}
     </div>
     {#if root}
       {#if !tree?.tracked}
-        <p class="border-b border-line bg-warn/10 px-4 py-2 text-[11.5px] text-warn">This build does not record where widgets were created, so there are no file names and the app's own widgets cannot be told apart. Apps started with <span class="mono">flutter run</span> do.</p>
+        <p class="border-b border-line bg-warn/10 px-4 py-2 text-sm text-warn">This build does not record where widgets were created, so there are no file names and the app's own widgets cannot be told apart. Apps started with <span class="mono">flutter run</span> do.</p>
       {/if}
       <div class="selectable max-h-[520px] overflow-auto py-1">
         {#if needle && !matches(root, needle.toLowerCase())}
-          <p class="px-4 py-6 text-center text-[12px] text-muted">Nothing matches.</p>
+          <p class="px-4 py-6 text-center text-base text-muted">Nothing matches.</p>
         {:else}
           <Tree node={root} needle={needle.trim().toLowerCase()} />
         {/if}
       </div>
     {:else if !busy}
-      <p class="px-4 py-8 text-center text-[12.5px] text-muted">Reads the widgets of the app on screen, as the Flutter inspector shows them. Needs a debug or profile build.</p>
+      <p class="px-4 py-8 text-center text-md text-muted">Reads the widgets of the app on screen, as the Flutter inspector shows them. Needs a debug or profile build.</p>
     {/if}
   {:else if tab === "frames"}
     <div class="flex items-center gap-2 border-b border-line px-4 py-2">
-      <label class="flex items-center gap-1.5 text-[11.5px] text-muted">Seconds <input type="number" min="1" max="120" bind:value={seconds} class="mono h-7 w-16 rounded-md border border-line bg-panel-2 px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
-      <button onclick={record} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">
+      <label class="flex items-center gap-1.5 text-sm text-muted">Seconds <input type="number" min="1" max="120" bind:value={seconds} class="mono h-7 w-16 rounded-md border border-line bg-panel-2 px-1.5 text-sm text-fg outline-none focus:border-accent" /></label>
+      <button onclick={record} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">
         <Icon name={busy === "frames" ? "refresh" : "play"} size={12} class={busy === "frames" ? "animate-spin" : ""} />{busy === "frames" ? "Recording… use the app" : "Record frames"}
       </button>
     </div>
     {#if frames}
       {#if !frames.frames}
-        <p class="px-4 py-8 text-center text-[12.5px] text-muted">No frames were drawn. Use the app while it records: an idle screen draws nothing.</p>
+        <p class="px-4 py-8 text-center text-md text-muted">No frames were drawn. Use the app while it records: an idle screen draws nothing.</p>
       {:else}
         <div class="grid grid-cols-2 gap-3 border-b border-line px-4 py-3 md:grid-cols-4">
           {#each [["Frames", String(frames.frames)], ["Janky", `${frames.janky} (${frames.jankPercent.toFixed(1)}%)`], ["Build, average", ms(frames.avgBuildUs)], ["Raster, average", ms(frames.avgRasterUs)]] as [k, v] (k)}
-            <div><p class="text-[11px] text-muted">{k}</p><p class="mono text-[15px] font-semibold">{v}</p></div>
+            <div><p class="text-xs text-muted">{k}</p><p class="mono text-2xl font-semibold">{v}</p></div>
           {/each}
         </div>
         <div class="px-4 py-3">
@@ -129,31 +129,31 @@
               </span>
             {/each}
           </div>
-          <p class="mt-1.5 text-[11px] text-faint">Each bar is a frame: build time (purple, red when over 16.7 ms) at the bottom, raster time (teal) above it. The dashed line is 16.7 ms.</p>
+          <p class="mt-1.5 text-xs text-faint">Each bar is a frame: build time (purple, red when over 16.7 ms) at the bottom, raster time (teal) above it. The dashed line is 16.7 ms.</p>
         </div>
         <div class="border-t border-line px-4 py-2.5">
-          <p class="mb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Slowest frames</p>
+          <p class="mb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Slowest frames</p>
           {#each frames.slowest as f (f.number)}
-            <p class="mono text-[11.5px]">#{f.number}  build {ms(f.buildUs)}  raster {ms(f.rasterUs)}</p>
+            <p class="mono text-sm">#{f.number}  build {ms(f.buildUs)}  raster {ms(f.rasterUs)}</p>
           {/each}
         </div>
       {/if}
     {:else if !busy}
-      <p class="px-4 py-8 text-center text-[12.5px] text-muted">Records how long the app takes to build and draw each frame while you use it.</p>
+      <p class="px-4 py-8 text-center text-md text-muted">Records how long the app takes to build and draw each frame while you use it.</p>
     {/if}
   {:else}
     <div class="flex items-center gap-2 border-b border-line px-4 py-2">
-      <button onclick={readMemory} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">
+      <button onclick={readMemory} disabled={busy != null} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">
         <Icon name={busy === "memory" ? "refresh" : "cpu"} size={12} class={busy === "memory" ? "animate-spin" : ""} />{memory ? "Read again" : "Read the Dart heap"}
       </button>
     </div>
     {#if memory}
       <div class="grid grid-cols-3 gap-3 border-b border-line px-4 py-3">
         {#each [["Heap in use", bytes(memory.heapUsed)], ["Heap size", bytes(memory.heapCapacity)], ["Outside the heap", bytes(memory.external)]] as [k, v] (k)}
-          <div><p class="text-[11px] text-muted">{k}</p><p class="mono text-[15px] font-semibold">{v}</p></div>
+          <div><p class="text-xs text-muted">{k}</p><p class="mono text-2xl font-semibold">{v}</p></div>
         {/each}
       </div>
-      <table class="w-full text-[12px]">
+      <table class="w-full text-base">
         <tbody>
           {#each memory.classes as c (c.name + (c.library ?? ""))}
             <tr class="border-b border-line/60 last:border-0">
@@ -165,7 +165,7 @@
         </tbody>
       </table>
     {:else if !busy}
-      <p class="px-4 py-8 text-center text-[12.5px] text-muted">Shows how much the Dart heap holds and which classes use the most.</p>
+      <p class="px-4 py-8 text-center text-md text-muted">Shows how much the Dart heap holds and which classes use the most.</p>
     {/if}
   {/if}
 </section>

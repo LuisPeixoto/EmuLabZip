@@ -110,15 +110,15 @@
   <header class="flex shrink-0 items-center gap-3 border-b border-line px-4 py-2.5">
     <Icon name={preview.kind === "sqlite" || preview.kind === "realm" ? "database" : preview.kind === "image" ? "eye" : "file"} size={15} class="text-accent" />
     <div class="min-w-0 flex-1">
-      <p class="truncate text-[13px] font-semibold">{preview.name}</p>
-      <p class="text-[11px] text-muted">{kindLabel[preview.kind ?? "binary"]} · {bytes(preview.size)}{preview.truncated ? " · preview truncated" : ""}</p>
+      <p class="truncate text-lg font-semibold">{preview.name}</p>
+      <p class="text-xs text-muted">{kindLabel[preview.kind ?? "binary"]} · {bytes(preview.size)}{preview.truncated ? " · preview truncated" : ""}</p>
     </div>
-    <button onclick={onsave} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">
+    <button onclick={onsave} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg">
       <Icon name="download" size={13} /> Save…
     </button>
   </header>
   {#if preview.error}
-    <p class="shrink-0 border-b border-line bg-warn/10 px-4 py-2 text-[12px] text-warn">{preview.error}</p>
+    <p class="shrink-0 border-b border-line bg-warn/10 px-4 py-2 text-base text-warn">{preview.error}</p>
   {/if}
   <div class="min-h-0 flex-1 overflow-auto">
     {#if preview.realm}
@@ -135,7 +135,7 @@
       />
     {:else if preview.entities && preview.tables}
       <div class="flex h-full min-h-0 flex-col">
-        <p class="shrink-0 border-b border-line bg-panel-2 px-4 py-1.5 text-[11.5px] text-muted">Core Data store: {preview.entities.length} entities. The raw tables are below the entities.</p>
+        <p class="shrink-0 border-b border-line bg-panel-2 px-4 py-1.5 text-sm text-muted">Core Data store: {preview.entities.length} entities. The raw tables are below the entities.</p>
         <div class="min-h-0 flex-1">
           <RowsViewer
             id={preview.id}
@@ -167,19 +167,19 @@
         }))}
       />
     {:else if preview.prefs}
-      <table class="selectable w-full text-[12px]">
-        <thead class="sticky top-0 bg-panel-2 text-left text-[11px] text-muted">
+      <table class="selectable w-full text-base">
+        <thead class="sticky top-0 bg-panel-2 text-left text-xs text-muted">
           <tr><th class="px-4 py-2 font-medium">Key</th><th class="px-2 py-2 font-medium">Type</th><th class="px-4 py-2 font-medium">Value</th>{#if canEditPrefs}<th class="w-8"></th>{/if}</tr>
         </thead>
         <tbody>
           {#each preview.prefs as p (p.key)}
             <tr class="border-t border-line/60 align-top hover:bg-hover">
               <td class="mono px-4 py-1.5 font-medium">{p.key}</td>
-              <td class="px-2 py-1.5"><span class="rounded-md bg-hover px-1.5 py-px text-[10.5px] text-muted">{p.kind}</span></td>
+              <td class="px-2 py-1.5"><span class="rounded-md bg-hover px-1.5 py-px text-2xs text-muted">{p.kind}</span></td>
               {#if canEditPrefs && editKey?.key === p.key}
                 <td class="p-0">
                   <!-- svelte-ignore a11y_autofocus -->
-                  <input autofocus bind:value={editKey.text} onkeydown={(e) => (e.key === "Enter" ? commitPref(p.kind) : e.key === "Escape" ? (editKey = null) : null)} onblur={() => (editKey = null)} class="mono h-7 w-full bg-accent-soft px-4 text-[12px] outline-none" />
+                  <input autofocus bind:value={editKey.text} onkeydown={(e) => (e.key === "Enter" ? commitPref(p.kind) : e.key === "Escape" ? (editKey = null) : null)} onblur={() => (editKey = null)} class="mono h-7 w-full bg-accent-soft px-4 text-base outline-none" />
                 </td>
               {:else}
                 <td class="mono px-4 py-1.5 break-all {canEditPrefs ? 'cursor-text' : ''}" ondblclick={() => canEditPrefs && (editKey = { key: p.key, text: p.kind === "set" && p.items ? p.items.join(", ") : p.value })} title={canEditPrefs ? "Double-click to edit" : ""}>{p.value}</td>
@@ -192,16 +192,16 @@
           {#if canEditPrefs}
             <tr class="border-t border-line/60">
               {#if adding}
-                <td class="px-4 py-1.5"><input bind:value={adding.key} placeholder="key" spellcheck="false" class="mono h-7 w-full rounded-md border border-line bg-panel-2 px-2 text-[12px] outline-none focus:border-accent" /></td>
+                <td class="px-4 py-1.5"><input bind:value={adding.key} placeholder="key" spellcheck="false" class="mono h-7 w-full rounded-md border border-line bg-panel-2 px-2 text-base outline-none focus:border-accent" /></td>
                 <td class="px-2 py-1.5">
-                  <select bind:value={adding.kind} class="h-7 rounded-md border border-line bg-panel-2 px-1 text-[12px]">
+                  <select bind:value={adding.kind} class="h-7 rounded-md border border-line bg-panel-2 px-1 text-base">
                     {#each ["string", "int", "long", "float", "boolean", "set"] as k (k)}<option>{k}</option>{/each}
                   </select>
                 </td>
-                <td class="px-4 py-1.5"><input bind:value={adding.text} onkeydown={(e) => e.key === "Enter" && addPref()} placeholder="value" spellcheck="false" class="mono h-7 w-full rounded-md border border-line bg-panel-2 px-2 text-[12px] outline-none focus:border-accent" /></td>
+                <td class="px-4 py-1.5"><input bind:value={adding.text} onkeydown={(e) => e.key === "Enter" && addPref()} placeholder="value" spellcheck="false" class="mono h-7 w-full rounded-md border border-line bg-panel-2 px-2 text-base outline-none focus:border-accent" /></td>
                 <td class="px-1"><button onclick={addPref} aria-label="Add" class="text-accent"><Icon name="check" size={13} /></button></td>
               {:else}
-                <td colspan="4" class="px-4 py-1.5"><button onclick={() => (adding = { key: "", kind: "string", text: "" })} class="flex items-center gap-1.5 text-[12px] text-muted hover:text-fg"><Icon name="plus" size={12} /> New key</button></td>
+                <td colspan="4" class="px-4 py-1.5"><button onclick={() => (adding = { key: "", kind: "string", text: "" })} class="flex items-center gap-1.5 text-base text-muted hover:text-fg"><Icon name="plus" size={12} /> New key</button></td>
               {/if}
             </tr>
           {/if}
@@ -212,11 +212,11 @@
         <img src={preview.image} alt={preview.name} class="max-h-[70vh] max-w-full rounded-lg shadow-lg" />
       </div>
     {:else if pretty}
-      <pre class="mono selectable p-4 text-[12px] leading-relaxed whitespace-pre-wrap">{pretty}</pre>
+      <pre class="mono selectable p-4 text-base leading-relaxed whitespace-pre-wrap">{pretty}</pre>
     {:else if preview.text != null}
-      <pre class="mono selectable p-4 text-[12px] leading-relaxed whitespace-pre-wrap">{preview.text}</pre>
+      <pre class="mono selectable p-4 text-base leading-relaxed whitespace-pre-wrap">{preview.text}</pre>
     {:else if preview.hex}
-      <pre class="mono selectable p-4 text-[11.5px] leading-relaxed text-muted">{preview.hex}</pre>
+      <pre class="mono selectable p-4 text-sm leading-relaxed text-muted">{preview.hex}</pre>
     {/if}
   </div>
 </div>

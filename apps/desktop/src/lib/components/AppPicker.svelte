@@ -48,18 +48,18 @@
   >
     {#if app.selectedApp}
       <span
-        class="grid size-6 shrink-0 place-items-center rounded-md text-[11px] font-bold text-white"
+        class="grid size-6 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
         style="background: linear-gradient(135deg, hsl({hue(app.selectedApp.id)} 70% 58%), hsl({(hue(app.selectedApp.id) + 40) % 360} 70% 46%))"
       >{initial(app.selectedApp.name)}</span>
       <span class="min-w-0 flex-1 leading-tight">
-        <span class="block truncate text-[12.5px] font-semibold">{app.selectedApp.name}</span>
-        <span class="mono block truncate text-[10.5px] text-muted">
+        <span class="block truncate text-md font-semibold">{app.selectedApp.name}</span>
+        <span class="mono block truncate text-2xs text-muted">
           {app.selectedApp.pid != null ? `pid ${app.selectedApp.pid}` : "not running"}
         </span>
       </span>
     {:else}
       <span class="grid size-6 place-items-center rounded-md bg-hover text-muted"><Icon name="layers" size={14} /></span>
-      <span class="flex-1 text-[12.5px] text-muted">All processes</span>
+      <span class="flex-1 text-md text-muted">All processes</span>
     {/if}
     <Icon name="chevronDown" size={14} class="shrink-0 text-faint" />
   </button>
@@ -77,14 +77,14 @@
             bind:value={query}
             spellcheck="false"
             placeholder="Find an app by name or id…"
-            class="h-8 w-full rounded-lg border border-line bg-panel-2 pl-8 text-[12.5px] outline-none placeholder:text-faint focus:border-accent"
+            class="h-8 w-full rounded-lg border border-line bg-panel-2 pl-8 text-md outline-none placeholder:text-faint focus:border-accent"
           />
         </label>
       </div>
       <div class="max-h-[380px] overflow-y-auto p-1.5">
         <button onclick={() => pick(null)} class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left {app.appId == null ? 'bg-accent-soft text-accent' : 'hover:bg-hover'}">
           <span class="grid size-6 place-items-center rounded-md bg-hover text-muted"><Icon name="layers" size={14} /></span>
-          <span class="flex-1 text-[12.5px] font-medium">All processes</span>
+          <span class="flex-1 text-md font-medium">All processes</span>
         </button>
         {#each list as a (a.id)}
           <button
@@ -92,24 +92,24 @@
             class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left {a.id === app.appId ? 'bg-accent-soft' : 'hover:bg-hover'}"
           >
             <span
-              class="grid size-6 shrink-0 place-items-center rounded-md text-[11px] font-bold text-white"
+              class="grid size-6 shrink-0 place-items-center rounded-md text-xs font-bold text-white"
               style="background: linear-gradient(135deg, hsl({hue(a.id)} 70% 58%), hsl({(hue(a.id) + 40) % 360} 70% 46%))"
             >{initial(a.name)}</span>
             <span class="min-w-0 flex-1 leading-tight">
-              <span class="block truncate text-[12.5px] font-medium {a.id === app.appId ? 'text-accent' : ''}">{a.name}</span>
-              {#if a.name !== a.id}<span class="mono block truncate text-[10.5px] text-faint">{a.id}</span>{/if}
+              <span class="block truncate text-md font-medium {a.id === app.appId ? 'text-accent' : ''}">{a.name}</span>
+              {#if a.name !== a.id}<span class="mono block truncate text-2xs text-faint">{a.id}</span>{/if}
             </span>
             {#if a.pid != null}
-              <span class="mono flex items-center gap-1 rounded-md bg-ok/12 px-1.5 py-px text-[10px] text-ok"><span class="size-1.5 rounded-full bg-ok"></span>{a.pid}</span>
+              <span class="mono flex items-center gap-1 rounded-md bg-ok/12 px-1.5 py-px text-tiny text-ok"><span class="size-1.5 rounded-full bg-ok"></span>{a.pid}</span>
             {:else if !a.user}
-              <span class="text-[10px] text-faint">system</span>
+              <span class="text-tiny text-faint">system</span>
             {/if}
           </button>
         {:else}
-          <p class="px-3 py-6 text-center text-[12px] text-muted">{app.apps.length ? "No app matches." : "Loading apps…"}</p>
+          <p class="px-3 py-6 text-center text-base text-muted">{app.apps.length ? "No app matches." : "Loading apps…"}</p>
         {/each}
       </div>
-      <label class="flex items-center gap-2 border-t border-line bg-panel-2 px-3 py-2 text-[11.5px] text-muted">
+      <label class="flex items-center gap-2 border-t border-line bg-panel-2 px-3 py-2 text-sm text-muted">
         <input type="checkbox" bind:checked={showSystem} class="accent-[var(--accent)]" /> Show system apps
         <span class="ml-auto text-faint">{list.length} shown</span>
       </label>

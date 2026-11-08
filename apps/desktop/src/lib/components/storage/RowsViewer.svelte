@@ -50,32 +50,32 @@
     {#each groups as g (g.name)}
       <button
         onclick={() => ((current = g), (offset = 0))}
-        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] {current?.name === g.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover'}"
+        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-base {current?.name === g.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover'}"
       >
         <Icon name="database" size={13} class="shrink-0 text-faint" />
         <span class="min-w-0 flex-1 truncate">{g.name}</span>
-        <span class="mono text-[10.5px] text-faint">{g.rows.toLocaleString()}</span>
+        <span class="mono text-2xs text-faint">{g.rows.toLocaleString()}</span>
       </button>
     {:else}
-      <p class="p-3 text-[12px] text-muted">Nothing to show.</p>
+      <p class="p-3 text-base text-muted">Nothing to show.</p>
     {/each}
   </nav>
   <div class="flex min-w-0 flex-1 flex-col">
     {#if current?.note}
-      <p class="shrink-0 border-b border-line bg-warn/10 px-3 py-2 text-[12px] text-warn">{current.note}</p>
+      <p class="shrink-0 border-b border-line bg-warn/10 px-3 py-2 text-base text-warn">{current.note}</p>
     {/if}
     {#if error}
-      <p class="border-b border-line bg-err/8 px-3 py-2 text-[12px] text-err">{error}</p>
+      <p class="border-b border-line bg-err/8 px-3 py-2 text-base text-err">{error}</p>
     {/if}
     <div class="selectable min-h-0 flex-1 overflow-auto">
       {#if rows}
-        <table class="mono w-max min-w-full border-separate border-spacing-0 text-[11.5px]">
+        <table class="mono w-max min-w-full border-separate border-spacing-0 text-sm">
           <thead class="sticky top-0 bg-panel-2">
             <tr>
               {#each rows.columns as c, i (i)}
                 <th class="border-b border-line px-3 py-1.5 text-left font-semibold whitespace-nowrap">
                   {c}
-                  {#if current?.types?.[c]}<span class="ml-1 text-[10px] font-normal text-faint">{current.types[c]}</span>{/if}
+                  {#if current?.types?.[c]}<span class="ml-1 text-tiny font-normal text-faint">{current.types[c]}</span>{/if}
                 </th>
               {/each}
             </tr>
@@ -97,7 +97,7 @@
       {/if}
     </div>
     {#if current && rows}
-      <footer class="flex shrink-0 items-center gap-2 border-t border-line px-3 py-1.5 text-[11.5px] text-muted">
+      <footer class="flex shrink-0 items-center gap-2 border-t border-line px-3 py-1.5 text-sm text-muted">
         <span class="mono">{rows.rows.length ? (offset + 1).toLocaleString() : 0}–{(offset + rows.rows.length).toLocaleString()} of {current.rows.toLocaleString()}</span>
         <span class="flex-1"></span>
         <button disabled={offset === 0} onclick={() => (offset = Math.max(0, offset - PAGE))} class="h-7 rounded-md border border-line px-2.5 hover:bg-hover disabled:opacity-40">Previous</button>

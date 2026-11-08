@@ -94,7 +94,7 @@
   const summary = (r: Rule) =>
     r.action.type === "mock" ? `Answers ${r.action.status}` : r.action.type === "delay" ? `Waits ${r.action.ms} ms` : r.action.type === "block" ? "Fails the request" : "Holds " + [r.action.request && "request", r.action.response && "response"].filter(Boolean).join(" and ");
 
-  const field = "h-8 w-full rounded-lg border border-line bg-panel-2 px-2.5 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel";
+  const field = "h-8 w-full rounded-lg border border-line bg-panel-2 px-2.5 text-base outline-none placeholder:text-faint focus:border-accent focus:bg-panel";
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && (net.rulesOpen = false)} />
@@ -105,8 +105,8 @@
     <header class="flex items-center gap-3 border-b border-line px-5 py-3.5">
       <span class="grid size-8 place-items-center rounded-xl bg-accent-soft text-accent"><Icon name="sliders" size={17} /></span>
       <div class="min-w-0 flex-1">
-        <h2 class="text-[13.5px] font-semibold">Rules</h2>
-        <p class="text-[11.5px] text-muted">Mock, slow down, block or hold requests. The first matching rule wins.</p>
+        <h2 class="text-xl font-semibold">Rules</h2>
+        <p class="text-sm text-muted">Mock, slow down, block or hold requests. The first matching rule wins.</p>
       </div>
       <button onclick={() => (net.rulesOpen = false)} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close"><Icon name="x" size={14} /></button>
     </header>
@@ -119,8 +119,8 @@
             <div class="group flex items-center gap-2 rounded-lg px-2 py-1.5 {selected === i ? 'bg-select' : 'hover:bg-hover'}">
               <input type="checkbox" bind:checked={r.enabled} aria-label="Enabled" class="accent-[var(--accent)]" />
               <button onclick={() => (selected = i)} class="min-w-0 flex-1 text-left">
-                <span class="block truncate text-[12.5px] font-medium {r.enabled ? '' : 'text-faint'}">{r.name || "Untitled rule"}</span>
-                <span class="block truncate text-[11px] text-muted">{summary(r)}</span>
+                <span class="block truncate text-md font-medium {r.enabled ? '' : 'text-faint'}">{r.name || "Untitled rule"}</span>
+                <span class="block truncate text-xs text-muted">{summary(r)}</span>
               </button>
               <span class="flex opacity-0 group-hover:opacity-100">
                 <button onclick={() => move(i, -1)} class="grid size-6 place-items-center rounded text-faint hover:text-fg" aria-label="Move up"><Icon name="arrowUp" size={12} /></button>
@@ -129,14 +129,14 @@
               </span>
             </div>
           {:else}
-            <p class="px-3 py-6 text-center text-[12px] leading-relaxed text-muted">No rules yet. Start from one of these:</p>
+            <p class="px-3 py-6 text-center text-base leading-relaxed text-muted">No rules yet. Start from one of these:</p>
           {/each}
         </div>
         <div class="border-t border-line p-2">
-          <p class="px-1 pb-1.5 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Add</p>
+          <p class="px-1 pb-1.5 text-2xs font-semibold tracking-wider text-faint uppercase">Add</p>
           <div class="flex flex-wrap gap-1.5">
             {#each presets as p (p.label)}
-              <button onclick={() => add(p.make)} class="rounded-md border border-line px-2 py-1 text-[11.5px] text-muted hover:bg-hover hover:text-fg">{p.label}</button>
+              <button onclick={() => add(p.make)} class="rounded-md border border-line px-2 py-1 text-sm text-muted hover:bg-hover hover:text-fg">{p.label}</button>
             {/each}
           </div>
         </div>
@@ -146,37 +146,37 @@
       <div class="min-w-0 flex-1 overflow-y-auto px-5 py-4">
         {#if rule}
           <label class="block">
-            <span class="mb-1 block text-[11.5px] font-medium text-muted">Name</span>
+            <span class="mb-1 block text-sm font-medium text-muted">Name</span>
             <input bind:value={rule.name} class={field} spellcheck="false" />
           </label>
 
-          <h3 class="mt-5 mb-2 text-[10.5px] font-semibold tracking-wider text-faint uppercase">When the request matches</h3>
+          <h3 class="mt-5 mb-2 text-2xs font-semibold tracking-wider text-faint uppercase">When the request matches</h3>
           <div class="grid grid-cols-2 gap-3">
             <label class="block">
-              <span class="mb-1 block text-[11.5px] font-medium text-muted">Host</span>
+              <span class="mb-1 block text-sm font-medium text-muted">Host</span>
               <input value={rule.matcher.host ?? ""} oninput={(e) => (rule.matcher.host = blankToNull(e.currentTarget.value))} placeholder="api.example.com or *.example.com" class="{field} mono" spellcheck="false" />
             </label>
             <label class="block">
-              <span class="mb-1 block text-[11.5px] font-medium text-muted">Path</span>
+              <span class="mb-1 block text-sm font-medium text-muted">Path</span>
               <input value={rule.matcher.path ?? ""} oninput={(e) => (rule.matcher.path = blankToNull(e.currentTarget.value))} placeholder="/v1/users/*" class="{field} mono" spellcheck="false" />
             </label>
             <label class="col-span-2 block">
-              <span class="mb-1 block text-[11.5px] font-medium text-muted">URL contains</span>
+              <span class="mb-1 block text-sm font-medium text-muted">URL contains</span>
               <input value={rule.matcher.urlContains ?? ""} oninput={(e) => (rule.matcher.urlContains = blankToNull(e.currentTarget.value))} placeholder="Any text of the address, query included" class="{field} mono" spellcheck="false" />
             </label>
           </div>
           <div class="mt-3 flex items-center gap-1.5">
-            <span class="mr-1 text-[11.5px] font-medium text-muted">Methods</span>
+            <span class="mr-1 text-sm font-medium text-muted">Methods</span>
             {#each methods as m (m)}
-              <button onclick={() => toggleMethod(m)} class="mono h-6 rounded-md border px-2 text-[11px] {rule.matcher.methods.includes(m) ? 'border-accent bg-accent-soft font-semibold text-accent' : 'border-line text-muted hover:text-fg'}">{m}</button>
+              <button onclick={() => toggleMethod(m)} class="mono h-6 rounded-md border px-2 text-xs {rule.matcher.methods.includes(m) ? 'border-accent bg-accent-soft font-semibold text-accent' : 'border-line text-muted hover:text-fg'}">{m}</button>
             {/each}
-            <span class="text-[11px] text-faint">{rule.matcher.methods.length ? "" : "any"}</span>
+            <span class="text-xs text-faint">{rule.matcher.methods.length ? "" : "any"}</span>
           </div>
 
-          <h3 class="mt-5 mb-2 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Then</h3>
+          <h3 class="mt-5 mb-2 text-2xs font-semibold tracking-wider text-faint uppercase">Then</h3>
           <div class="flex rounded-lg border border-line bg-panel-2 p-0.5" role="group" aria-label="Action">
             {#each [["mock", "Answer"], ["delay", "Delay"], ["block", "Block"], ["breakpoint", "Hold"]] as [k, label] (k)}
-              <button onclick={() => setKind(k as Kind)} class="h-7 flex-1 rounded-md text-[12px] {rule.action.type === k ? 'bg-panel font-semibold text-fg shadow-sm' : 'text-muted hover:text-fg'}">{label}</button>
+              <button onclick={() => setKind(k as Kind)} class="h-7 flex-1 rounded-md text-base {rule.action.type === k ? 'bg-panel font-semibold text-fg shadow-sm' : 'text-muted hover:text-fg'}">{label}</button>
             {/each}
           </div>
 
@@ -185,59 +185,59 @@
               {@const a = rule.action}
               <div class="grid grid-cols-2 gap-3">
                 <label class="block">
-                  <span class="mb-1 block text-[11.5px] font-medium text-muted">Status</span>
+                  <span class="mb-1 block text-sm font-medium text-muted">Status</span>
                   <input type="number" min="100" max="599" bind:value={a.status} class="{field} mono" />
                 </label>
                 <label class="block">
-                  <span class="mb-1 block text-[11.5px] font-medium text-muted">Delay (ms)</span>
+                  <span class="mb-1 block text-sm font-medium text-muted">Delay (ms)</span>
                   <input type="number" min="0" max="60000" bind:value={a.delayMs} class="{field} mono" />
                 </label>
               </div>
               <label class="block">
-                <span class="mb-1 block text-[11.5px] font-medium text-muted">Headers (one per line, <span class="mono">name: value</span>)</span>
+                <span class="mb-1 block text-sm font-medium text-muted">Headers (one per line, <span class="mono">name: value</span>)</span>
                 <textarea
                   rows="3"
                   spellcheck="false"
                   value={a.headers.map(([k, v]) => `${k}: ${v}`).join("\n")}
                   oninput={(e) => (a.headers = e.currentTarget.value.split("\n").filter((l) => l.includes(":")).map((l) => [l.slice(0, l.indexOf(":")).trim(), l.slice(l.indexOf(":") + 1).trim()]))}
-                  class="mono w-full rounded-lg border border-line bg-panel-2 px-2.5 py-2 text-[12px] outline-none focus:border-accent focus:bg-panel"
+                  class="mono w-full rounded-lg border border-line bg-panel-2 px-2.5 py-2 text-base outline-none focus:border-accent focus:bg-panel"
                 ></textarea>
               </label>
               <label class="block">
-                <span class="mb-1 flex items-center gap-2 text-[11.5px] font-medium text-muted">
+                <span class="mb-1 flex items-center gap-2 text-sm font-medium text-muted">
                   Body
                   <label class="ml-auto flex items-center gap-1.5 font-normal"><input type="checkbox" bind:checked={a.base64} class="accent-[var(--accent)]" /> base64 (binary content)</label>
                 </span>
-                <textarea rows="7" spellcheck="false" bind:value={a.body} class="mono w-full rounded-lg border border-line bg-panel-2 px-2.5 py-2 text-[12px] outline-none focus:border-accent focus:bg-panel"></textarea>
+                <textarea rows="7" spellcheck="false" bind:value={a.body} class="mono w-full rounded-lg border border-line bg-panel-2 px-2.5 py-2 text-base outline-none focus:border-accent focus:bg-panel"></textarea>
               </label>
             {:else if rule.action.type === "delay"}
               <label class="block max-w-[200px]">
-                <span class="mb-1 block text-[11.5px] font-medium text-muted">Wait before forwarding (ms)</span>
+                <span class="mb-1 block text-sm font-medium text-muted">Wait before forwarding (ms)</span>
                 <input type="number" min="0" max="60000" bind:value={rule.action.ms} class="{field} mono" />
               </label>
             {:else if rule.action.type === "block"}
-              <p class="text-[12.5px] leading-relaxed text-muted">The app gets a gateway error, as if the network had failed. Nothing is sent to the server.</p>
+              <p class="text-md leading-relaxed text-muted">The app gets a gateway error, as if the network had failed. Nothing is sent to the server.</p>
             {:else}
               {@const a = rule.action}
-              <div class="flex gap-4 text-[12.5px]">
+              <div class="flex gap-4 text-md">
                 <label class="flex items-center gap-1.5"><input type="checkbox" bind:checked={a.request} class="accent-[var(--accent)]" /> Hold the request</label>
                 <label class="flex items-center gap-1.5"><input type="checkbox" bind:checked={a.response} class="accent-[var(--accent)]" /> Hold the response</label>
               </div>
-              <p class="text-[12px] leading-relaxed text-muted">Held messages appear at the bottom of the Network view, where you can edit them. Anything left alone continues by itself after 2 minutes.</p>
+              <p class="text-base leading-relaxed text-muted">Held messages appear at the bottom of the Network view, where you can edit them. Anything left alone continues by itself after 2 minutes.</p>
             {/if}
           </div>
         {:else}
           <div class="grid h-full place-items-center text-center">
-            <p class="max-w-[300px] text-[12.5px] leading-relaxed text-muted">Pick a rule to edit it, or add one from the presets.</p>
+            <p class="max-w-[300px] text-md leading-relaxed text-muted">Pick a rule to edit it, or add one from the presets.</p>
           </div>
         {/if}
       </div>
     </div>
 
     <footer class="flex items-center gap-3 border-t border-line px-5 py-3">
-      {#if error}<span class="min-w-0 flex-1 truncate text-[12px] text-err">{error}</span>{:else}<span class="flex-1 text-[11.5px] text-faint">Rules apply to the next request and are kept for the next launch.</span>{/if}
-      <button onclick={() => (net.rulesOpen = false)} class="h-8 rounded-lg px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">Cancel</button>
-      <button onclick={save} disabled={saving || !dirty} class="h-8 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">Save rules</button>
+      {#if error}<span class="min-w-0 flex-1 truncate text-base text-err">{error}</span>{:else}<span class="flex-1 text-sm text-faint">Rules apply to the next request and are kept for the next launch.</span>{/if}
+      <button onclick={() => (net.rulesOpen = false)} class="h-8 rounded-lg px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg">Cancel</button>
+      <button onclick={save} disabled={saving || !dirty} class="h-8 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">Save rules</button>
     </footer>
   </div>
 </div>

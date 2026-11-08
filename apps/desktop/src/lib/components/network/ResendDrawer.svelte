@@ -48,22 +48,22 @@
   <div class="flex h-[46%] min-h-[240px] shrink-0 flex-col border-t-2 border-accent bg-panel-2">
     <header class="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2">
       <span class="grid size-6 place-items-center rounded-md bg-accent-soft text-accent"><Icon name="refresh" size={13} /></span>
-      <span class="text-[12.5px] font-semibold">Send again</span>
-      <input bind:value={method} aria-label="Method" spellcheck="false" class="mono h-7 w-20 rounded-md border border-line bg-panel px-2 text-[11.5px] uppercase outline-none focus:border-accent" />
-      <input bind:value={url} aria-label="Address" spellcheck="false" class="mono h-7 min-w-0 flex-1 rounded-md border border-line bg-panel px-2 text-[11.5px] outline-none focus:border-accent" />
-      <button onclick={() => (net.resending = null)} class="h-7 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">Cancel</button>
-      <button onclick={send} class="h-7 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">Send</button>
+      <span class="text-md font-semibold">Send again</span>
+      <input bind:value={method} aria-label="Method" spellcheck="false" class="mono h-7 w-20 rounded-md border border-line bg-panel px-2 text-sm uppercase outline-none focus:border-accent" />
+      <input bind:value={url} aria-label="Address" spellcheck="false" class="mono h-7 min-w-0 flex-1 rounded-md border border-line bg-panel px-2 text-sm outline-none focus:border-accent" />
+      <button onclick={() => (net.resending = null)} class="h-7 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg">Cancel</button>
+      <button onclick={send} class="h-7 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90">Send</button>
     </header>
     <div class="grid min-h-0 flex-1 grid-cols-2 gap-3 p-3">
       <label class="flex min-h-0 flex-col">
-        <span class="mb-1 text-[11px] font-medium text-muted">Headers</span>
-        <textarea bind:value={headers} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-[11.5px] outline-none focus:border-accent"></textarea>
+        <span class="mb-1 text-xs font-medium text-muted">Headers</span>
+        <textarea bind:value={headers} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:border-accent"></textarea>
       </label>
       <label class="flex min-h-0 flex-col">
-        <span class="mb-1 text-[11px] font-medium text-muted">
+        <span class="mb-1 text-xs font-medium text-muted">
           Body {#if !bodyEditable}<span class="font-normal text-faint">· sent as it was, it is not plain text</span>{/if}
         </span>
-        <textarea bind:value={body} disabled={!bodyEditable} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-[11.5px] outline-none focus:border-accent disabled:opacity-50"></textarea>
+        <textarea bind:value={body} disabled={!bodyEditable} spellcheck="false" class="mono min-h-0 flex-1 resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:border-accent disabled:opacity-50"></textarea>
       </label>
     </div>
   </div>

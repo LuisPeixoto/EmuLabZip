@@ -12,14 +12,14 @@
     <div class="mb-3 flex items-center gap-2.5">
       <span class="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent"><Icon name={icon} size={18} /></span>
       <div class="flex-1">
-        <h3 class="text-[13.5px] font-semibold">{title}</h3>
-        <p class="flex items-center gap-1.5 text-[11.5px] text-muted">
+        <h3 class="text-xl font-semibold">{title}</h3>
+        <p class="flex items-center gap-1.5 text-sm text-muted">
           <span class="size-1.5 rounded-full {status?.available && !status.error ? 'bg-ok' : 'bg-faint'}"></span>
           {status?.available ? (status.error ?? "Tools found") : missing}
         </p>
       </div>
     </div>
-    <p class="mb-3 text-[12.5px] leading-relaxed text-muted">{body}</p>
+    <p class="mb-3 text-md leading-relaxed text-muted">{body}</p>
     <pre class="mono selectable overflow-x-auto rounded-lg border border-line bg-panel-2 px-3 py-2 text-fg">{command}</pre>
   </div>
 {/snippet}
@@ -30,8 +30,8 @@
       <span class="brand-gradient mb-5 grid size-16 place-items-center rounded-[20px] text-white shadow-[0_18px_40px_-14px_#5b5bf0]">
         <Icon name="activity" size={30} stroke={2.2} />
       </span>
-      <h1 class="text-[22px] font-semibold tracking-tight">{app.devicesLoaded ? "Start a device to begin" : "Looking for devices…"}</h1>
-      <p class="mt-2 max-w-[520px] text-[13px] leading-relaxed text-muted">
+      <h1 class="text-4xl font-semibold tracking-tight">{app.devicesLoaded ? "Start a device to begin" : "Looking for devices…"}</h1>
+      <p class="mt-2 max-w-[520px] text-lg leading-relaxed text-muted">
         EmuLabZip connects to running Android emulators and iOS simulators automatically. Start one and it appears in the
         device picker within a few seconds.
       </p>

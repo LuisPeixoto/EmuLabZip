@@ -103,8 +103,8 @@
   <div class="mx-auto max-w-[1180px] p-6">
     <header class="mb-5 flex flex-wrap items-center gap-3">
       <div class="min-w-0 flex-1">
-        <h1 class="text-[18px] font-semibold tracking-tight">Memory</h1>
-        <p class="text-[12.5px] text-muted">
+        <h1 class="text-3xl font-semibold tracking-tight">Memory</h1>
+        <p class="text-md text-muted">
           {#if app.selectedApp}
             {app.selectedApp.name} · {ios ? "footprint by VM region" : "PSS by category, from dumpsys meminfo"}
           {:else}
@@ -116,7 +116,7 @@
         onclick={heapDump}
         disabled={!app.selectedApp || dumping}
         title={ios ? "Save a memory graph for Xcode's memory graph debugger" : "Save an .hprof heap dump (debuggable apps)"}
-        class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40"
+        class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40"
       >
         <Icon name={dumping ? "refresh" : "download"} size={13} class={dumping ? "animate-spin" : ""} />
         {dumping ? "Capturing…" : ios ? "Memory graph…" : "Heap dump…"}
@@ -126,26 +126,26 @@
           onclick={() => (lastDump ? analyze(lastDump) : openDump())}
           disabled={analyzing}
           title={lastDump ? "Look for leaked Activities and Fragments in the dump you just saved" : "Open an .hprof and look for leaks"}
-          class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40"
+          class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40"
         >
           <Icon name={analyzing ? "refresh" : "search"} size={13} class={analyzing ? "animate-spin" : ""} />
           {analyzing ? "Analyzing…" : lastDump ? "Find leaks" : "Open dump…"}
         </button>
         {#if lastDump}
-          <button onclick={openDump} disabled={analyzing} class="h-8 rounded-lg px-2 text-[12px] text-faint hover:text-fg disabled:opacity-40">Other file…</button>
+          <button onclick={openDump} disabled={analyzing} class="h-8 rounded-lg px-2 text-base text-faint hover:text-fg disabled:opacity-40">Other file…</button>
         {/if}
       {/if}
       <button
         onclick={snapshot}
         disabled={!app.selectedApp || busy}
-        class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
+        class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40"
       >
         <Icon name={busy ? "refresh" : "camera"} size={13} class={busy ? "animate-spin" : ""} /> Take snapshot
       </button>
     </header>
 
     {#if error}
-      <div class="mb-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-[12.5px] text-err">
+      <div class="mb-4 flex items-center gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-md text-err">
         <Icon name="alert" size={14} />{error}
       </div>
     {/if}
@@ -157,26 +157,26 @@
     {#if !snapshots.length}
       <div class="grid place-items-center rounded-2xl border border-dashed border-line-strong bg-panel/50 px-6 py-16 text-center">
         <Icon name="cpu" size={26} class="mb-3 text-faint" />
-        <p class="text-[13.5px] font-medium">No snapshots yet</p>
-        <p class="mt-1 max-w-[420px] text-[12.5px] text-muted">
+        <p class="text-xl font-medium">No snapshots yet</p>
+        <p class="mt-1 max-w-[420px] text-md text-muted">
           Take a snapshot, use the app, then take another one. The difference shows which kind of memory grew.
         </p>
       </div>
     {:else}
       <div class="grid gap-5 lg:grid-cols-[230px_1fr]">
         <aside class="space-y-1.5">
-          <p class="px-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Snapshots</p>
+          <p class="px-1 text-2xs font-semibold tracking-wider text-faint uppercase">Snapshots</p>
           {#each snapshots as snap, i (snap.id)}
             <button
               onclick={() => (selected = snap.id)}
               class="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left {snap.id === selected ? 'border-accent bg-accent-soft' : 'border-line bg-panel hover:border-line-strong'}"
             >
-              <span class="mono grid size-7 place-items-center rounded-lg bg-hover text-[11px] font-semibold">#{i + 1}</span>
+              <span class="mono grid size-7 place-items-center rounded-lg bg-hover text-xs font-semibold">#{i + 1}</span>
               <span class="min-w-0 flex-1">
-                <span class="mono block text-[13px] font-semibold">{kb(snap.report.totalKb)}</span>
-                <span class="block text-[11px] text-muted">{time(snap.at)} · pid {snap.report.pid}</span>
+                <span class="mono block text-lg font-semibold">{kb(snap.report.totalKb)}</span>
+                <span class="block text-xs text-muted">{time(snap.at)} · pid {snap.report.pid}</span>
               </span>
-              {#if snap.id === baseline}<span class="rounded-full border border-line px-1.5 text-[10px] text-faint">base</span>{/if}
+              {#if snap.id === baseline}<span class="rounded-full border border-line px-1.5 text-tiny text-faint">base</span>{/if}
             </button>
           {/each}
         </aside>
@@ -185,12 +185,12 @@
           <div class="space-y-4">
             <section class="rounded-2xl border border-line bg-panel p-5">
               <div class="mb-4 flex items-baseline gap-3">
-                <p class="mono text-[28px] font-semibold tracking-tight">{kb(current.report.totalKb)}</p>
-                <p class="text-[12.5px] text-muted">total {current.report.metric}</p>
+                <p class="mono text-5xl font-semibold tracking-tight">{kb(current.report.totalKb)}</p>
+                <p class="text-md text-muted">total {current.report.metric}</p>
               </div>
               <div class="space-y-2">
                 {#each current.report.categories as c (c.name)}
-                  <div class="grid grid-cols-[150px_1fr_80px] items-center gap-3 text-[12px]">
+                  <div class="grid grid-cols-[150px_1fr_80px] items-center gap-3 text-base">
                     <span class="truncate text-muted" title={c.name}>{c.name}</span>
                     <span class="h-2 overflow-hidden rounded-full bg-hover">
                       <span class="block h-full rounded-full bg-series-1" style="width:{Math.max(1, (c.kb / largest) * 100)}%"></span>
@@ -204,8 +204,8 @@
             {#if snapshots.length > 1}
               <section class="rounded-2xl border border-line bg-panel">
                 <header class="flex items-center gap-2 border-b border-line px-4 py-2.5">
-                  <h2 class="flex-1 text-[12.5px] font-semibold">Compared with</h2>
-                  <select bind:value={baseline} class="h-7 rounded-lg border border-line bg-panel-2 px-2 text-[12px] outline-none focus:border-accent">
+                  <h2 class="flex-1 text-md font-semibold">Compared with</h2>
+                  <select bind:value={baseline} class="h-7 rounded-lg border border-line bg-panel-2 px-2 text-base outline-none focus:border-accent">
                     {#each snapshots as snap, i (snap.id)}
                       {#if snap.id !== selected}<option value={snap.id}>#{i + 1} · {time(snap.at)} · {kb(snap.report.totalKb)}</option>{/if}
                     {/each}
@@ -213,12 +213,12 @@
                 </header>
                 {#if base && base !== current}
                   {@const total = current.report.totalKb - base.report.totalKb}
-                  <div class="flex items-center gap-2 px-4 pt-3 text-[12.5px]">
+                  <div class="flex items-center gap-2 px-4 pt-3 text-md">
                     <Icon name={total > 0 ? "arrowUp" : total < 0 ? "arrowDown" : "minus"} size={14} class={total > 0 ? "text-warn" : total < 0 ? "text-ok" : "text-faint"} />
                     <span class="mono font-semibold">{signed(total)}</span>
                     <span class="text-muted">{total > 0 ? "grew" : total < 0 ? "shrank" : "unchanged"} in total</span>
                   </div>
-                  <table class="mt-2 w-full text-[12px]">
+                  <table class="mt-2 w-full text-base">
                     <tbody>
                       {#each deltas as d (d.name)}
                         <tr class="border-t border-line/60">
@@ -241,8 +241,8 @@
 
             {#if current.report.details.length}
               <section class="rounded-2xl border border-line bg-panel px-4 py-3">
-                <h2 class="mb-2 text-[12.5px] font-semibold">Details</h2>
-                <dl class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[12px] md:grid-cols-3">
+                <h2 class="mb-2 text-md font-semibold">Details</h2>
+                <dl class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-base md:grid-cols-3">
                   {#each current.report.details as [k, v] (k)}
                     <div class="flex justify-between gap-3"><dt class="text-muted">{k}</dt><dd class="mono">{v}</dd></div>
                   {/each}

@@ -160,7 +160,7 @@
 </script>
 
 <div class="min-w-0">
-  <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px]">
+  <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
     <nav class="flex min-w-0 flex-1 flex-wrap items-center gap-1 text-muted" aria-label="Zoom">
       <button onclick={() => (path = [])} class="rounded px-1.5 py-0.5 hover:bg-hover hover:text-fg {path.length ? '' : 'font-medium text-fg'}">{root.name}</button>
       {#each path as step, i (i)}
@@ -194,10 +194,10 @@
     ></canvas>
     {#if hovered}
       <div
-        class="pointer-events-none absolute z-10 max-w-[360px] rounded-lg border border-line-strong bg-elevated px-3 py-2 text-[11.5px] shadow-[var(--shadow)]"
+        class="pointer-events-none absolute z-10 max-w-[360px] rounded-lg border border-line-strong bg-elevated px-3 py-2 text-sm shadow-[var(--shadow)]"
         style="left: {Math.min(pointer.x + 14, Math.max(0, width - 300))}px; top: {pointer.y + 18}px"
       >
-        <p class="mono text-[11.5px] font-semibold break-all">{hovered.node.name}</p>
+        <p class="mono text-sm font-semibold break-all">{hovered.node.name}</p>
         <p class="mt-1 flex items-center gap-1.5 text-muted">
           <span class="size-2 rounded-[2px]" style="background: var({ORIGINS[hovered.node.origin].token})"></span>
           {ORIGINS[hovered.node.origin].label}

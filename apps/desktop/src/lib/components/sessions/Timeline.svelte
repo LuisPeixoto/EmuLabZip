@@ -206,7 +206,7 @@
   }
   const tone = (e: TimelineEvent) => (e.severity === "error" ? "var(--err)" : e.severity === "warning" ? "var(--warn)" : "var(--accent)");
   const laneY = (lane: Lane) => lanes.indexOf(lane) * ROW + ROW / 2;
-  const button = "grid h-7 min-w-7 place-items-center rounded-md border border-line px-2 text-[11.5px] text-muted hover:bg-hover hover:text-fg";
+  const button = "grid h-7 min-w-7 place-items-center rounded-md border border-line px-2 text-sm text-muted hover:bg-hover hover:text-fg";
 </script>
 
 <div class="p-4">
@@ -215,10 +215,10 @@
       <div class="relative shrink-0 overflow-hidden rounded-xl border border-line bg-black" style="height: 300px; aspect-ratio: 9 / 16; max-width: 60%;">
         <!-- svelte-ignore a11y_media_has_caption -->
         <video bind:this={videoEl} src={videoSrc ?? undefined} controls preload="metadata" class="size-full object-contain" onloadedmetadata={loadedmetadata} ontimeupdate={timeupdate} onended={ended} onplay={() => (playing = true)} onpause={() => videoEl && !videoEl.ended && (playing = false)}></video>
-        {#if loading}<span class="absolute inset-0 grid place-items-center bg-black/50 text-[12px] text-white">Loading…</span>{/if}
+        {#if loading}<span class="absolute inset-0 grid place-items-center bg-black/50 text-base text-white">Loading…</span>{/if}
       </div>
-      <div class="min-w-0 flex-1 text-[12px] leading-relaxed text-muted">
-        <p class="text-[10.5px] font-semibold tracking-wider text-faint uppercase">Screen recording</p>
+      <div class="min-w-0 flex-1 text-base leading-relaxed text-muted">
+        <p class="text-2xs font-semibold tracking-wider text-faint uppercase">Screen recording</p>
         <p class="mt-1">{view.video.length} {view.video.length === 1 ? "piece" : "pieces"}. Click anywhere on the timeline, or on something that happened, and the video goes there.</p>
         {#if playMs != null}<p class="mono mt-1 text-fg">{fmt(playMs, true)}</p>{/if}
         {#if videoError}<p class="mt-1 text-err">{videoError}</p>{/if}
@@ -228,10 +228,10 @@
   {/if}
 
   {#if !lanes.length}
-    <p class="py-10 text-center text-[12.5px] text-muted">Nothing was recorded on the timeline. Record with touches and video, or with the network, and it fills in.</p>
+    <p class="py-10 text-center text-md text-muted">Nothing was recorded on the timeline. Record with touches and video, or with the network, and it fills in.</p>
   {:else}
     <div class="mb-2 flex items-center gap-1.5">
-      <span class="mr-auto text-[11.5px] text-muted">
+      <span class="mr-auto text-sm text-muted">
         {fmt(from, true)} to {fmt(to, true)} of {fmt(total, true)}
         {#if tl.clock === "estimated"}<span class="ml-2 text-warn" title="This recording did not measure the device's clock. Log times are worked out from the first line.">· log times estimated</span>{/if}
       </span>
@@ -291,14 +291,14 @@
       </svg>
     </div>
 
-    <div class="mt-2 min-h-[44px] rounded-xl border border-line bg-panel-2 px-3 py-2 text-[12px]">
+    <div class="mt-2 min-h-[44px] rounded-xl border border-line bg-panel-2 px-3 py-2 text-base">
       {#if shown}
         <div class="flex items-start gap-3">
           <span class="mono mt-0.5 w-[64px] shrink-0 text-faint">{fmt(shown.tMs, true)}</span>
-          <span class="mono w-[76px] shrink-0 rounded px-1.5 text-center text-[10.5px] uppercase" style="background: color-mix(in srgb, {tone(shown)} 16%, transparent); color: {tone(shown)}">{names[shown.lane]}</span>
+          <span class="mono w-[76px] shrink-0 rounded px-1.5 text-center text-2xs uppercase" style="background: color-mix(in srgb, {tone(shown)} 16%, transparent); color: {tone(shown)}">{names[shown.lane]}</span>
           <span class="min-w-0 flex-1 break-words">{shown.label}{#if shown.durMs}<span class="ml-2 text-faint">{shown.durMs} ms</span>{/if}{#if shown.detail}<span class="mt-0.5 block text-muted">{shown.detail}</span>{/if}</span>
           {#if picked === shown && shown.index != null && ["requests", "logs", "gc", "screens", "crashes"].includes(shown.lane)}
-            <button onclick={() => jump(shown)} class="h-6 shrink-0 rounded-md bg-hover px-2 text-[11.5px] font-medium hover:bg-line">Open</button>
+            <button onclick={() => jump(shown)} class="h-6 shrink-0 rounded-md bg-hover px-2 text-sm font-medium hover:bg-line">Open</button>
           {/if}
         </div>
       {:else}

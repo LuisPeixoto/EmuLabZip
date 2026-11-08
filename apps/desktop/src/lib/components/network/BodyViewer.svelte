@@ -16,9 +16,9 @@
 </script>
 
 {#if !body}
-  <p class="px-4 py-8 text-center text-[12.5px] text-muted">{empty}</p>
+  <p class="px-4 py-8 text-center text-md text-muted">{empty}</p>
 {:else}
-  <div class="flex items-center gap-2 border-b border-line px-4 py-2 text-[11.5px] text-muted">
+  <div class="flex items-center gap-2 border-b border-line px-4 py-2 text-sm text-muted">
     <span class="mono">{bytes(body.size)}</span>
     {#if body.label}<span class="rounded-md bg-accent-soft px-1.5 py-px font-medium text-accent">{body.label}</span>{/if}
     {#if body.encoding}
@@ -34,15 +34,15 @@
     {/if}
   </div>
   {#if body.error}
-    <p class="border-b border-line bg-warn/10 px-4 py-2 text-[12px] text-warn">{body.error}</p>
+    <p class="border-b border-line bg-warn/10 px-4 py-2 text-base text-warn">{body.error}</p>
   {/if}
   {#if body.image}
     <div class="grid place-items-center bg-[repeating-conic-gradient(var(--hover)_0_25%,transparent_0_50%)] bg-[length:20px_20px] p-5">
       <img src={body.image} alt="Response body" class="max-h-[40vh] max-w-full rounded-lg shadow-lg" />
     </div>
   {:else if body.text != null}
-    <pre class="mono selectable px-4 py-3 text-[12px] leading-relaxed break-words whitespace-pre-wrap">{body.text}</pre>
+    <pre class="mono selectable px-4 py-3 text-base leading-relaxed break-words whitespace-pre-wrap">{body.text}</pre>
   {:else if body.hex}
-    <pre class="mono selectable px-4 py-3 text-[11.5px] leading-relaxed text-muted">{body.hex}</pre>
+    <pre class="mono selectable px-4 py-3 text-sm leading-relaxed text-muted">{body.hex}</pre>
   {/if}
 {/if}

@@ -47,37 +47,37 @@
 <div class="flex h-full min-h-0 flex-col">
   <header class="flex shrink-0 flex-wrap items-center gap-3 border-b border-line px-6 py-3">
     <div class="mr-3">
-      <h1 class="text-[18px] font-semibold tracking-tight">Analytics</h1>
-      <p class="text-[12px] text-muted">The events the app sends to Segment, Amplitude, Mixpanel and Firebase, read from the requests the proxy records.</p>
+      <h1 class="text-3xl font-semibold tracking-tight">Analytics</h1>
+      <p class="text-base text-muted">The events the app sends to Segment, Amplitude, Mixpanel and Firebase, read from the requests the proxy records.</p>
     </div>
     <span class="flex-1"></span>
-    <select bind:value={service} class="h-8 rounded-lg border border-line bg-panel-2 px-2 text-[12px]">
+    <select bind:value={service} class="h-8 rounded-lg border border-line bg-panel-2 px-2 text-base">
       <option value="all">All services</option>
       {#each Object.entries(label) as [id, l] (id)}<option value={id}>{l}</option>{/each}
     </select>
     <label class="relative flex items-center">
       <Icon name="search" size={12} class="pointer-events-none absolute left-2.5 text-faint" />
-      <input bind:value={needle} spellcheck="false" placeholder="Find an event or property" class="h-8 w-56 rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-[12px] outline-none focus:border-accent" />
+      <input bind:value={needle} spellcheck="false" placeholder="Find an event or property" class="h-8 w-56 rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-base outline-none focus:border-accent" />
     </label>
-    <button onclick={clear} class="h-8 rounded-lg border border-line px-3 text-[12px] text-muted hover:bg-hover hover:text-fg">Clear</button>
+    <button onclick={clear} class="h-8 rounded-lg border border-line px-3 text-base text-muted hover:bg-hover hover:text-fg">Clear</button>
   </header>
-  {#if error}<p class="border-b border-line bg-err/8 px-6 py-2 text-[12px] text-err">{error}</p>{/if}
+  {#if error}<p class="border-b border-line bg-err/8 px-6 py-2 text-base text-err">{error}</p>{/if}
   <div class="selectable min-h-0 flex-1 overflow-auto">
     {#each shown as it, i (it.flow + ":" + i + it.event.name)}
       <button class="block w-full border-b border-line/60 px-6 py-2 text-left hover:bg-hover" onclick={() => (open = open === i ? null : i)}>
-        <p class="flex items-center gap-3 text-[12.5px]">
-          <span class="w-20 shrink-0 text-[11px] text-faint">{dateTime(it.startedMs / 1000)}</span>
-          <span class="w-20 shrink-0 rounded-md bg-hover px-1.5 py-px text-center text-[10.5px] font-medium text-muted">{label[it.event.service]}</span>
-          <span class="w-16 shrink-0 text-[11px] text-faint">{it.event.kind}</span>
+        <p class="flex items-center gap-3 text-md">
+          <span class="w-20 shrink-0 text-xs text-faint">{dateTime(it.startedMs / 1000)}</span>
+          <span class="w-20 shrink-0 rounded-md bg-hover px-1.5 py-px text-center text-2xs font-medium text-muted">{label[it.event.service]}</span>
+          <span class="w-16 shrink-0 text-xs text-faint">{it.event.kind}</span>
           <span class="min-w-0 flex-1 truncate font-medium">{it.event.name}</span>
-          <span class="mono max-w-[200px] truncate text-[11px] text-muted">{it.event.user ?? ""}</span>
+          <span class="mono max-w-[200px] truncate text-xs text-muted">{it.event.user ?? ""}</span>
         </p>
         {#if open === i}
-          <pre class="mono mt-2 rounded-lg bg-panel-2 p-3 text-[11.5px] whitespace-pre-wrap">{JSON.stringify(it.event.properties, null, 2)}</pre>
+          <pre class="mono mt-2 rounded-lg bg-panel-2 p-3 text-sm whitespace-pre-wrap">{JSON.stringify(it.event.properties, null, 2)}</pre>
         {/if}
       </button>
     {:else}
-      <p class="px-6 py-14 text-center text-[12.5px] text-muted">No analytics events yet. Start the proxy on the Network view and connect the device, then use the app. Calls from SDKs that pin their certificate pass through unchanged and cannot be read.</p>
+      <p class="px-6 py-14 text-center text-md text-muted">No analytics events yet. Start the proxy on the Network view and connect the device, then use the app. Calls from SDKs that pin their certificate pass through unchanged and cannot be read.</p>
     {/each}
   </div>
 </div>

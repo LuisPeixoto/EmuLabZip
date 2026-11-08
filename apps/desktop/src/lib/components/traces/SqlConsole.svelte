@@ -25,9 +25,9 @@
 
 <div class="space-y-3">
   <div class="flex flex-wrap items-center gap-1.5">
-    <span class="text-[11.5px] text-muted">Examples:</span>
+    <span class="text-sm text-muted">Examples:</span>
     {#each examples as [label, sql] (label)}
-      <button onclick={() => (traces.sql = sql)} class="rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-muted hover:border-line-strong hover:text-fg">{label}</button>
+      <button onclick={() => (traces.sql = sql)} class="rounded-full border border-line px-2.5 py-0.5 text-sm text-muted hover:border-line-strong hover:text-fg">{label}</button>
     {/each}
   </div>
   <textarea
@@ -35,21 +35,21 @@
     {onkeydown}
     spellcheck="false"
     aria-label="PerfettoSQL"
-    class="mono h-28 w-full resize-y rounded-xl border border-line bg-panel p-3 text-[12px] outline-none focus:border-accent"
+    class="mono h-28 w-full resize-y rounded-xl border border-line bg-panel p-3 text-base outline-none focus:border-accent"
   ></textarea>
   <div class="flex items-center gap-3">
     <button
       onclick={() => traces.runSql()}
       disabled={traces.sqlRunning}
-      class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
+      class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40"
     >
       <Icon name={traces.sqlRunning ? "refresh" : "play"} size={12} class={traces.sqlRunning ? "animate-spin" : ""} /> Run
     </button>
-    <span class="text-[11.5px] text-faint">⌘/Ctrl + Enter · PerfettoSQL: tables like slice, sched, thread, process, counter</span>
+    <span class="text-sm text-faint">⌘/Ctrl + Enter · PerfettoSQL: tables like slice, sched, thread, process, counter</span>
   </div>
 
   {#if traces.sqlError}
-    <div class="flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-3 py-2.5 text-[12px] text-err">
+    <div class="flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-3 py-2.5 text-base text-err">
       <Icon name="alert" size={14} class="mt-0.5 shrink-0" /><pre class="mono min-w-0 whitespace-pre-wrap">{traces.sqlError}</pre>
     </div>
   {/if}
@@ -58,7 +58,7 @@
     {@const r = traces.sqlResult}
     <div class="overflow-hidden rounded-xl border border-line bg-panel">
       <div class="max-h-[460px] overflow-auto">
-        <table class="mono w-full text-[11.5px]">
+        <table class="mono w-full text-sm">
           <thead class="sticky top-0 bg-panel-2 text-left text-faint">
             <tr>{#each r.columns as c (c)}<th class="border-b border-line px-3 py-1.5 font-medium">{c}</th>{/each}</tr>
           </thead>
@@ -69,7 +69,7 @@
           </tbody>
         </table>
       </div>
-      <p class="border-t border-line px-3 py-1.5 text-[11px] text-muted">
+      <p class="border-t border-line px-3 py-1.5 text-xs text-muted">
         {r.rows.length} rows{r.truncated ? " (more were cut off, add a LIMIT)" : ""}
       </p>
     </div>

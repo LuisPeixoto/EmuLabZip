@@ -45,13 +45,13 @@
     {#if app.device}
       <PlatformIcon platform={app.device.platform} />
       <span class="min-w-0 flex-1 leading-tight">
-        <span class="block truncate text-[12.5px] font-semibold">{app.device.name}</span>
-        <span class="block truncate text-[10.5px] text-muted">{osLabel(app.device)}</span>
+        <span class="block truncate text-md font-semibold">{app.device.name}</span>
+        <span class="block truncate text-2xs text-muted">{osLabel(app.device)}</span>
       </span>
       <span class="size-2 shrink-0 rounded-full {stateDot[app.device.state]} {app.device.state === 'online' ? 'live-dot' : ''}"></span>
     {:else}
       <span class="grid size-6 place-items-center rounded-md bg-hover text-faint"><Icon name="smartphone" size={14} /></span>
-      <span class="flex-1 text-[12.5px] text-muted">{app.devicesLoaded ? "No device running" : "Looking for devices…"}</span>
+      <span class="flex-1 text-md text-muted">{app.devicesLoaded ? "No device running" : "Looking for devices…"}</span>
     {/if}
     <Icon name="chevronDown" size={14} class="shrink-0 text-faint" />
   </button>
@@ -64,7 +64,7 @@
       <div class="max-h-[420px] overflow-y-auto p-1.5">
         {#each groups as group (group.label)}
           {#if group.items.length}
-            <p class="px-2.5 pt-2 pb-1 text-[10.5px] font-semibold tracking-wider text-faint uppercase">{group.label}</p>
+            <p class="px-2.5 pt-2 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">{group.label}</p>
             {#each group.items as d (d.id)}
               <button
                 onclick={() => pick(d)}
@@ -72,10 +72,10 @@
               >
                 <PlatformIcon platform={d.platform} />
                 <span class="min-w-0 flex-1 leading-tight">
-                  <span class="block truncate text-[12.5px] font-medium {d.id === app.deviceId ? 'text-accent' : ''}">{d.name}</span>
-                  <span class="mono block truncate text-[10.5px] text-faint">{osLabel(d)} · {d.id}</span>
+                  <span class="block truncate text-md font-medium {d.id === app.deviceId ? 'text-accent' : ''}">{d.name}</span>
+                  <span class="mono block truncate text-2xs text-faint">{osLabel(d)} · {d.id}</span>
                 </span>
-                <span class="flex items-center gap-1.5 text-[10.5px] text-muted">
+                <span class="flex items-center gap-1.5 text-2xs text-muted">
                   <span class="size-1.5 rounded-full {stateDot[d.state]}"></span>{stateLabel[d.state]}
                 </span>
               </button>
@@ -83,13 +83,13 @@
           {/if}
         {/each}
         {#if !app.devices.length}
-          <div class="px-3 py-6 text-center text-[12px] text-muted">
+          <div class="px-3 py-6 text-center text-base text-muted">
             <Icon name="smartphone" size={22} class="mx-auto mb-2 text-faint" />
             Start an Android emulator or boot an iOS simulator.<br />It shows up here within a few seconds.
           </div>
         {/if}
       </div>
-      <div class="flex items-center gap-3 border-t border-line bg-panel-2 px-3 py-2 text-[11px] text-muted">
+      <div class="flex items-center gap-3 border-t border-line bg-panel-2 px-3 py-2 text-xs text-muted">
         {#each app.platforms as p (p.platform)}
           <span class="flex items-center gap-1.5" title={p.error ?? (p.available ? "Ready" : "Not available on this computer")}>
             <span class="size-1.5 rounded-full {p.available && !p.error ? 'bg-ok' : p.error ? 'bg-err' : 'bg-faint'}"></span>

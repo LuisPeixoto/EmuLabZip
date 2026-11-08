@@ -133,8 +133,8 @@
   <!-- Proxy and device -->
   <div class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-panel px-4 py-3">
     <div class="min-w-0">
-      <h1 class="text-[15px] font-semibold tracking-tight">Network</h1>
-      <p class="flex items-center gap-1.5 text-[11.5px] text-muted">
+      <h1 class="text-2xl font-semibold tracking-tight">Network</h1>
+      <p class="flex items-center gap-1.5 text-sm text-muted">
         <span class="size-1.5 rounded-full {net.running ? 'live-dot bg-ok' : 'bg-faint'}"></span>
         {#if net.running}Proxy listening on <span class="mono">127.0.0.1:{net.state?.port}</span>{:else}Proxy stopped{/if}
       </p>
@@ -142,11 +142,11 @@
     <span class="flex-1"></span>
 
     {#if net.running}
-      <button onclick={() => net.stop()} disabled={net.busy === "stop"} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-50">
+      <button onclick={() => net.stop()} disabled={net.busy === "stop"} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-50">
         <Icon name="stop" size={12} /> Stop proxy
       </button>
     {:else}
-      <button onclick={() => net.start()} disabled={net.busy === "start"} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-50">
+      <button onclick={() => net.start()} disabled={net.busy === "start"} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-50">
         <Icon name="play" size={12} /> Start proxy
       </button>
     {/if}
@@ -154,40 +154,40 @@
     <div class="h-5 w-px bg-line"></div>
 
     <div class="flex items-center gap-2 rounded-xl border border-line bg-panel-2 py-1 pr-1 pl-3">
-      <span class="text-[12px] text-muted">
+      <span class="text-base text-muted">
         {#if !app.device}No device
         {:else}<span class="font-medium text-fg">{app.device.name}</span>
           {#if net.connected}<span class="text-ok">· sending traffic here</span>{:else if net.device?.proxy}<span class="text-warn">· uses {net.device.proxy}</span>{:else}<span>· not connected</span>{/if}
         {/if}
       </span>
       {#if net.connected}
-        <button onclick={() => net.disconnect()} disabled={net.busy === "disconnect"} class="flex h-7 items-center gap-1.5 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line disabled:opacity-50">
+        <button onclick={() => net.disconnect()} disabled={net.busy === "disconnect"} class="flex h-7 items-center gap-1.5 rounded-lg bg-hover px-2.5 text-base font-medium hover:bg-line disabled:opacity-50">
           <Icon name="x" size={12} /> Disconnect
         </button>
       {:else}
-        <button onclick={() => net.connect()} disabled={!canConnect || net.busy === "connect"} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-2.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-40">
+        <button onclick={() => net.connect()} disabled={!canConnect || net.busy === "connect"} class="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-2.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40">
           <Icon name={net.busy === "connect" ? "refresh" : "link"} size={12} class={net.busy === "connect" ? "animate-spin" : ""} /> Connect
         </button>
       {/if}
-      <button onclick={() => net.installCertificate()} disabled={!canConnect || net.busy === "certificate"} title="Make the device trust the EmuLabZip certificate, so HTTPS can be decrypted" class="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
+      <button onclick={() => net.installCertificate()} disabled={!canConnect || net.busy === "certificate"} title="Make the device trust the EmuLabZip certificate, so HTTPS can be decrypted" class="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40">
         <Icon name={net.busy === "certificate" ? "refresh" : "shield"} size={12} class={net.busy === "certificate" ? "animate-spin" : ""} /> Certificate
       </button>
     </div>
   </div>
 
   {#if ios && net.connected}
-    <div class="flex shrink-0 items-center gap-2 border-b border-warn/30 bg-warn/10 px-4 py-2 text-[12px] text-warn">
+    <div class="flex shrink-0 items-center gap-2 border-b border-warn/30 bg-warn/10 px-4 py-2 text-base text-warn">
       <Icon name="alert" size={14} class="shrink-0" />
       <span>{net.device?.note ?? "All HTTP and HTTPS traffic from this Mac goes through EmuLabZip while this is on."}</span>
     </div>
   {:else if net.device?.note && !net.connected}
-    <div class="flex shrink-0 items-center gap-2 border-b border-line bg-panel-2 px-4 py-2 text-[12px] text-muted">
+    <div class="flex shrink-0 items-center gap-2 border-b border-line bg-panel-2 px-4 py-2 text-base text-muted">
       <Icon name="info" size={14} class="shrink-0" />{net.device.note}
     </div>
   {/if}
 
   {#if net.state?.bypassed.length}
-    <div class="flex shrink-0 items-center gap-2 border-b border-line bg-panel-2 px-4 py-2 text-[12px] text-muted">
+    <div class="flex shrink-0 items-center gap-2 border-b border-line bg-panel-2 px-4 py-2 text-base text-muted">
       <Icon name="lock" size={14} class="shrink-0 text-faint" />
       <span class="min-w-0 flex-1 truncate" title={net.state.bypassed.join(", ")}>
         {net.state.bypassed.length} {net.state.bypassed.length === 1 ? "host does" : "hosts do"} not trust the certificate and {net.state.bypassed.length === 1 ? "is" : "are"} passed through:
@@ -199,7 +199,7 @@
 
   {#if net.imported}
     {@const im = net.imported}
-    <div class="shrink-0 border-b border-line bg-panel-2 px-4 py-2 text-[12px] text-muted">
+    <div class="shrink-0 border-b border-line bg-panel-2 px-4 py-2 text-base text-muted">
       <div class="flex items-center gap-2">
         <Icon name="folderOpen" size={14} class="shrink-0 text-faint" />
         <span class="min-w-0 flex-1 truncate">
@@ -209,7 +209,7 @@
         <button onclick={() => (net.imported = null)} class="grid size-6 shrink-0 place-items-center rounded-md hover:bg-hover hover:text-fg" aria-label="Dismiss"><Icon name="x" size={12} /></button>
       </div>
       {#if showDns}
-        <div class="mono selectable mt-2 max-h-[140px] overflow-y-auto rounded-lg border border-line bg-panel text-[11.5px]">
+        <div class="mono selectable mt-2 max-h-[140px] overflow-y-auto rounded-lg border border-line bg-panel text-sm">
           {#each im.dns as l, i (i)}
             <div class="flex gap-3 border-b border-line/40 px-3 py-1">
               <span class="w-[44px] shrink-0 text-faint">{l.kind}</span>
@@ -225,7 +225,7 @@
 
   {#if net.state?.replay}
     {@const r = net.state.replay}
-    <div class="shrink-0 border-b border-accent/30 bg-accent-soft px-4 py-2 text-[12px]">
+    <div class="shrink-0 border-b border-accent/30 bg-accent-soft px-4 py-2 text-base">
       <div class="flex items-center gap-2">
         <Icon name="repeat" size={14} class="shrink-0 text-accent" />
         <span class="min-w-0 flex-1 truncate">
@@ -237,7 +237,7 @@
         <button onclick={() => net.replayStop()} class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 font-medium hover:bg-hover">Stop replay</button>
       </div>
       {#if showMissed && r.missed.length}
-        <div class="mono selectable mt-2 max-h-[120px] overflow-y-auto rounded-lg border border-line bg-panel px-3 py-1.5 text-[11.5px]">
+        <div class="mono selectable mt-2 max-h-[120px] overflow-y-auto rounded-lg border border-line bg-panel px-3 py-1.5 text-sm">
           {#each r.missed as line (line)}<div class="py-0.5">{line}</div>{/each}
         </div>
       {/if}
@@ -248,107 +248,107 @@
   <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
     <label class="relative flex min-w-[150px] flex-1 items-center">
       <Icon name="search" size={13} class="pointer-events-none absolute left-2.5 text-faint" />
-      <input bind:this={searchEl} bind:value={net.filter.text} spellcheck="false" placeholder="Filter by URL, operation, method or status  (⌘F)" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-3 pl-8 text-[12px] outline-none placeholder:text-faint focus:border-accent focus:bg-panel" />
+      <input bind:this={searchEl} bind:value={net.filter.text} spellcheck="false" placeholder="Filter by URL, operation, method or status  (⌘F)" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-3 pl-8 text-base outline-none placeholder:text-faint focus:border-accent focus:bg-panel" />
     </label>
     <div class="flex rounded-lg border border-line bg-panel-2 p-0.5" role="group" aria-label="Status">
       {#each statusChips as c (c.id)}
-        <button onclick={() => (net.filter.status = c.id)} class="mono h-6 rounded-md px-2 text-[11px] {net.filter.status === c.id ? 'bg-panel font-semibold text-fg shadow-sm' : 'text-muted hover:text-fg'}">{c.label}</button>
+        <button onclick={() => (net.filter.status = c.id)} class="mono h-6 rounded-md px-2 text-xs {net.filter.status === c.id ? 'bg-panel font-semibold text-fg shadow-sm' : 'text-muted hover:text-fg'}">{c.label}</button>
       {/each}
     </div>
-    <select bind:value={net.filter.method} aria-label="Method" class="mono h-8 rounded-lg border border-line bg-panel-2 px-2 text-[12px] outline-none focus:border-accent">
+    <select bind:value={net.filter.method} aria-label="Method" class="mono h-8 rounded-lg border border-line bg-panel-2 px-2 text-base outline-none focus:border-accent">
       <option value="all">All methods</option>
       {#each net.methods as m (m)}<option value={m}>{m}</option>{/each}
     </select>
-    <label class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] text-muted">
+    <label class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-base text-muted">
       <input type="checkbox" bind:checked={net.filter.tunnels} class="accent-[var(--accent)]" /> Connections
     </label>
     <div class="h-5 w-px bg-line"></div>
-    <button onclick={() => net.openRules()} title="Rules: mock, delay, block or hold requests" class="relative flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg">
-      <Icon name="sliders" size={14} />Rules{#if enabledRules}<span class="mono rounded-full bg-accent px-1.5 text-[10px] font-semibold text-white">{enabledRules}</span>{/if}
+    <button onclick={() => net.openRules()} title="Rules: mock, delay, block or hold requests" class="relative flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg">
+      <Icon name="sliders" size={14} />Rules{#if enabledRules}<span class="mono rounded-full bg-accent px-1.5 text-tiny font-semibold text-white">{enabledRules}</span>{/if}
     </button>
     <div class="relative">
-      <button onclick={() => (conditionsMenu = !conditionsMenu)} title="Slow down or cut the network, and .proto files for gRPC" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium hover:bg-hover {shaped ? 'bg-warn/12 text-warn' : 'text-muted hover:text-fg'}">
+      <button onclick={() => (conditionsMenu = !conditionsMenu)} title="Slow down or cut the network, and .proto files for gRPC" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium hover:bg-hover {shaped ? 'bg-warn/12 text-warn' : 'text-muted hover:text-fg'}">
         <Icon name="gauge" size={14} />{shaped ? net.state?.conditions.name ?? "Custom network" : "Network"}
       </button>
       {#if conditionsMenu}
         <button class="fixed inset-0 z-30 cursor-default" aria-label="Close" onclick={() => (conditionsMenu = false)}></button>
         <div class="shadow-pop absolute top-9 right-0 z-40 w-[340px] rounded-xl border border-line bg-elevated p-3">
-          <p class="mb-1.5 text-[10.5px] font-semibold tracking-wider text-faint uppercase">Network conditions</p>
+          <p class="mb-1.5 text-2xs font-semibold tracking-wider text-faint uppercase">Network conditions</p>
           <div class="grid grid-cols-2 gap-1.5">
-            <button onclick={() => net.setConditions({ name: null, downKbps: null, upKbps: null, latencyMs: 0, lossPercent: 0, offline: false })} class="h-7 rounded-lg border px-2 text-left text-[12px] {!shaped ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">No limits</button>
+            <button onclick={() => net.setConditions({ name: null, downKbps: null, upKbps: null, latencyMs: 0, lossPercent: 0, offline: false })} class="h-7 rounded-lg border px-2 text-left text-base {!shaped ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">No limits</button>
             {#each net.presets as p (p.id)}
-              <button onclick={() => net.setConditions(p.conditions)} class="h-7 rounded-lg border px-2 text-left text-[12px] {net.state?.conditions.name === p.label ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">{p.label}</button>
+              <button onclick={() => net.setConditions(p.conditions)} class="h-7 rounded-lg border px-2 text-left text-base {net.state?.conditions.name === p.label ? 'border-accent bg-accent-soft font-medium' : 'border-line hover:bg-hover'}">{p.label}</button>
             {/each}
           </div>
-          <div class="mt-2.5 grid grid-cols-4 gap-1.5 text-[11px] text-muted">
-            <label>Down kb/s<input bind:value={custom.down} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
-            <label>Up kb/s<input bind:value={custom.up} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
-            <label>Delay ms<input bind:value={custom.latency} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
-            <label>Loss %<input bind:value={custom.loss} inputmode="decimal" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-[11.5px] text-fg outline-none focus:border-accent" /></label>
+          <div class="mt-2.5 grid grid-cols-4 gap-1.5 text-xs text-muted">
+            <label>Down kb/s<input bind:value={custom.down} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-sm text-fg outline-none focus:border-accent" /></label>
+            <label>Up kb/s<input bind:value={custom.up} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-sm text-fg outline-none focus:border-accent" /></label>
+            <label>Delay ms<input bind:value={custom.latency} inputmode="numeric" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-sm text-fg outline-none focus:border-accent" /></label>
+            <label>Loss %<input bind:value={custom.loss} inputmode="decimal" class="mono mt-0.5 h-7 w-full rounded-md border border-line bg-panel px-1.5 text-sm text-fg outline-none focus:border-accent" /></label>
           </div>
-          <button onclick={applyCustom} class="mt-2 h-7 rounded-lg bg-hover px-3 text-[12px] font-medium hover:bg-line">Apply these numbers</button>
-          <p class="mt-2 text-[11px] leading-relaxed text-faint">Applies to everything the device sends through the proxy, also to connections that are open. Loss stalls traffic the way a lost packet would, since a proxy cannot drop packets itself. HTTP/3 does not go through this link.</p>
+          <button onclick={applyCustom} class="mt-2 h-7 rounded-lg bg-hover px-3 text-base font-medium hover:bg-line">Apply these numbers</button>
+          <p class="mt-2 text-xs leading-relaxed text-faint">Applies to everything the device sends through the proxy, also to connections that are open. Loss stalls traffic the way a lost packet would, since a proxy cannot drop packets itself. HTTP/3 does not go through this link.</p>
 
-          <p class="mt-3 mb-1.5 text-[10.5px] font-semibold tracking-wider text-faint uppercase">gRPC and protobuf</p>
+          <p class="mt-3 mb-1.5 text-2xs font-semibold tracking-wider text-faint uppercase">gRPC and protobuf</p>
           {#if net.state?.protos}
-            <p class="mono truncate text-[11.5px]" title={net.state.protos.dir}>{net.state.protos.dir}</p>
-            <p class="text-[11.5px] text-muted">{net.state.protos.files} files, {net.state.protos.services} services</p>
+            <p class="mono truncate text-sm" title={net.state.protos.dir}>{net.state.protos.dir}</p>
+            <p class="text-sm text-muted">{net.state.protos.files} files, {net.state.protos.services} services</p>
             <div class="mt-1.5 flex gap-1.5">
-              <button onclick={() => net.pickProtos()} class="h-7 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line">Change folder…</button>
-              <button onclick={() => net.clearProtos()} class="h-7 rounded-lg px-2.5 text-[12px] text-muted hover:bg-hover hover:text-fg">Clear</button>
+              <button onclick={() => net.pickProtos()} class="h-7 rounded-lg bg-hover px-2.5 text-base font-medium hover:bg-line">Change folder…</button>
+              <button onclick={() => net.clearProtos()} class="h-7 rounded-lg px-2.5 text-base text-muted hover:bg-hover hover:text-fg">Clear</button>
             </div>
           {:else}
-            <p class="text-[11.5px] leading-relaxed text-muted">Without your <span class="mono">.proto</span> files, messages are shown with field numbers only.</p>
-            <button onclick={() => net.pickProtos()} class="mt-1.5 h-7 rounded-lg bg-hover px-2.5 text-[12px] font-medium hover:bg-line">Choose the .proto folder…</button>
+            <p class="text-sm leading-relaxed text-muted">Without your <span class="mono">.proto</span> files, messages are shown with field numbers only.</p>
+            <button onclick={() => net.pickProtos()} class="mt-1.5 h-7 rounded-lg bg-hover px-2.5 text-base font-medium hover:bg-line">Choose the .proto folder…</button>
           {/if}
         </div>
       {/if}
     </div>
     <div class="relative">
-      <button onclick={() => (replayMenu = !replayMenu)} title="Answer from a recording, so the app runs without the internet" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium hover:bg-hover {net.state?.replay ? 'bg-accent-soft text-accent' : 'text-muted hover:text-fg'}">
+      <button onclick={() => (replayMenu = !replayMenu)} title="Answer from a recording, so the app runs without the internet" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium hover:bg-hover {net.state?.replay ? 'bg-accent-soft text-accent' : 'text-muted hover:text-fg'}">
         <Icon name="repeat" size={14} />Replay
       </button>
       {#if replayMenu}
         <button class="fixed inset-0 z-30 cursor-default" aria-label="Close" onclick={() => (replayMenu = false)}></button>
         <div class="shadow-pop absolute top-9 right-0 z-40 w-[330px] rounded-xl border border-line bg-elevated p-3">
-          <p class="text-[12px] leading-relaxed text-muted">Answer the app's requests from a HAR file or a recorded session. The servers are not asked, so a run does not depend on a backend that has changed or is down.</p>
-          <label class="mt-2.5 flex items-start gap-2.5 text-[12px]">
+          <p class="text-base leading-relaxed text-muted">Answer the app's requests from a HAR file or a recorded session. The servers are not asked, so a run does not depend on a backend that has changed or is down.</p>
+          <label class="mt-2.5 flex items-start gap-2.5 text-base">
             <input type="checkbox" bind:checked={passthrough} class="mt-0.5 accent-[var(--accent)]" />
-            <span>Let requests that are not in the recording reach the real server<span class="mt-0.5 block text-[11px] text-faint">Off: they fail with 504, so a test sees what the app asked for that it did not expect.</span></span>
+            <span>Let requests that are not in the recording reach the real server<span class="mt-0.5 block text-xs text-faint">Off: they fail with 504, so a test sees what the app asked for that it did not expect.</span></span>
           </label>
           <div class="mt-2.5 flex gap-1.5">
-            <button onclick={async () => { if (await net.replayLoad(null, passthrough)) replayMenu = false; }} class="h-7 rounded-lg bg-accent px-3 text-[12px] font-semibold text-white hover:opacity-90">Choose a file…</button>
-            {#if net.state?.replay}<button onclick={() => { net.replayStop(); replayMenu = false; }} class="h-7 rounded-lg px-3 text-[12px] text-muted hover:bg-hover hover:text-fg">Stop replay</button>{/if}
+            <button onclick={async () => { if (await net.replayLoad(null, passthrough)) replayMenu = false; }} class="h-7 rounded-lg bg-accent px-3 text-base font-semibold text-white hover:opacity-90">Choose a file…</button>
+            {#if net.state?.replay}<button onclick={() => { net.replayStop(); replayMenu = false; }} class="h-7 rounded-lg px-3 text-base text-muted hover:bg-hover hover:text-fg">Stop replay</button>{/if}
           </div>
-          <p class="mt-2 text-[11px] leading-relaxed text-faint">WebSockets, gRPC calls and connections the proxy cannot decode are refused while a recording is replayed. Start the proxy and connect the device as usual.</p>
+          <p class="mt-2 text-xs leading-relaxed text-faint">WebSockets, gRPC calls and connections the proxy cannot decode are refused while a recording is replayed. Start the proxy and connect the device as usual.</p>
         </div>
       {/if}
     </div>
     <div class="relative">
-      <button onclick={() => (menu = !menu)} title="HTTP/3 and other proxy options" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg {net.state?.http3 ? 'text-accent' : ''}">
+      <button onclick={() => (menu = !menu)} title="HTTP/3 and other proxy options" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg {net.state?.http3 ? 'text-accent' : ''}">
         <Icon name="zap" size={14} />HTTP/3
       </button>
       {#if menu}
         <button class="fixed inset-0 z-30 cursor-default" aria-label="Close" onclick={() => (menu = false)}></button>
         <div class="shadow-pop absolute top-9 right-0 z-40 w-[330px] rounded-xl border border-line bg-elevated p-3">
-          <label class="flex items-start gap-2.5 text-[12.5px]">
+          <label class="flex items-start gap-2.5 text-md">
             <input type="checkbox" checked={net.state?.http3 ?? false} onchange={(e) => net.setHttp3(e.currentTarget.checked)} class="mt-0.5 accent-[var(--accent)]" />
-            <span><b class="font-medium">Use HTTP/3 to servers</b><span class="mt-0.5 block text-[11.5px] leading-relaxed text-muted">After a server says it supports it, the proxy talks to it over QUIC. Falls back to HTTP/2 or 1.1 if that fails. The device still talks to the proxy over HTTP/1.1 or 2.</span></span>
+            <span><b class="font-medium">Use HTTP/3 to servers</b><span class="mt-0.5 block text-sm leading-relaxed text-muted">After a server says it supports it, the proxy talks to it over QUIC. Falls back to HTTP/2 or 1.1 if that fails. The device still talks to the proxy over HTTP/1.1 or 2.</span></span>
           </label>
-          <label class="mt-3 flex items-start gap-2.5 text-[12.5px]">
+          <label class="mt-3 flex items-start gap-2.5 text-md">
             <input type="checkbox" checked={net.state?.hideHttp3 ?? true} onchange={(e) => net.setHideHttp3(e.currentTarget.checked)} class="mt-0.5 accent-[var(--accent)]" />
-            <span><b class="font-medium">Hide HTTP/3 from apps</b><span class="mt-0.5 block text-[11.5px] leading-relaxed text-muted">Removes <span class="mono">h3</span> from the <span class="mono">Alt-Svc</span> header the app sees, so it does not try QUIC around the proxy and vanish from this list.</span></span>
+            <span><b class="font-medium">Hide HTTP/3 from apps</b><span class="mt-0.5 block text-sm leading-relaxed text-muted">Removes <span class="mono">h3</span> from the <span class="mono">Alt-Svc</span> header the app sees, so it does not try QUIC around the proxy and vanish from this list.</span></span>
           </label>
         </div>
       {/if}
     </div>
-    <button onclick={() => net.importPcap()} title="Open a .pcap or .pcapng capture as requests" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="folderOpen" size={14} />Import</button>
+    <button onclick={() => net.importPcap()} title="Open a .pcap or .pcapng capture as requests" class="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-base font-medium text-muted hover:bg-hover hover:text-fg"><Icon name="folderOpen" size={14} />Import</button>
     <button onclick={() => net.exportHar()} disabled={!net.flows.length} title="Save the requests as a HAR file" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:opacity-40"><Icon name="download" size={15} /></button>
     <button onclick={() => net.clear()} disabled={!net.flows.length} title="Clear (⌘K)" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:opacity-40"><Icon name="trash" size={15} /></button>
   </div>
 
   <!-- List -->
-  <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-[10.5px] tracking-wide text-faint uppercase">
+  <div class="mono flex h-7 shrink-0 items-center gap-3 border-b border-line bg-panel-2 px-3 text-2xs tracking-wide text-faint uppercase">
     <span class="w-[44px] shrink-0">Status</span>
     <span class="w-[58px] shrink-0">Method</span>
     <span class="w-[210px] shrink-0">Host</span>
@@ -368,14 +368,14 @@
               <button
                 onclick={() => net.select(net.selectedId === f.id ? null : f.id)}
                 style="height:{ROW}px"
-                class="mono flex w-full items-center gap-3 border-b border-line/40 px-3 text-left text-[11.5px] {net.selectedId === f.id ? 'bg-select' : 'hover:bg-hover'} {f.kind === 'tunnel' ? 'text-muted' : ''}"
+                class="mono flex w-full items-center gap-3 border-b border-line/40 px-3 text-left text-sm {net.selectedId === f.id ? 'bg-select' : 'hover:bg-hover'} {f.kind === 'tunnel' ? 'text-muted' : ''}"
               >
-                <span class="w-[44px] shrink-0"><span class="inline-block min-w-[34px] rounded px-1.5 py-px text-center text-[10.5px] font-semibold {statusTone(f)}">{statusText(f)}</span></span>
+                <span class="w-[44px] shrink-0"><span class="inline-block min-w-[34px] rounded px-1.5 py-px text-center text-2xs font-semibold {statusTone(f)}">{statusText(f)}</span></span>
                 <span class="w-[58px] shrink-0 font-medium">{kind(f)}{#if f.mocked}<span class="ml-0.5 text-accent" title="Answered by a rule">•</span>{/if}</span>
                 <span class="w-[210px] shrink-0 truncate" title="{f.host}:{f.port}">{f.host}</span>
                 <span class="min-w-0 flex-1 truncate text-muted" title={f.path}>
                   {#if f.operation}<span class="font-semibold text-fg">{f.operation}</span>{" "}{/if}{f.path}
-                  {#if f.grpcStatus != null}<span class="ml-1.5 rounded px-1 py-px text-[10px] font-semibold {f.grpcStatus === 0 ? 'bg-ok/12 text-ok' : 'bg-err/12 text-err'}">{grpcNames[f.grpcStatus] ?? `grpc ${f.grpcStatus}`}</span>{/if}
+                  {#if f.grpcStatus != null}<span class="ml-1.5 rounded px-1 py-px text-tiny font-semibold {f.grpcStatus === 0 ? 'bg-ok/12 text-ok' : 'bg-err/12 text-err'}">{grpcNames[f.grpcStatus] ?? `grpc ${f.grpcStatus}`}</span>{/if}
                 </span>
                 <span class="w-[34px] shrink-0 text-faint {protocol(f) === 'h3' ? 'font-semibold text-accent' : ''}">{protocol(f)}</span>
                 <span class="w-[82px] shrink-0 truncate text-faint">{type(f)}</span>
@@ -390,24 +390,24 @@
           <div class="max-w-[440px]">
             <span class="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent"><Icon name="globe" size={22} /></span>
             {#if net.flows.length}
-              <p class="text-[13.5px] font-medium">No request matches the filters</p>
-              <button onclick={() => net.resetFilter()} class="mt-2 text-[12px] text-accent hover:underline">Reset filters</button>
+              <p class="text-xl font-medium">No request matches the filters</p>
+              <button onclick={() => net.resetFilter()} class="mt-2 text-base text-accent hover:underline">Reset filters</button>
             {:else if !net.running}
-              <p class="text-[13.5px] font-medium">Start the proxy to see traffic</p>
-              <p class="mt-1.5 text-[12.5px] leading-relaxed text-muted">Press <b>Connect</b> to point {app.device?.name ?? "a device"} at it. HTTPS needs the device to trust the EmuLabZip certificate: use <b>Certificate</b> once per device.</p>
+              <p class="text-xl font-medium">Start the proxy to see traffic</p>
+              <p class="mt-1.5 text-md leading-relaxed text-muted">Press <b>Connect</b> to point {app.device?.name ?? "a device"} at it. HTTPS needs the device to trust the EmuLabZip certificate: use <b>Certificate</b> once per device.</p>
             {:else if net.connected}
-              <p class="text-[13.5px] font-medium">Waiting for traffic</p>
-              <p class="mt-1.5 text-[12.5px] leading-relaxed text-muted">Use an app on {app.device?.name}. Requests appear here as they finish.</p>
+              <p class="text-xl font-medium">Waiting for traffic</p>
+              <p class="mt-1.5 text-md leading-relaxed text-muted">Use an app on {app.device?.name}. Requests appear here as they finish.</p>
             {:else}
-              <p class="text-[13.5px] font-medium">The proxy is running</p>
-              <p class="mt-1.5 text-[12.5px] leading-relaxed text-muted">Press <b>Connect</b> to send {app.device?.name ?? "a device"}'s traffic through it.</p>
+              <p class="text-xl font-medium">The proxy is running</p>
+              <p class="mt-1.5 text-md leading-relaxed text-muted">Press <b>Connect</b> to send {app.device?.name ?? "a device"}'s traffic through it.</p>
             {/if}
           </div>
         </div>
       {/if}
     </div>
     {#if !follow && rows.length}
-      <button onclick={jumpToEnd} class="shadow-pop absolute right-5 bottom-4 flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90">
+      <button onclick={jumpToEnd} class="shadow-pop absolute right-5 bottom-4 flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90">
         <Icon name="arrowDownToLine" size={14} /> Jump to latest
       </button>
     {/if}
@@ -422,7 +422,7 @@
   {/if}
 
   <!-- Status -->
-  <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-[11px] text-muted">
+  <div class="flex h-7 shrink-0 items-center gap-3 border-t border-line bg-panel px-3 text-xs text-muted">
     <span class="mono">{rows.length.toLocaleString()} shown</span>
     <span class="mono text-faint">{net.flows.length.toLocaleString()} captured</span>
     <span class="flex-1"></span>

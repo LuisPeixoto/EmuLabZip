@@ -40,7 +40,7 @@
   <div transition:scale={{ start: 0.97, duration: 160 }} class="shadow-pop relative flex max-h-full w-[460px] flex-col overflow-hidden rounded-2xl border border-line bg-elevated">
     <div class="flex items-center gap-2 border-b border-line px-4 py-3">
       <Icon name="camera" size={15} class="text-accent" />
-      <h2 class="flex-1 text-[13px] font-semibold">Screenshot · {app.device?.name}</h2>
+      <h2 class="flex-1 text-lg font-semibold">Screenshot · {app.device?.name}</h2>
       <button onclick={onclose} class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg" aria-label="Close">
         <Icon name="x" size={14} />
       </button>
@@ -49,17 +49,17 @@
       {#if png}
         <img src="data:image/png;base64,{png}" alt="Device screen" class="max-h-[62vh] rounded-xl border border-line shadow-lg {busy ? 'opacity-60' : ''}" />
       {:else if error}
-        <p class="max-w-[320px] text-center text-[12.5px] text-err">{error}</p>
+        <p class="max-w-[320px] text-center text-md text-err">{error}</p>
       {:else}
         <div class="skeleton h-[420px] w-[200px]"></div>
       {/if}
     </div>
     <div class="flex items-center gap-2 border-t border-line px-4 py-3">
-      <button onclick={capture} disabled={busy} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-[12px] font-medium hover:bg-hover disabled:opacity-50">
+      <button onclick={capture} disabled={busy} class="flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium hover:bg-hover disabled:opacity-50">
         <Icon name="refresh" size={14} class={busy ? "animate-spin" : ""} /> Retake
       </button>
       <span class="flex-1"></span>
-      <button onclick={saveAs} disabled={!png} class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50">
+      <button onclick={saveAs} disabled={!png} class="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-50">
         <Icon name="download" size={14} /> Save PNG…
       </button>
     </div>
