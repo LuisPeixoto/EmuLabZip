@@ -1,5 +1,6 @@
 import { loadValue, save } from "../prefs";
 import { sanitizeSizes } from "../layout/size.ts";
+import { type SidebarPrefs, mergeOrder, move, sanitizeSidebar } from "../layout/sidebar.ts";
 
 const KEY = "arrangement";
 
@@ -8,6 +9,7 @@ export type ContentWidth = "narrow" | "wide" | "full";
 interface Saved {
   sizes: Record<string, number>;
   contentWidth: ContentWidth;
+  sidebar: SidebarPrefs;
 }
 
 function read(): Saved {
@@ -15,6 +17,7 @@ function read(): Saved {
   return {
     sizes: sanitizeSizes(raw?.sizes),
     contentWidth: raw?.contentWidth === "narrow" || raw?.contentWidth === "full" ? raw.contentWidth : "wide",
+    sidebar: sanitizeSidebar(raw?.sidebar),
   };
 }
 
@@ -22,9 +25,40 @@ function read(): Saved {
 class ArrangeStore {
   sizes = $state<Record<string, number>>(read().sizes);
   contentWidth = $state<ContentWidth>(read().contentWidth);
+  sidebar = $state<SidebarPrefs>(read().sidebar);
 
   #save() {
-    save(KEY, { sizes: $state.snapshot(this.sizes), contentWidth: this.contentWidth });
+    save(KEY, { sizes: $state.snapshot(this.sizes), contentWidth: this.contentWidth, sidebar: $state.snapshot(this.sidebar) });
+  }
+
+  toggleSidebar() {
+    this.sidebar.collapsed = !this.sidebar.collapsed;
+    this.#save();
+  }
+
+  /** A section's entries in the chosen order. */
+  ordered(section: string, defaults: string[]): string[] {
+    return mergeOrder(defaults, this.sidebar.order[section]);
+  }
+
+  isHidden(id: string): boolean {
+    return this.sidebar.hidden.includes(id);
+  }
+
+  setHidden(id: string, hidden: boolean) {
+    const rest = this.sidebar.hidden.filter((h) => h !== id);
+    this.sidebar.hidden = hidden ? [...rest, id] : rest;
+    this.#save();
+  }
+
+  moveEntry(section: string, defaults: string[], from: number, to: number) {
+    this.sidebar.order[section] = move(this.ordered(section, defaults), from, to);
+    this.#save();
+  }
+
+  resetSidebar() {
+    this.sidebar = { collapsed: false, hidden: [], order: {} };
+    this.#save();
   }
 
   size(id: string): number | undefined {
