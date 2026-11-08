@@ -3,6 +3,7 @@
   import { app, type View } from "./lib/stores/app.svelte";
   import { crashes } from "./lib/stores/crashes.svelte";
   import { theme } from "./lib/stores/theme.svelte";
+  import Split from "./lib/components/layout/Split.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
   import ReportModal from "./lib/components/ReportModal.svelte";
@@ -89,9 +90,11 @@
 
 <div class="flex h-full flex-col">
   <Toolbar onScreenshot={() => (screenshotOpen = true)} />
-  <div class="flex min-h-0 flex-1">
-    <Sidebar />
-    <main class="min-w-0 flex-1 bg-bg">
+  <div class="min-h-0 flex-1">
+   <Split id="sidebar" initial={220} min={170} max={360} minOther={480}>
+    {#snippet first()}<Sidebar />{/snippet}
+    {#snippet second()}
+    <main class="h-full min-w-0 bg-bg">
       {#if app.view === "devices"}
         <Devices />
       {:else if app.view === "size"}
@@ -150,6 +153,8 @@
         <Traces />
       {/if}
     </main>
+    {/snippet}
+   </Split>
   </div>
 </div>
 
