@@ -2,6 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { app, type View } from "./lib/stores/app.svelte";
   import { crashes } from "./lib/stores/crashes.svelte";
+  import { theme } from "./lib/stores/theme.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
   import ReportModal from "./lib/components/ReportModal.svelte";
@@ -44,9 +45,11 @@
     };
   });
 
+  // Paint the theme in use, and again whenever it or a tuning (fonts, roundness, text size, density) changes.
   $effect(() => {
-    document.documentElement.dataset.theme = app.theme;
+    theme.paint();
   });
+  $effect(() => theme.start());
 
   // Follow the log of the selected device as soon as it is ready, whatever view is open, so
   // history is already there when the user switches to Logs.
