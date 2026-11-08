@@ -2,8 +2,17 @@
   import { fade, scale } from "svelte/transition";
   import { app, defaultSettings, type Settings } from "../stores/app.svelte";
   import { logs } from "../stores/logs.svelte";
-  import { theme } from "../stores/theme.svelte";
+  import AppearanceSettings from "./settings/AppearanceSettings.svelte";
+  import LayoutSettings from "./settings/LayoutSettings.svelte";
   import Icon from "./Icon.svelte";
+
+  type Tab = "general" | "appearance" | "layout";
+  const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: "general", label: "General", icon: "settings" },
+    { id: "appearance", label: "Appearance", icon: "sun" },
+    { id: "layout", label: "Layout", icon: "layers" },
+  ];
+  let tab = $state<Tab>("general");
 
   let draft = $state<Settings>({ ...app.settings });
 
@@ -37,7 +46,7 @@
 
 <div transition:fade={{ duration: 120 }} class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-8 backdrop-blur-[2px]">
   <button class="absolute inset-0 cursor-default" aria-label="Close" onclick={close}></button>
-  <div transition:scale={{ start: 0.97, duration: 160 }} class="shadow-pop relative w-[520px] overflow-hidden rounded-2xl border border-line bg-elevated">
+  <div transition:scale={{ start: 0.97, duration: 160 }} class="shadow-pop relative flex h-[min(720px,100%)] w-[min(960px,100%)] flex-col overflow-hidden rounded-2xl border border-line bg-elevated">
     <div class="flex items-center gap-2 border-b border-line px-5 py-3.5">
       <Icon name="settings" size={15} class="text-accent" />
       <h2 class="flex-1 text-xl font-semibold">Settings</h2>
@@ -46,23 +55,23 @@
       </button>
     </div>
 
+    <div class="flex min-h-0 flex-1">
+      <nav class="w-44 shrink-0 space-y-0.5 border-r border-line bg-panel-2 p-2">
+        {#each tabs as t (t.id)}
+          <button
+            onclick={() => (tab = t.id)}
+            class="flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-md {tab === t.id ? 'bg-accent-soft font-medium text-accent' : 'text-fg/85 hover:bg-hover'}"
+          ><Icon name={t.icon} size={14} />{t.label}</button>
+        {/each}
+      </nav>
+      <div class="min-w-0 flex-1 overflow-y-auto">
+        {#if tab === "appearance"}
+          <AppearanceSettings />
+        {:else if tab === "layout"}
+          <LayoutSettings />
+        {:else}
     <div class="space-y-1 p-3">
-      <p class="px-2 pt-1 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Appearance</p>
-      <div class="flex items-center gap-4 rounded-xl px-2 py-2">
-        {@render row("Theme", "Dark is easier on the eyes next to an emulator.")}
-        <div class="flex rounded-lg border border-line bg-panel-2 p-0.5">
-          {#each ["dark", "light", "system"] as const as t (t)}
-            <button
-              onclick={() => theme.setMode(t)}
-              class="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-base capitalize {theme.appearance.mode === t ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
-            >
-              <Icon name={t === "dark" ? "moon" : t === "light" ? "sun" : "laptop"} size={13} />{t}
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      <p class="px-2 pt-3 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Logs</p>
+      <p class="px-2 pt-1 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Logs</p>
       <label class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Verbose and debug lines", "Turn off to keep busy devices readable. The iOS log is very chatty.")}
         <input type="checkbox" bind:checked={draft.logVerbose} class="size-4 accent-[var(--accent)]" />
@@ -88,12 +97,21 @@
         <input type="number" min="1024" max="65535" bind:value={draft.proxyPort} class="mono h-8 w-28 rounded-lg border border-line bg-panel-2 px-2 text-right outline-none focus:border-accent" />
       </label>
     </div>
+        {/if}
+      </div>
+    </div>
 
     <div class="flex items-center gap-2 border-t border-line bg-panel-2 px-5 py-3">
-      <button onclick={() => (draft = { ...defaultSettings })} class="text-base text-muted hover:text-fg">Reset to defaults</button>
-      <span class="flex-1"></span>
-      <button onclick={close} class="h-8 rounded-lg border border-line px-3.5 text-base font-medium hover:bg-hover">Cancel</button>
-      <button onclick={apply} class="h-8 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90">Save</button>
+      {#if tab === "general"}
+        <button onclick={() => (draft = { ...defaultSettings })} class="text-base text-muted hover:text-fg">Reset to defaults</button>
+        <span class="flex-1"></span>
+        <button onclick={close} class="h-8 rounded-lg border border-line px-3.5 text-base font-medium hover:bg-hover">Cancel</button>
+        <button onclick={apply} class="h-8 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90">Save</button>
+      {:else}
+        <span class="text-sm text-muted">Changes here apply at once.</span>
+        <span class="flex-1"></span>
+        <button onclick={close} class="h-8 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90">Done</button>
+      {/if}
     </div>
   </div>
 </div>

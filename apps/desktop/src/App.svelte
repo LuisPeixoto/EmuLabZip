@@ -77,6 +77,15 @@
     if (mod && e.key === ",") {
       e.preventDefault();
       app.settingsOpen = true;
+    } else if (mod && (e.key === "=" || e.key === "+")) {
+      e.preventDefault();
+      theme.zoomBy(0.1);
+    } else if (mod && e.key === "-") {
+      e.preventDefault();
+      theme.zoomBy(-0.1);
+    } else if (mod && e.key === "0") {
+      e.preventDefault();
+      theme.zoomBy(null);
     } else if (mod && e.key === "\\") {
       e.preventDefault();
       arrange.toggleSidebar();
