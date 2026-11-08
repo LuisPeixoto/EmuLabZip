@@ -18,7 +18,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "tauri": "tauri",
-    "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\""
+    "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\"",
+    "lint:sizes": "node scripts/codemod-text-sizes.mjs --check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
