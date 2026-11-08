@@ -26,8 +26,11 @@ fn data_dir(app: &str) -> String {
 
 /// A name for a file on the device that no other run shares.
 fn scratch_name() -> String {
+    // The clock alone can give the same reading twice; a counter and the process id never do.
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_nanos());
-    format!("/data/local/tmp/emulabzip-state-{nanos:x}.tar")
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    format!("/data/local/tmp/emulabzip-state-{nanos:x}-{:x}-{n}.tar", std::process::id())
 }
 
 pub async fn stop(adb: &AdbClient, serial: &str, app: &str) -> Result<()> {
