@@ -8,6 +8,7 @@ on:
     paths:
       - "site/**"
       - "docs/images/**"
+      - "apps/desktop/src/lib/theme/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -28,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Build and check the pages
         run: node site/build.mjs --check
       - uses: actions/configure-pages@v5

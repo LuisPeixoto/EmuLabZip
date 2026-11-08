@@ -3,14 +3,16 @@
   import { app, defaultSettings, type Settings } from "../stores/app.svelte";
   import { logs } from "../stores/logs.svelte";
   import AppearanceSettings from "./settings/AppearanceSettings.svelte";
+  import GallerySettings from "./settings/GallerySettings.svelte";
   import LayoutSettings from "./settings/LayoutSettings.svelte";
   import Icon from "./Icon.svelte";
 
-  type Tab = "general" | "appearance" | "layout";
+  type Tab = "general" | "appearance" | "layout" | "gallery";
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "general", label: "General", icon: "settings" },
     { id: "appearance", label: "Appearance", icon: "sun" },
     { id: "layout", label: "Layout", icon: "layers" },
+    { id: "gallery", label: "Gallery", icon: "globe" },
   ];
   let tab = $state<Tab>("general");
 
@@ -69,6 +71,8 @@
           <AppearanceSettings />
         {:else if tab === "layout"}
           <LayoutSettings />
+        {:else if tab === "gallery"}
+          <GallerySettings />
         {:else}
     <div class="space-y-1 p-3">
       <p class="px-2 pt-1 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Logs</p>
