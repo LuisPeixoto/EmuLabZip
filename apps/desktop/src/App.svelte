@@ -3,6 +3,7 @@
   import { app, type View } from "./lib/stores/app.svelte";
   import { crashes } from "./lib/stores/crashes.svelte";
   import { theme } from "./lib/stores/theme.svelte";
+  import { arrange } from "./lib/stores/arrange.svelte";
   import Split from "./lib/components/layout/Split.svelte";
   import { logs } from "./lib/stores/logs.svelte";
   import EmptyState from "./lib/components/EmptyState.svelte";
@@ -76,6 +77,9 @@
     if (mod && e.key === ",") {
       e.preventDefault();
       app.settingsOpen = true;
+    } else if (mod && e.key === "\\") {
+      e.preventDefault();
+      arrange.toggleSidebar();
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault(); // never reload the webview
       app.refreshDevices();
@@ -91,7 +95,7 @@
 <div class="flex h-full flex-col">
   <Toolbar onScreenshot={() => (screenshotOpen = true)} />
   <div class="min-h-0 flex-1">
-   <Split id="sidebar" initial={220} min={170} max={360} minOther={480}>
+   <Split id="sidebar" initial={220} min={arrange.sidebar.collapsed ? 56 : 170} max={arrange.sidebar.collapsed ? 56 : 360} minOther={480}>
     {#snippet first()}<Sidebar />{/snippet}
     {#snippet second()}
     <main class="h-full min-w-0 bg-bg">
