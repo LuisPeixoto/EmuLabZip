@@ -17,7 +17,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
