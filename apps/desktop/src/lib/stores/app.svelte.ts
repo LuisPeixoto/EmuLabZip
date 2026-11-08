@@ -1,7 +1,6 @@
 import { api, errorText, targetOf, type App, type Device, type HostInfo, type PlatformStatus, type Target } from "../api";
 import { load, loadValue, save } from "../prefs";
 
-export type Theme = "dark" | "light";
 export type View = "overview" | "layout" | "frameworks" | "sessions" | "compare" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins" | "devices" | "audit" | "size" | "visual" | "analytics";
 
 export interface Toast {
@@ -26,7 +25,6 @@ export interface Settings {
 export const defaultSettings: Settings = { logBuffer: 50_000, logTail: 500, logVerbose: true, pollSeconds: 3, proxyPort: 9090 };
 
 class AppStore {
-  theme = $state<Theme>(loadValue<Theme>("theme", "dark"));
   host = $state<HostInfo | null>(null);
   settings = $state<Settings>(load("settings", defaultSettings));
   settingsOpen = $state(false);
@@ -65,11 +63,6 @@ class AppStore {
   startPolling() {
     clearInterval(this.#pollTimer);
     this.#pollTimer = setInterval(() => this.refreshDevices(), Math.max(1, this.settings.pollSeconds) * 1000);
-  }
-
-  setTheme(theme: Theme) {
-    this.theme = theme;
-    save("theme", theme);
   }
 
   setView(view: View) {

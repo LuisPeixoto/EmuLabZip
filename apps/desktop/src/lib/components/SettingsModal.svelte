@@ -2,6 +2,7 @@
   import { fade, scale } from "svelte/transition";
   import { app, defaultSettings, type Settings } from "../stores/app.svelte";
   import { logs } from "../stores/logs.svelte";
+  import { theme } from "../stores/theme.svelte";
   import Icon from "./Icon.svelte";
 
   let draft = $state<Settings>({ ...app.settings });
@@ -50,12 +51,12 @@
       <div class="flex items-center gap-4 rounded-xl px-2 py-2">
         {@render row("Theme", "Dark is easier on the eyes next to an emulator.")}
         <div class="flex rounded-lg border border-line bg-panel-2 p-0.5">
-          {#each ["dark", "light"] as const as t (t)}
+          {#each ["dark", "light", "system"] as const as t (t)}
             <button
-              onclick={() => app.setTheme(t)}
-              class="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] capitalize {app.theme === t ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
+              onclick={() => theme.setMode(t)}
+              class="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] capitalize {theme.appearance.mode === t ? 'bg-panel font-medium text-fg shadow-sm' : 'text-muted'}"
             >
-              <Icon name={t === "dark" ? "moon" : "sun"} size={13} />{t}
+              <Icon name={t === "dark" ? "moon" : t === "light" ? "sun" : "laptop"} size={13} />{t}
             </button>
           {/each}
         </div>

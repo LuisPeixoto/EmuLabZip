@@ -1,5 +1,6 @@
 <script lang="ts">
   import { app } from "../stores/app.svelte";
+  import { theme } from "../stores/theme.svelte";
   import AppPicker from "./AppPicker.svelte";
   import DevicePicker from "./DevicePicker.svelte";
   import Icon from "./Icon.svelte";
@@ -41,10 +42,10 @@
 
   <button
     title="Toggle theme"
-    onclick={() => app.setTheme(app.theme === "dark" ? "light" : "dark")}
+    onclick={() => theme.toggle()}
     class="grid size-8 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg"
   >
-    <Icon name={app.theme === "dark" ? "sun" : "moon"} />
+    <Icon name={theme.base === "dark" ? "sun" : "moon"} />
   </button>
   <button
     title="Settings (⌘,)"
