@@ -3,7 +3,7 @@ import { BUILTIN } from "../theme/builtin.ts";
 import { type Appearance, type Mode, activeBase, merge, migrate, pick, sanitize } from "../theme/select.ts";
 import { validate } from "../theme/theme.ts";
 import type { Base, Theme } from "../theme/tokens.ts";
-import { setWindowBackground } from "../theme/window.ts";
+import { setWebviewZoom, setWindowBackground } from "../theme/window.ts";
 import { loadValue, save } from "../prefs";
 
 const KEY = "appearance";
@@ -53,6 +53,9 @@ class ThemeStore {
     const root = document.documentElement.style;
     root.setProperty("--font-scale", String(a.fontScale));
     root.setProperty("--density", String(a.density));
+    // The window's traffic lights do not zoom, so the toolbar needs the factor to keep its height in real pixels.
+    root.setProperty("--zoom", String(a.zoom));
+    void setWebviewZoom(a.zoom);
     void setWindowBackground(theme.colors.bg);
   }
 
@@ -93,6 +96,11 @@ class ThemeStore {
     save(INSTALLED, $state.snapshot(this.installed));
     const a = this.appearance;
     if (a.darkId === id || a.lightId === id) this.update({ darkId: a.darkId === id ? "midnight" : a.darkId, lightId: a.lightId === id ? "daylight" : a.lightId });
+  }
+
+  /** Zoom in or out a step, or back to 100% with `null`. */
+  zoomBy(step: number | null) {
+    this.update({ zoom: step === null ? 1 : Math.round((this.appearance.zoom + step) * 100) / 100 });
   }
 
   /** The editor's theme, painted live. `null` goes back to the one in use. */

@@ -17,6 +17,7 @@ mod report;
 mod sessions;
 mod state;
 mod states;
+mod themes;
 mod traces;
 
 use tauri::{Manager, RunEvent};
@@ -93,6 +94,8 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            themes::theme_import,
+            themes::theme_export,
             quality::audit_security,
             quality::text_check,
             quality::colour_simulate,
