@@ -374,6 +374,11 @@ writeFileSync(
 // Static files (CNAME, robots.txt, manifest, .nojekyll) are copied as they are
 if (existsSync(join(root, "static"))) cpSync(join(root, "static"), dist, { recursive: true });
 
+// The theme gallery: an index with every theme in full, so the app needs one request. Bad themes fail the check.
+const gallery = await import("./themes.mjs").then((m) => m.loadGallery());
+mkdirSync(join(dist, "themes"), { recursive: true });
+writeFileSync(join(dist, "themes", "index.json"), JSON.stringify({ schema: 1, themes: gallery.themes }) + "\n");
+
 console.log(`Built ${pages.length} pages into ${relative(process.cwd(), dist) || "."}`);
 
 // ---------------------------------------------------------------------------------------------
@@ -383,6 +388,9 @@ console.log(`Built ${pages.length} pages into ${relative(process.cwd(), dist) ||
 if (checkMode) {
   const problems = [];
   const fail = (msg) => problems.push(msg);
+
+  // 0. Every theme in the gallery installs in the app.
+  for (const p of gallery.problems) fail(`themes: ${p}`);
 
   // 1. Every language has exactly the keys of English.
   const reference = new Set(keysOf(strings.en));
