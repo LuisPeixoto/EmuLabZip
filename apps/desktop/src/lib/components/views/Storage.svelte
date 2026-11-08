@@ -7,6 +7,7 @@
   import { bytes, dateTime } from "../../format";
   import Icon from "../Icon.svelte";
   import FilePreview from "../storage/FilePreview.svelte";
+  import Split from "../layout/Split.svelte";
 
   let roots = $state<StorageRoot[]>([]);
   let rootId = $state<string | null>(null);
@@ -157,8 +158,9 @@
     </div>
   </div>
 {:else}
-  <div class="flex h-full min-h-0">
-    <section class="flex w-[360px] shrink-0 flex-col border-r border-line bg-panel">
+  <Split id="storage.files" initial={360} min={220} max={640}>
+   {#snippet first()}
+    <section class="flex h-full flex-col bg-panel">
       <div class="flex shrink-0 gap-1 overflow-x-auto border-b border-line p-2">
         {#each roots as r (r.id)}
           <button
@@ -212,7 +214,9 @@
         {/if}
       </div>
     </section>
-    <section class="flex min-w-0 flex-1 flex-col bg-panel">
+   {/snippet}
+   {#snippet second()}
+    <section class="flex h-full min-w-0 flex-col bg-panel">
       <div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <button onclick={turnOnEditing} aria-pressed={editing} title="Change rows and preferences on the device" class="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-base font-medium {editing ? 'border-warn bg-warn/10 text-warn' : 'border-line text-muted hover:bg-hover hover:text-fg'}">
           <Icon name="lock" size={13} /> {editing ? "Editing" : "Edit"}
@@ -239,5 +243,6 @@
       {/if}
       </div>
     </section>
-  </div>
+   {/snippet}
+  </Split>
 {/if}

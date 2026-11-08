@@ -62,7 +62,7 @@
   {/each}
 {/snippet}
 
-<aside class="flex w-[220px] shrink-0 flex-col border-r border-line bg-panel-2">
+<aside class="flex h-full w-full flex-col bg-panel-2">
   <nav class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
     {@render section("Inspect", inspect)}
     {@render section("Profile", profile)}

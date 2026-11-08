@@ -3,6 +3,7 @@
   import { app } from "../../stores/app.svelte";
   import { confirmed } from "../../confirm";
   import Icon from "../Icon.svelte";
+  import Split from "../layout/Split.svelte";
 
   let {
     id,
@@ -143,8 +144,9 @@
   const cell = (v: unknown) => (v == null ? "NULL" : typeof v === "string" ? v : JSON.stringify(v));
 </script>
 
-<div class="flex h-full min-h-0">
-  <nav class="w-[200px] shrink-0 overflow-y-auto border-r border-line bg-panel-2 p-1.5">
+<Split id="storage.tables" initial={200} min={120} max={420} minOther={300}>
+ {#snippet first()}
+  <nav class="h-full overflow-y-auto bg-panel-2 p-1.5">
     {#each tables as t (t.name)}
       <button
         onclick={() => pick(t)}
@@ -159,7 +161,9 @@
       <p class="p-3 text-base text-muted">The database has no tables.</p>
     {/each}
   </nav>
-  <div class="flex min-w-0 flex-1 flex-col">
+ {/snippet}
+ {#snippet second()}
+  <div class="flex h-full min-w-0 flex-col">
     <form onsubmit={(e) => (e.preventDefault(), run())} class="flex shrink-0 items-center gap-2 border-b border-line p-2">
       <input
         bind:value={sql}
@@ -260,4 +264,5 @@
       </footer>
     {/if}
   </div>
-</div>
+ {/snippet}
+</Split>

@@ -4,6 +4,7 @@
   import { app } from "../../stores/app.svelte";
   import { bytes } from "../../format";
   import Icon from "../Icon.svelte";
+  import Split from "../layout/Split.svelte";
   import Tree, { matches, type TreeNode } from "./Tree.svelte";
 
   type Tab = "components" | "state" | "heap" | "console";
@@ -169,9 +170,11 @@
       </button>
     </div>
     {#if rstate}
-      <div class="flex min-h-[260px]">
-        <nav class="w-[190px] shrink-0 overflow-y-auto border-r border-line bg-panel-2 p-1.5">
-          {#each rstate.stores as s (s.kind + s.name)}
+      <div class="h-[380px]">
+       <Split id="react.state" initial={190} min={120} max={400} minOther={260}>
+        {#snippet first()}
+        <nav class="h-full overflow-y-auto bg-panel-2 p-1.5">
+          {#each rstate?.stores ?? [] as s (s.kind + s.name)}
             <button onclick={() => (picked = `${s.kind}:${s.name}`)} class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-base {store && store.kind === s.kind && store.name === s.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover'}">
               <span class="min-w-0 flex-1 truncate">{s.name}</span>
               <span class="rounded bg-hover px-1 text-tiny text-muted">{s.kind}</span>
@@ -180,7 +183,9 @@
             <p class="p-3 text-base text-muted">Nothing found.</p>
           {/each}
         </nav>
-        <div class="selectable max-h-[460px] min-w-0 flex-1 overflow-auto">
+        {/snippet}
+        {#snippet second()}
+        <div class="selectable h-full min-w-0 overflow-auto">
           {#if store?.error}
             <p class="px-4 py-3 text-base text-err">Could not be read: {store.error}</p>
           {:else if store}
@@ -188,6 +193,8 @@
             {#each store.cut as c (c)}<p class="mono px-4 pb-1 text-2xs text-faint">cut {c}</p>{/each}
           {/if}
         </div>
+        {/snippet}
+       </Split>
       </div>
       {#if watching || actions.length || changes.length}
         <div class="grid grid-cols-2 border-t border-line">

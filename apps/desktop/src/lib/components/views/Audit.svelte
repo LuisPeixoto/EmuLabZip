@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { api, errorText, type Audit, type SecurityAudit, type Severity, type Simulated } from "../../api";
   import { app } from "../../stores/app.svelte";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
 
   type Tab = "security" | "text" | "colour";
   let tab = $state<Tab>("security");
@@ -49,7 +51,7 @@
 {/snippet}
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1000px] p-6">
+  <div class="mx-auto {arrange.pageMid} p-6">
     <header class="mb-4">
       <h1 class="text-3xl font-semibold tracking-tight">Audit</h1>
       <p class="text-md text-muted">Problems that are not about speed: secrets left lying around, text that does not fit, colours that stop working.</p>
@@ -118,9 +120,15 @@
         </button>
       </div>
       {#if simulated}
-        <div class="grid gap-4 md:grid-cols-[320px_1fr]">
-          <img src="data:image/png;base64,{simulated.png}" alt="The screen as seen with {vision}" class="max-h-[560px] rounded-xl border border-line" />
-          <div>
+        <Cols id="audit.colour" initial={320} min={220} max={560}>
+{#snippet first()}
+{#if simulated}
+<img src="data:image/png;base64,{simulated.png}" alt="The screen as seen with {vision}" class="max-h-[560px] rounded-xl border border-line" />
+{/if}
+{/snippet}
+{#snippet second()}
+{#if simulated}
+<div>
             {#each simulated.audit.findings as f, i (i)}
               <article class="mb-2 rounded-xl border border-line bg-panel px-4 py-3">
                 <p class="text-md">{f.message}</p>
@@ -130,7 +138,9 @@
               <p class="rounded-xl border border-line bg-panel px-4 py-6 text-center text-md text-muted">Every text that is readable normally is still readable with {vision}.</p>
             {/each}
           </div>
-        </div>
+{/if}
+{/snippet}
+</Cols>
       {/if}
     {/if}
   </div>

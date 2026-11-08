@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { untrack } from "svelte";
   import { api, errorText, osLabel, type InfoSection } from "../../api";
   import { app } from "../../stores/app.svelte";
@@ -77,7 +78,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] p-6">
+  <div class="mx-auto {arrange.pageMax} p-6">
     {#if app.device}
       <section class="relative mb-5 flex items-center gap-5 overflow-hidden rounded-2xl border border-line bg-panel p-5">
         <div class="brand-gradient pointer-events-none absolute -top-24 -right-24 size-64 rounded-full opacity-[0.12] blur-3xl"></div>

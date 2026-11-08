@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { arrange } from "../../stores/arrange.svelte";
   import { api, errorText, type CategoryDelta, type HeapAnalysis as Heap, type MemoryReport } from "../../api";
   import { app } from "../../stores/app.svelte";
   import { kb } from "../../format";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
   import HeapAnalysis from "../perf/HeapAnalysis.svelte";
 
   interface Snapshot {
@@ -100,7 +102,7 @@
 </script>
 
 <div class="h-full overflow-y-auto">
-  <div class="mx-auto max-w-[1180px] p-6">
+  <div class="mx-auto {arrange.pageMax} p-6">
     <header class="mb-5 flex flex-wrap items-center gap-3">
       <div class="min-w-0 flex-1">
         <h1 class="text-3xl font-semibold tracking-tight">Memory</h1>
@@ -163,8 +165,10 @@
         </p>
       </div>
     {:else}
-      <div class="grid gap-5 lg:grid-cols-[230px_1fr]">
-        <aside class="space-y-1.5">
+      <Cols id="memory.list" initial={230} min={160} max={480}>
+{#snippet first()}
+{#if current}
+<aside class="space-y-1.5">
           <p class="px-1 text-2xs font-semibold tracking-wider text-faint uppercase">Snapshots</p>
           {#each snapshots as snap, i (snap.id)}
             <button
@@ -180,9 +184,11 @@
             </button>
           {/each}
         </aside>
-
-        {#if current}
-          <div class="space-y-4">
+{/if}
+{/snippet}
+{#snippet second()}
+{#if current}
+<div class="space-y-4">
             <section class="rounded-2xl border border-line bg-panel p-5">
               <div class="mb-4 flex items-baseline gap-3">
                 <p class="mono text-5xl font-semibold tracking-tight">{kb(current.report.totalKb)}</p>
@@ -250,8 +256,9 @@
               </section>
             {/if}
           </div>
-        {/if}
-      </div>
+{/if}
+{/snippet}
+</Cols>
     {/if}
   </div>
 </div>

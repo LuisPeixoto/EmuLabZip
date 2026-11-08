@@ -4,6 +4,7 @@
   import { app } from "../../stores/app.svelte";
   import { layout, nodeAt, title } from "../../stores/layout.svelte";
   import Icon from "../Icon.svelte";
+  import Split from "../layout/Split.svelte";
 
   const result = $derived(layout.result);
   const screen = $derived(result?.layout.screen);
@@ -123,9 +124,11 @@
       </div>
     </div>
   {:else if result && screen}
-    <div class="flex min-h-0 flex-1">
+    <div class="min-h-0 flex-1">
+     <Split id="layout.panel" side="second" initial={400} min={280} max={820} minOther={300}>
+      {#snippet first()}
       <!-- Screen -->
-      <div class="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-panel-2 p-5">
+      <div class="flex h-full min-w-0 items-center justify-center overflow-hidden bg-panel-2 p-5">
         <div class="relative h-full max-h-full" style="aspect-ratio:{screen.width}/{screen.height};max-width:100%">
           <img src="data:image/png;base64,{result.screenshot}" alt="Screenshot" class="absolute inset-0 size-full rounded-lg shadow-lg select-none" draggable="false" />
           <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -147,8 +150,10 @@
         </div>
       </div>
 
+      {/snippet}
+      {#snippet second()}
       <!-- Panel -->
-      <aside class="flex w-[400px] shrink-0 flex-col border-l border-line bg-panel">
+      <aside class="flex h-full w-full flex-col bg-panel">
         <div class="flex shrink-0 items-center gap-1 border-b border-line px-3" role="tablist">
           {#each [["tree", "Views"], ["audit", "Accessibility"]] as [id, label] (id)}
             <button role="tab" aria-selected={layout.tab === id} onclick={() => (layout.tab = id as "tree" | "audit")} class="-mb-px flex h-9 items-center gap-1.5 border-b-2 px-2.5 text-base {layout.tab === id ? 'border-accent font-medium text-accent' : 'border-transparent text-muted hover:text-fg'}">
@@ -167,7 +172,7 @@
             <Icon name="search" size={12} class="pointer-events-none absolute left-2.5 text-faint" />
             <input bind:value={layout.search} spellcheck="false" placeholder="Find by text, label or id" class="h-8 w-full rounded-lg border border-line bg-panel-2 pr-2 pl-7 text-base outline-none placeholder:text-faint focus:border-accent" />
           </label>
-          <div bind:this={treeEl} class="min-h-0 flex-1 overflow-y-auto pb-2">
+          {#snippet treeRows()}
             {#each rows as { node, depth } (node.id)}
               {@const bad = layout.findingsByNode.get(node.id)}
               <div data-node={node.id} class="flex items-center {layout.selectedId === node.id ? 'bg-select' : 'hover:bg-hover'}" style="padding-left:{8 + depth * 12}px" onmouseenter={() => (layout.hoverId = node.id)} onmouseleave={() => (layout.hoverId = null)} role="presentation">
@@ -184,9 +189,14 @@
             {:else}
               <p class="px-4 py-6 text-center text-base text-muted">Nothing matches.</p>
             {/each}
-          </div>
-          {#if layout.selected}
-            <div class="max-h-[42%] shrink-0 overflow-y-auto border-t border-line bg-panel-2 px-4 py-3">
+                    {/snippet}
+          <div class="min-h-0 flex-1">
+            {#if layout.selected}
+              <Split id="layout.props" axis="y" side="second" initial={230} min={80} max={620} minOther={120}>
+                {#snippet first()}<div bind:this={treeEl} class="h-full overflow-y-auto pb-2">{@render treeRows()}</div>{/snippet}
+                {#snippet second()}
+                 {#if layout.selected}
+                  <div class="h-full overflow-y-auto bg-panel-2 px-4 py-3">
               <dl class="selectable grid grid-cols-[72px_1fr] gap-x-3 gap-y-1 text-sm">
                 {#each props as [k, v] (k)}
                   <dt class="text-faint">{k}</dt><dd class="mono min-w-0 break-all">{v}</dd>
@@ -199,7 +209,13 @@
                 <button onclick={() => copy(layout.selected!.resourceId!)} class="mt-2 flex h-6 items-center gap-1.5 rounded-md px-2 text-sm text-muted hover:bg-hover hover:text-fg"><Icon name="copy" size={12} />Copy the id</button>
               {/if}
             </div>
-          {/if}
+                 {/if}
+                {/snippet}
+              </Split>
+            {:else}
+              <div bind:this={treeEl} class="h-full overflow-y-auto pb-2">{@render treeRows()}</div>
+            {/if}
+          </div>
         {:else}
           <div class="min-h-0 flex-1 overflow-y-auto">
             {#if layout.audit?.contrastSkipped}
@@ -231,6 +247,8 @@
           </div>
         {/if}
       </aside>
+      {/snippet}
+     </Split>
     </div>
   {/if}
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { errorText, type Rows } from "../../api";
   import Icon from "../Icon.svelte";
+  import Split from "../layout/Split.svelte";
 
   /** Rows of named groups (Realm classes, Core Data entities), read a page at a time. Read-only. */
   interface Group {
@@ -45,8 +46,9 @@
   const cell = (v: unknown) => (v == null ? "null" : typeof v === "string" ? v : JSON.stringify(v));
 </script>
 
-<div class="flex h-full min-h-0">
-  <nav class="w-[200px] shrink-0 overflow-y-auto border-r border-line bg-panel-2 p-1.5" aria-label={label}>
+<Split id="storage.tables" initial={200} min={120} max={420} minOther={300}>
+ {#snippet first()}
+  <nav class="h-full overflow-y-auto bg-panel-2 p-1.5" aria-label={label}>
     {#each groups as g (g.name)}
       <button
         onclick={() => ((current = g), (offset = 0))}
@@ -60,7 +62,9 @@
       <p class="p-3 text-base text-muted">Nothing to show.</p>
     {/each}
   </nav>
-  <div class="flex min-w-0 flex-1 flex-col">
+ {/snippet}
+ {#snippet second()}
+  <div class="flex h-full min-w-0 flex-col">
     {#if current?.note}
       <p class="shrink-0 border-b border-line bg-warn/10 px-3 py-2 text-base text-warn">{current.note}</p>
     {/if}
@@ -105,4 +109,5 @@
       </footer>
     {/if}
   </div>
-</div>
+ {/snippet}
+</Split>

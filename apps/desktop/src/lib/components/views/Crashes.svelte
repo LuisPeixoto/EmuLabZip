@@ -4,6 +4,7 @@
   import { app } from "../../stores/app.svelte";
   import { crashes, label } from "../../stores/crashes.svelte";
   import Icon from "../Icon.svelte";
+  import Cols from "../layout/Cols.svelte";
 
   let tab = $state<"report" | "raw">("report");
   let appCodeOnly = $state(false);
@@ -61,8 +62,9 @@
       </button>
     </header>
 
-    <div class="grid items-start gap-5 lg:grid-cols-[360px_1fr]">
-      <aside class="rounded-2xl border border-line bg-panel p-2">
+    <Cols id="crashes.list" initial={360} min={240} max={640}>
+{#snippet first()}
+<aside class="rounded-2xl border border-line bg-panel p-2">
         <div class="flex flex-wrap items-center gap-1 p-1" role="tablist" aria-label="Kind">
           {#each kinds as k (k.id)}
             <button
@@ -103,8 +105,9 @@
           {/each}
         </ul>
       </aside>
-
-      <section class="min-w-0">
+{/snippet}
+{#snippet second()}
+<section class="min-w-0">
         {#if crashes.error}
           <div class="mb-3 flex items-start gap-2 rounded-xl border border-err/30 bg-err/8 px-4 py-3 text-md text-err">
             <Icon name="alert" size={14} class="mt-0.5 shrink-0" /><span class="min-w-0 break-words">{crashes.error}</span>
@@ -227,6 +230,7 @@
           </div>
         {/if}
       </section>
-    </div>
+{/snippet}
+</Cols>
   </div>
 </div>
