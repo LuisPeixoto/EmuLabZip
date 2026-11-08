@@ -3,6 +3,8 @@
 EmuLabZip ships with ten themes, and you can make your own, import someone else's, and share yours in the community
 gallery. Open **Settings** (⌘,) and go to **Appearance**.
 
+![The Appearance settings with a grid of theme cards](images/themes.png)
+
 ## Using a theme
 
 The app keeps one theme for dark and one for light. Choosing a theme sets the one for its base, and the **Mode** switch
@@ -33,6 +35,8 @@ while you edit; **Cancel** puts the chosen theme back.
 
 Under the cards, **Fine-tune** changes things that are yours and not part of any theme: text size (85% to 140%), interface
 scale, density, roundness and fonts. **Reset the fine-tuning** puts them back.
+
+![The theme editor, with a contrast warning](images/theme-editor.png)
 
 ## The file format
 
@@ -77,6 +81,8 @@ is shown on a card first, and installed only when you press Install.
 The **Gallery** tab lists themes shared by other people, read from
 `https://emulabzip.luispeixoto.dev/themes/index.json`. Install one and it is yours to use and edit. Offline, the tab says
 so and everything else keeps working.
+
+![The Gallery tab with community themes](images/theme-gallery.png)
 
 ### Share your theme
 

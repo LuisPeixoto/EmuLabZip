@@ -97,7 +97,11 @@
       { "id": "audit-text", "shot": "audit-text", "label": "放得下的文字", "title": "找出放不下的标签", "text": "切换语言和字号，然后检查屏幕：被截断、超出屏幕，或在从右到左的语言中没有镜像的文字。", "alt": "审计视图找到一个对这一行来说太长的标签" },
       { "id": "size-diff", "shot": "size-diff", "label": "构建体积", "title": "构建的字节都在哪里", "text": "按类型、ABI 和 dex 文件拆解 APK、AAB 或 IPA，并比较两个构建的变化，还有用于 CI 的体积预算。", "alt": "构建体积视图比较两个构建：新增了一个视频和一个字体" },
       { "id": "visual-diff", "shot": "visual-diff", "label": "视觉回归", "title": "看看屏幕上变了什么", "text": "保存一个屏幕的基准，之后再比较：变化了多少、在哪里，以及把变化标成红色的图片。", "alt": "视觉视图，把基准与当前屏幕之间的变化画成红色" },
-      { "id": "analytics", "shot": "analytics", "label": "分析事件", "title": "应用发出的事件", "text": "由代理解码的 Segment、Amplitude、Mixpanel 和 Firebase 事件，附带它们的属性。", "alt": "分析视图列出一个 Segment 和一个 Mixpanel 事件，其中一个已展开" }
+      { "id": "analytics", "shot": "analytics", "label": "分析事件", "title": "应用发出的事件", "text": "由代理解码的 Segment、Amplitude、Mixpanel 和 Firebase 事件，附带它们的属性。", "alt": "分析视图列出一个 Segment 和一个 Mixpanel 事件，其中一个已展开" },
+      { "id": "themes", "shot": "themes", "label": "主题", "title": "十个主题，也可以是你自己的", "text": "默认是更明亮的深色，另有浅色、高对比度等。每张卡片都是该主题下应用的实时缩略图。", "alt": "外观设置，显示主题卡片网格" },
+      { "id": "theme-editor", "shot": "theme-editor", "label": "主题编辑器", "title": "制作主题，即时查看", "text": "可选择每种颜色和字体，从一个强调色开始生成，文字难以阅读时会给出提示。", "alt": "主题编辑器，次要文字带有对比度警告" },
+      { "id": "theme-gallery", "shot": "theme-gallery", "label": "图库", "title": "来自社区的主题", "text": "安装他人分享的主题，也可以一键通过 pull request 分享你的主题。", "alt": "图库标签页，显示四个社区主题" },
+      { "id": "layout-custom", "shot": "layout-custom", "label": "你的布局", "title": "随意调整大小，折叠侧边栏", "text": "拖动面板之间的分隔线，双击即可恢复，侧边栏可折叠为图标。", "alt": "日志视图，侧边栏已折叠，详情面板已调整大小" }
     ]
   },
   "cli": {

@@ -178,6 +178,14 @@ request, record a whole run and compare two devices. It ships as a native deskto
     <td width="50%"><img src="docs/images/visual-diff.png" alt="A screen compared with its baseline, with the changes drawn in red" /><br /><sub><b>Visual regression</b>: the screen against a baseline, with the changed area drawn.</sub></td>
     <td width="50%"><img src="docs/images/analytics.png" alt="Analytics events from Segment and Mixpanel, with one opened" /><br /><sub><b>Analytics</b>: the events an app sends to Segment, Amplitude, Mixpanel and Firebase.</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/themes.png" alt="The Appearance settings with a grid of theme cards" /><br /><sub><b>Themes</b>: ten built in, each shown as a small picture of the app.</sub></td>
+    <td width="50%"><img src="docs/images/theme-editor.png" alt="The theme editor with a contrast warning" /><br /><sub><b>Theme editor</b>: every colour and font, live in the whole app, with contrast warnings.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/theme-gallery.png" alt="The Gallery tab with four community themes" /><br /><sub><b>Gallery</b>: themes from the community, and a button to share yours.</sub></td>
+    <td width="50%"><img src="docs/images/layout-custom.png" alt="The Logs view with a collapsed sidebar and a resized detail pane" /><br /><sub><b>Your layout</b>: resize panes, collapse the sidebar.</sub></td>
+  </tr>
 </table>
 
 <table>
