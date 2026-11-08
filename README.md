@@ -34,6 +34,8 @@
   <a href="docs/sessions.md">Sessions</a> ·
   <a href="docs/mcp.md">MCP</a> ·
   <a href="docs/cli.md">CLI</a> ·
+  <a href="docs/themes.md">Themes</a> ·
+  <a href="docs/customizing.md">Customizing</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
@@ -73,6 +75,8 @@ request, record a whole run and compare two devices. It ships as a native deskto
   changed; [make, start, stop, wipe and snapshot](docs/devices.md) emulators and simulators; [edit rows and
   preferences](docs/storage-editing.md) with a confirmation and Undo; read DataStore, MMKV, AsyncStorage, Core Data and
   Realm files; and read [Redux, React Query and context state](docs/react-native-state.md) from a React Native app.
+- **Yours to arrange.** Ten [themes](docs/themes.md) and a theme editor, imports and a community gallery; panes that
+  [resize](docs/customizing.md), a sidebar you can collapse and reorder, and text size, density and scale you set.
 - **Quality beyond speed.** A [security and privacy audit](docs/security-audit.md), a [build size](docs/package-size.md)
   analyzer with a budget for CI, [language and text size](docs/localization.md) checks with a sweep, colour blindness
   simulation, [visual regression](docs/visual-regression.md) against a baseline, and an [analytics
