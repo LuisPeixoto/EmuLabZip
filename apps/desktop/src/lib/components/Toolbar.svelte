@@ -11,8 +11,7 @@
 
 <header
   data-tauri-drag-region
-  class="flex h-[56px] shrink-0 items-center gap-2 border-b border-line bg-panel px-3"
-  class:pl-[84px]={isMac}
+  class="flex h-[calc(56px/var(--zoom,1))] shrink-0 items-center gap-2 border-b border-line bg-panel px-3 {isMac ? 'pl-[calc(92px/var(--zoom,1))]' : ''}"
 >
   <DevicePicker />
   <Icon name="chevronRight" size={14} class="text-faint" />

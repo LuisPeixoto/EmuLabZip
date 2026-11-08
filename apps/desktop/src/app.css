@@ -58,6 +58,8 @@
   --roundness: 1;
   --font-scale: 1;
   --density: 1;
+  /* The zoom of the interface. The window's traffic lights do not zoom, so the toolbar keeps its height in real pixels. */
+  --zoom: 1;
   --bg: #f4f5f9;
   --panel: #ffffff;
   --panel-2: #f7f8fb;
