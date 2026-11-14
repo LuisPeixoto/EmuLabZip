@@ -68,6 +68,9 @@ pub fn commands_for(control: &Control) -> Result<Vec<String>> {
             v
         }
         Control::ResetBattery => vec![command(["dumpsys", "battery", "reset"])],
+        Control::Launch { app } => {
+            vec![command(["monkey", "-p", app, "-c", "android.intent.category.LAUNCHER", "1"])]
+        }
         Control::Tap { x, y } => vec![command(["input", "tap", &x.to_string(), &y.to_string()])],
         Control::Swipe { x1, y1, x2, y2, duration_ms } => {
             let ms = duration_ms.unwrap_or(emulabzip_core::control::DEFAULT_SWIPE_MS);
@@ -204,7 +207,7 @@ pub async fn info(adb: &AdbClient, serial: &str, app: Option<&str>) -> Result<Co
     let emulator = console_port(serial).is_some();
     let mut supported: Vec<&str> =
         vec!["appearance", "statusBar", "clearStatusBar", "notification", "openUrl", "battery", "resetBattery"];
-    supported.extend(["fontScale", "display", "resetDisplay", "tap", "swipe", "text", "key"]);
+    supported.extend(["fontScale", "display", "resetDisplay", "tap", "swipe", "text", "key", "launch"]);
     if app.is_some() {
         supported.extend(["permission", "locale", "resetLocale"]);
     }
@@ -352,6 +355,10 @@ mod tests {
     fn touches_keys_and_text_become_input_commands() {
         let cmds = |c: Control| commands_for(&c).unwrap();
         assert_eq!(cmds(Control::Tap { x: 540, y: 1200 }), ["input tap 540 1200"]);
+        assert_eq!(
+            cmds(Control::Launch { app: "com.example.app".into() }),
+            ["monkey -p com.example.app -c android.intent.category.LAUNCHER 1"]
+        );
         assert_eq!(
             cmds(Control::Swipe { x1: 100, y1: 900, x2: 100, y2: 300, duration_ms: None }),
             ["input swipe 100 900 100 300 300"]

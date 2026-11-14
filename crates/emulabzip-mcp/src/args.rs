@@ -344,6 +344,20 @@ pub struct OpenUrl {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct LaunchApp {
+    pub device: Option<String>,
+    /// The package name or bundle id.
+    pub app: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PlayFlow {
+    pub device: Option<String>,
+    /// The id of a saved flow, as `list_flows` shows it.
+    pub flow: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Tap {
     pub device: Option<String>,
     /// Pixels from the left edge of the screen, as in a screenshot.

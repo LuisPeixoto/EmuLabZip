@@ -5,6 +5,7 @@
 //! backend behind one handle for the CLI and the desktop app.
 
 pub mod a11y;
+pub mod automation;
 pub mod backend;
 pub mod buffer;
 pub mod compare;
