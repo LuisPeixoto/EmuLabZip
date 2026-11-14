@@ -173,6 +173,42 @@ export interface Evaluated {
   error: boolean;
 }
 
+export interface FlowLabel {
+  id: string | null;
+  text: string | null;
+}
+
+export type FlowStep =
+  | { type: "launch" }
+  | { type: "tap"; x: number; y: number; label?: FlowLabel | null }
+  | { type: "longPress"; x: number; y: number; ms: number; label?: FlowLabel | null }
+  | { type: "swipe"; x1: number; y1: number; x2: number; y2: number; ms: number }
+  | { type: "text"; text: string }
+  | { type: "key"; key: string }
+  | { type: "wait"; ms: number };
+
+export interface FlowDoc {
+  name: string;
+  app: string | null;
+  width: number | null;
+  height: number | null;
+  steps: FlowStep[];
+}
+
+export interface FlowEntry {
+  id: string;
+  name: string;
+  app: string | null;
+  steps: number;
+}
+
+export type FlowMessage =
+  | { type: "step"; index: number; step: FlowStep }
+  | { type: "saved"; id: string; steps: number }
+  | { type: "done" }
+  | { type: "empty" }
+  | { type: "failed"; message: string };
+
 export interface WidgetNode {
   description: string;
   widgetType: string | null;
@@ -1241,6 +1277,23 @@ export const api = {
   listApps: (target: Target) => invoke<App[]>("list_apps", { target }),
   screenshot: (target: Target) => invoke<string>("screenshot", { target }),
   savePng: (name: string, data: string) => invoke<string | null>("save_png", { name, data }),
+  flowList: () => invoke<FlowEntry[]>("flow_list"),
+  flowGet: (id: string) => invoke<FlowDoc>("flow_get", { id }),
+  flowSave: (flow: FlowDoc) => invoke<string>("flow_save", { flow }),
+  flowRemove: (id: string) => invoke<void>("flow_remove", { id }),
+  /** Where it was saved, or null when the dialog is cancelled. */
+  flowExport: (id: string, kind: "maestro" | "script") => invoke<string | null>("flow_export", { id, kind }),
+  async flowRecordStart(target: Target, name: string, appId: string | null, launch: boolean, onMessage: (m: FlowMessage) => void): Promise<number> {
+    const channel = new Channel<FlowMessage>();
+    channel.onmessage = onMessage;
+    return invoke<number>("flow_record_start", { target, name, app: appId, launch, onMessage: channel });
+  },
+  flowRecordStop: () => invoke<void>("flow_record_stop"),
+  async flowPlay(target: Target, id: string, onMessage: (m: FlowMessage) => void): Promise<number> {
+    const channel = new Channel<FlowMessage>();
+    channel.onmessage = onMessage;
+    return invoke<number>("flow_play", { target, id, onMessage: channel });
+  },
   webviewList: (target: Target) => invoke<WebViewInfo[]>("webview_list", { target }),
   async webviewStart(target: Target, socket: string, page: string, network: boolean, onMessage: (m: WebMessage) => void): Promise<number> {
     const channel = new Channel<WebMessage>();

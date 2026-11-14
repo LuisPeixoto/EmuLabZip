@@ -1,6 +1,7 @@
 //! Tauri shell: owns the backends and exposes them to the interface as commands. Live data
 //! (logs, samples) is streamed over IPC channels in batches.
 
+mod automation;
 mod commands;
 mod controls;
 mod crashes;
@@ -95,6 +96,14 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            automation::flow_list,
+            automation::flow_get,
+            automation::flow_save,
+            automation::flow_remove,
+            automation::flow_export,
+            automation::flow_record_start,
+            automation::flow_record_stop,
+            automation::flow_play,
             webview::webview_list,
             webview::webview_start,
             webview::webview_eval,

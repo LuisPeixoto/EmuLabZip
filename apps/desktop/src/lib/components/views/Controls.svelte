@@ -18,6 +18,7 @@
   });
 
   const button = "flex h-8 items-center justify-center gap-1.5 rounded-lg border border-line px-3 text-base font-medium text-muted hover:bg-hover hover:text-fg disabled:opacity-40";
+  let typed = $state("");
   const primary = "flex h-8 items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 text-base font-semibold text-white hover:opacity-90 disabled:opacity-40";
   const field = "h-8 w-full rounded-lg border border-line bg-panel-2 px-2.5 text-base outline-none focus:border-accent";
 
@@ -233,6 +234,21 @@
             title={ios && !packageName ? "Pick the app that receives the push" : ""}
             onclick={() => controls.apply("notification", { action: "notification", app: packageName ?? "com.android.shell", title: d.title, body: d.body, payload: ios && d.payload.trim() ? d.payload : null }, "Notification sent")}
           >{ios ? "Send push" : "Post notification"}</button>
+        </section>
+      {/if}
+
+      {#if controls.supports("text") || controls.supports("key")}
+        <section class="rounded-2xl border border-line bg-panel p-4">
+          {@render card("Type and press keys", "terminal", "Types into the field that has focus, and presses the device's keys. Text is printable ASCII.")}
+          <form class="flex gap-2" onsubmit={(e) => (e.preventDefault(), typed.trim() && controls.apply("text", { action: "text", text: typed }, "Typed").then(() => (typed = "")))}>
+            <input class="{field} mono" bind:value={typed} placeholder="Text to type" aria-label="Text to type" maxlength="1000" />
+            <button class="{primary}" type="submit" disabled={busy != null || !typed.trim()}>Type</button>
+          </form>
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            {#each [["back", "Back"], ["home", "Home"], ["app_switch", "Recents"], ["enter", "Enter"], ["delete", "Delete"], ["tab", "Tab"], ["volume_up", "Volume up"], ["volume_down", "Volume down"]] as [key, label] (key)}
+              <button class="h-8 rounded-lg border border-line px-2.5 text-base text-muted hover:bg-hover hover:text-fg disabled:opacity-40" disabled={busy != null} onclick={() => controls.apply("key", { action: "key", key }, `${label} pressed`)}>{label}</button>
+            {/each}
+          </div>
         </section>
       {/if}
 

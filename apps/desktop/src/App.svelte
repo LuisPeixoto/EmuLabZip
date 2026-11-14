@@ -19,6 +19,7 @@
   import Audit from "./lib/components/views/Audit.svelte";
   import Size from "./lib/components/views/Size.svelte";
   import Visual from "./lib/components/views/Visual.svelte";
+  import Automation from "./lib/components/views/Automation.svelte";
   import Analytics from "./lib/components/views/Analytics.svelte";
   import Devices from "./lib/components/views/Devices.svelte";
   import Frameworks from "./lib/components/views/Frameworks.svelte";
@@ -162,6 +163,8 @@
         <Visual />
       {:else if app.view === "analytics"}
         <Analytics />
+      {:else if app.view === "automation"}
+        <Automation />
       {:else}
         <Traces />
       {/if}
