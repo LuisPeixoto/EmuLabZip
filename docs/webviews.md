@@ -35,9 +35,13 @@ the way proxied requests can; for that, use the proxy.
 
 ![The Web pages panel with the console of the demo's WebView](images/webview-console.png)
 
+![The WebView's requests in Network, marked WEBVIEW](images/webview-network.png)
+
 ## On iOS
 
 Apple does not let other tools read a `WKWebView`, so on a simulator the panel gives the steps and a button that opens Safari:
+
+![The Web pages panel on an iOS Simulator](images/webview-ios.png)
 
 1. In Safari, open Settings → Advanced and turn on "Show features for web developers".
 2. Open the page in your app. A `WKWebView` has to have `isInspectable = true` (iOS 16.4 and later; debug builds usually set it).

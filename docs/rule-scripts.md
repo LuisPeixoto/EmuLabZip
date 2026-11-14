@@ -24,6 +24,8 @@ The approval is for the file's SHA-256: change one byte and it has to be approve
 script sees the requests and responses its rule matches, with their headers and bodies. A flow whose script did not run says
 why in its details.
 
+![The Rules dialog with a script rule that has not been approved](images/rules-script.png)
+
 ## The interface
 
 A script is a module that exports:

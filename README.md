@@ -193,6 +193,18 @@ request, record a whole run and compare two devices. It ships as a native deskto
     <td width="50%"><img src="docs/images/theme-gallery.png" alt="The Gallery tab with four community themes" /><br /><sub><b>Gallery</b>: themes from the community, and a button to share yours.</sub></td>
     <td width="50%"><img src="docs/images/layout-custom.png" alt="The Logs view with a collapsed sidebar and a resized detail pane" /><br /><sub><b>Your layout</b>: resize panes, collapse the sidebar.</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/webview-console.png" alt="The Web pages panel with the console of a WebView" /><br /><sub><b>WebViews</b>: the console, the errors and JavaScript of a page inside an app.</sub></td>
+    <td width="50%"><img src="docs/images/webview-network.png" alt="A WebView's requests in the Network view, marked WEBVIEW" /><br /><sub><b>Page requests</b>: seen by the page itself, with no proxy and no certificate.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/automation.png" alt="The Automation view with a recorded flow" /><br /><sub><b>Flows</b>: record touches, play them again, export to Maestro.</sub></td>
+    <td width="50%"><img src="docs/images/deep-links.png" alt="A deep link check where every step passed" /><br /><sub><b>Deep links</b>: the domain's file, the app's key and what the device decided.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/network-contract.png" alt="A request with two violations of its OpenAPI file" /><br /><sub><b>Contract</b>: responses checked against an OpenAPI file.</sub></td>
+    <td width="50%"><img src="docs/images/rules-script.png" alt="The Rules dialog with a script rule" /><br /><sub><b>Rule scripts</b>: sandboxed WebAssembly, approved by you.</sub></td>
+  </tr>
 </table>
 
 <table>

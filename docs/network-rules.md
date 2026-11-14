@@ -57,6 +57,8 @@ content type, and the body is validated. The flow gets a **Contract** tab and a 
 - the spec **does not describe** the request (`unknown`), or has **no schema** to check this response against, or the body is not
   JSON (`unchecked`).
 
+![A request with two violations of its OpenAPI file, in the Contract tab](images/network-contract.png)
+
 Offline, `emulabzip openapi check --spec api.yaml --har run.har` checks the responses of a HAR file and exits with an error
 when one does not match, which is what a CI step wants. Only responses are checked (not requests), only JSON bodies, and
 only `$ref`s inside the file. A Swagger 2.0 file is refused with a message to convert it.
