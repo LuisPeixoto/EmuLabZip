@@ -38,6 +38,7 @@ const MAX_RECORD_S: u32 = 120;
 #[derive(Clone)]
 pub struct EmuLabServer {
     lab: Lab,
+    hub: std::sync::Arc<crate::hub::Hub>,
     tool_router: ToolRouter<EmuLabServer>,
 }
 
@@ -46,13 +47,19 @@ impl EmuLabServer {
         let tool_router = Self::devices_router()
             + Self::profiling_router()
             + Self::frameworks_router()
+            + Self::network_router()
             + Self::storage_router()
             + Self::quality_router()
             + Self::sessions_router()
             + Self::crashes_router()
             + Self::controls_router()
             + Self::automation_router();
-        EmuLabServer { lab, tool_router }
+        EmuLabServer { lab, hub: crate::hub::Hub::new(), tool_router }
+    }
+
+    /// What the server keeps between calls.
+    pub fn hub(&self) -> std::sync::Arc<crate::hub::Hub> {
+        self.hub.clone()
     }
 
     async fn device(&self, query: &Option<String>) -> Result<(Device, Target), String> {

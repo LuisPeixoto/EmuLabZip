@@ -464,3 +464,128 @@ pub struct EmulatorSnapshot {
     /// The snapshot's name (letters, digits, `.`, `_`, `-`).
     pub name: String,
 }
+
+// ---------------------------------------------------------------------------------------------
+// Network
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct NetStart {
+    /// The port the proxy listens on, on this computer only (default 9090).
+    pub port: Option<u16>,
+    /// Talk HTTP/3 to servers that offer it.
+    pub http3: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct NetFlows {
+    /// Only requests to this host. `*` and `?` work: `*.example.com`.
+    pub host: Option<String>,
+    /// Only requests whose path (without the query) matches this pattern: `/v1/users/*`.
+    pub path: Option<String>,
+    /// Only this method, such as `POST`.
+    pub method: Option<String>,
+    /// `2xx`, `3xx`, `4xx`, `5xx`, `failed` (no answer) or `errors` (4xx, 5xx and failed).
+    pub status: Option<String>,
+    /// Only requests whose address or GraphQL/gRPC operation contains this text.
+    pub text: Option<String>,
+    /// Only requests after this id, oldest first. Use the `nextSinceId` of the last answer to read what is new.
+    pub since_id: Option<u64>,
+    /// At most this many (default 50, at most 200). Without `since_id` these are the newest.
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct NetFlow {
+    /// The request's id, as `net_flows` shows it.
+    pub id: u64,
+    /// Include the request and response bodies, decoded (default true).
+    pub bodies: Option<bool>,
+    /// The most characters of each body (default 8000, at most 40000).
+    pub max_chars: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct NetExport {
+    /// A name for the file, such as `checkout`. It is written to EmuLabZip's `exports` folder as `<name>.har`.
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct NetRules {
+    /// The whole list of rules, replacing the ones in force. Each is
+    /// `{"name", "enabled"?, "matcher": {"methods"?, "host"?, "path"?, "urlContains"?}, "action": {...}, "thenContinue"?}`.
+    /// Actions: `{"type":"mock","status","headers":[[k,v]],"body","delayMs"?}`, `{"type":"delay","ms"}`, `{"type":"block"}`,
+    /// `{"type":"breakpoint","request","response"}`, `{"type":"mapRemote","scheme"?,"host"?,"port"?,"pathPrefix"?}`,
+    /// `{"type":"mapLocal","path"}` (a file or folder inside EmuLabZip's `mocks` folder), `{"type":"validate","spec"}`
+    /// (an OpenAPI file) and `{"type":"script","path"}` (only a script the user approved).
+    pub rules: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct NetConditions {
+    /// `fast-3g`, `slow-3g`, `slow-wifi`, `high-latency`, `packet-loss` or `offline`.
+    pub preset: Option<String>,
+    /// Download speed in kilobits per second (changes the preset, or stands alone).
+    pub down_kbps: Option<u32>,
+    pub up_kbps: Option<u32>,
+    /// Time added to every answer, in milliseconds.
+    pub latency_ms: Option<u32>,
+    /// How much of the traffic stalls like a lost packet, 0 to 100.
+    pub loss_percent: Option<f32>,
+    /// Back to the normal network.
+    pub off: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct NetReplay {
+    /// A recorded session, as `list_sessions` shows it. Its requests answer the app's.
+    pub session: Option<String>,
+    /// Or a HAR file in EmuLabZip's `exports` folder (`net_export_har` writes there), by name.
+    pub har: Option<String>,
+    /// Let requests that are not in the recording reach the real server. By default they fail with a 504.
+    pub passthrough: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct NetResend {
+    /// The request's id, as `net_flows` shows it.
+    pub id: u64,
+    pub method: Option<String>,
+    /// A whole address, `https://host/path?query`, to send it to instead.
+    pub url: Option<String>,
+    /// Replaces all the headers.
+    pub headers: Option<Vec<(String, String)>>,
+    /// Replaces the body.
+    pub body_text: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct NetResume {
+    /// The held message's id, as `net_breakpoints` shows it.
+    pub id: u64,
+    /// Fail the request instead of letting it go on.
+    pub abort: Option<bool>,
+    /// Replaces the headers.
+    pub headers: Option<Vec<(String, String)>>,
+    /// Replaces the body.
+    pub body_text: Option<String>,
+    /// Replaces the status of a response.
+    pub status: Option<u16>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct AnalyticsEvents {
+    /// Only these services: `segment`, `amplitude`, `mixpanel` or `firebase`. All when left out.
+    pub services: Option<Vec<String>>,
+    /// At most this many events (default 100).
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct OpenapiCheck {
+    /// The full path of an OpenAPI 3 file (`.yaml`, `.yml` or `.json`) on this computer. It is only read.
+    pub spec: String,
+    /// Only requests to this host.
+    pub host: Option<String>,
+}

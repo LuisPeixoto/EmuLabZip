@@ -6,6 +6,7 @@
 //! when only one device is running it can be left out.
 
 mod args;
+mod hub;
 mod server;
 
 pub use server::EmuLabServer;
@@ -15,7 +16,15 @@ use rmcp::ServiceExt;
 
 /// Serves the tools on stdin and stdout until the client disconnects.
 pub async fn serve(lab: Lab) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let service = EmuLabServer::new(lab).serve(rmcp::transport::stdio()).await?;
-    service.waiting().await?;
+    let server = EmuLabServer::new(lab.clone());
+    let hub = server.hub();
+    let service = server.serve(rmcp::transport::stdio()).await?;
+    // The client closing standard input ends the session, and so does Ctrl+C or a termination signal.
+    tokio::select! {
+        result = service.waiting() => { result?; }
+        _ = tokio::signal::ctrl_c() => {}
+    }
+    // Whatever this session changed on a device (the proxy setting, above all) is put back.
+    hub.shutdown(&lab).await;
     Ok(())
 }
