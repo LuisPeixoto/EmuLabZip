@@ -37,6 +37,7 @@ use crate::io::{BoxIo, Prefixed};
 use crate::openapi::{Spec, Validation};
 use crate::replay::{Recorded, ReplaySet};
 use crate::rules::{Action, MAX_MAPPED_FILE, Mapped, Rule, RuleSet, map_remote, mime_for, mock_bytes, resolve_local};
+use crate::script::{self, Call, Script, Verdict};
 use crate::store::FlowStore;
 use crate::ws::{Deflate, Direction, FrameParser, MAX_MESSAGES, parse_extensions};
 
@@ -66,6 +67,8 @@ pub struct ProxyConfig {
     pub conditions: Conditions,
     /// Answers requests from a recording instead of from the servers. See [`ReplaySet`].
     pub replay: Option<Arc<ReplaySet>>,
+    /// Which rule scripts may run. By default only the ones the user approved.
+    pub script_approvals: script::ApprovalPolicy,
 }
 
 impl Default for ProxyConfig {
@@ -80,6 +83,7 @@ impl Default for ProxyConfig {
             hide_http3: true,
             conditions: Conditions::default(),
             replay: None,
+            script_approvals: script::ApprovalPolicy::Saved,
         }
     }
 }
@@ -102,6 +106,9 @@ struct Ctx {
     replay: Mutex<Option<Arc<ReplaySet>>>,
     /// Flows whose response is to be checked against an OpenAPI file, by the file that was asked for.
     validate: Mutex<std::collections::HashMap<FlowId, Arc<Spec>>>,
+    /// Flows whose response a rule script is to look at.
+    script_response: Mutex<std::collections::HashMap<FlowId, Arc<Script>>>,
+    script_approvals: script::ApprovalPolicy,
     shutdown: watch::Receiver<bool>,
 }
 
@@ -253,6 +260,8 @@ impl Proxy {
             shaper: Shaper::new(config.conditions),
             replay: Mutex::new(config.replay),
             validate: Mutex::new(std::collections::HashMap::new()),
+            script_response: Mutex::new(std::collections::HashMap::new()),
+            script_approvals: config.script_approvals,
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -567,6 +576,7 @@ fn effective_host(connect_host: &str, headers: &HeaderMap) -> String {
 
 fn fail(ctx: &Ctx, id: FlowId, status: StatusCode, message: String) -> Resp {
     ctx.validate.lock().remove(&id);
+    ctx.script_response.lock().remove(&id);
     ctx.store.update(id, |f| {
         f.state = FlowState::Failed;
         f.error = Some(message.clone());
@@ -640,6 +650,84 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
             Action::Mock { .. } => return mock(&ctx, id, started, client_version, rule).await,
             Action::MapLocal { .. } => return map_local(&ctx, id, started, client_version, rule, &path).await,
             Action::Delay { ms } => tokio::time::sleep(std::time::Duration::from_millis(*ms)).await,
+            Action::Script { path } => {
+                let script = match Script::cached(std::path::Path::new(path)) {
+                    Ok(script) => script,
+                    Err(e) => {
+                        note_script(&ctx, id, format!("{}: {e}", rule.name));
+                        continue;
+                    }
+                };
+                if !ctx.script_approvals.allows(&script.sha256) {
+                    note_script(
+                        &ctx,
+                        id,
+                        format!(
+                            "{} was not run: {} has not been approved. Approve it in the rule's dialog, or with `emulabzip script approve`.",
+                            rule.name, script.name
+                        ),
+                    );
+                    continue;
+                }
+                if script.on_response {
+                    ctx.script_response.lock().insert(id, script.clone());
+                }
+                if script.on_request {
+                    let url = format!("{}://{}:{}{}", target.scheme, host, port, path_of(&target.path));
+                    let owned = OwnedCall {
+                        method: parts.method.to_string(),
+                        url,
+                        headers: header_list(&headers),
+                        body: body.to_vec(),
+                        status: None,
+                    };
+                    match run_script(script.clone(), owned, false).await {
+                        Err(e) => note_script(&ctx, id, format!("{}: {e}", rule.name)),
+                        Ok(out) => {
+                            for line in &out.logs {
+                                note_script(&ctx, id, format!("{}: {line}", script.name));
+                            }
+                            match out.verdict {
+                                Verdict::Block => {
+                                    let why = out
+                                        .message
+                                        .clone()
+                                        .unwrap_or_else(|| format!("Blocked by the script “{}”.", script.name));
+                                    return fail(&ctx, id, StatusCode::BAD_GATEWAY, why);
+                                }
+                                Verdict::Replace => {
+                                    let sent = out.headers.clone().unwrap_or_default();
+                                    return answer(
+                                        &ctx,
+                                        id,
+                                        started,
+                                        client_version,
+                                        out.status.unwrap_or(200),
+                                        &sent,
+                                        out.body.unwrap_or_default(),
+                                    );
+                                }
+                                Verdict::Continue => {
+                                    if let Some(list) = out.headers {
+                                        headers = to_header_map(&list);
+                                    }
+                                    if let Some(new_body) = out.body {
+                                        body = Bytes::from(new_body);
+                                    }
+                                    let shown = header_list(&headers);
+                                    let (size, kept) =
+                                        (body.len() as u64, body[..body.len().min(ctx.body_limit)].to_vec());
+                                    ctx.store.update(id, |f| {
+                                        f.request_headers = shown;
+                                        f.request_size = size;
+                                        f.request_body = kept;
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Action::Validate { spec } => match Spec::cached(std::path::Path::new(spec)) {
                 Ok(spec) => {
                     ctx.validate.lock().insert(id, spec);
@@ -738,7 +826,9 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
         upstream.headers_mut().insert(header::HOST, value);
     }
 
-    let holds_response = chain.iter().any(|r| matches!(r.action, Action::Breakpoint { response: true, .. }));
+    let script_for_response = ctx.script_response.lock().get(&id).cloned();
+    let holds_response = chain.iter().any(|r| matches!(r.action, Action::Breakpoint { response: true, .. }))
+        || script_for_response.is_some();
     if target.scheme == "https"
         && !holds_response
         && let Some(udp_port) = ctx.http3.port_for(&target.host, target.port)
@@ -759,6 +849,11 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     }
 
     match ctx.client.request(upstream).await {
+        Ok(res) if script_for_response.is_some() => {
+            let script = script_for_response.expect("checked");
+            ctx.script_response.lock().remove(&id);
+            script_response(&ctx, id, started, client_version, res, &parts.method, script).await
+        }
         Ok(res) if holds_response => hold_response(&ctx, id, started, client_version, res, &parts.method).await,
         Ok(res) => respond(&ctx, id, started, client_version, res),
         Err(e) => fail(&ctx, id, StatusCode::BAD_GATEWAY, error_chain(&e)),
@@ -801,7 +896,8 @@ async fn forward_grpc(
             Action::Breakpoint { .. }
             | Action::MapLocal { .. }
             | Action::MapRemote { .. }
-            | Action::Validate { .. } => {}
+            | Action::Validate { .. }
+            | Action::Script { .. } => {}
         }
     }
     if ctx.replay_is_strict() {
@@ -1120,6 +1216,156 @@ async fn mock(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, r
         Err(e) => return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     };
     answer(ctx, id, started, version, *status, headers, bytes)
+}
+
+/// Adds a line to what scripts said about a flow.
+fn note_script(ctx: &Ctx, id: FlowId, line: String) {
+    ctx.store.update(id, |f| {
+        if f.script_notes.len() < 50 {
+            f.script_notes.push(line);
+        }
+    });
+}
+
+/// The path and query of a mapped address, for the URL a script is shown.
+fn path_of(path: &str) -> &str {
+    if path.is_empty() { "/" } else { path }
+}
+
+/// A call a script is to be shown, with everything copied so it can run off the async executor.
+struct OwnedCall {
+    method: String,
+    url: String,
+    headers: Headers,
+    body: Vec<u8>,
+    status: Option<u16>,
+}
+
+async fn run_script(script: Arc<Script>, call: OwnedCall, response: bool) -> emulabzip_core::Result<script::Output> {
+    tokio::task::spawn_blocking(move || {
+        let shown = Call {
+            method: &call.method,
+            url: &call.url,
+            headers: &call.headers,
+            body: &call.body,
+            status: call.status,
+        };
+        if response { script.response(&shown) } else { script.request(&shown) }
+    })
+    .await
+    .map_err(|e| Error::failed(e.to_string()))?
+}
+
+/// Lets a script look at a response before the app does. The body is read whole and decoded, like at a breakpoint.
+#[allow(clippy::too_many_arguments)]
+async fn script_response(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    res: Response<Incoming>,
+    method: &Method,
+    script: Arc<Script>,
+) -> Resp {
+    let (parts, body) = res.into_parts();
+    let ttfb = started.elapsed().as_millis() as u64;
+    let raw = match body.collect().await {
+        Ok(collected) => collected.to_bytes(),
+        Err(e) => {
+            return fail(
+                ctx,
+                id,
+                StatusCode::BAD_GATEWAY,
+                format!("The response was interrupted: {}", error_chain(&e)),
+            );
+        }
+    };
+    let encoding = parts.headers.get(header::CONTENT_ENCODING).and_then(|v| v.to_str().ok()).map(str::to_string);
+    let decoded = crate::decode::decode(encoding.as_deref(), &raw).unwrap_or_else(|_| raw.to_vec());
+    let mut shown = header_list(&parts.headers);
+    if decoded.len() != raw.len() || encoding.is_some() {
+        shown.retain(|(k, _)| !k.eq_ignore_ascii_case("content-encoding") && !k.eq_ignore_ascii_case("content-length"));
+    }
+    let url = ctx.store.get(id).map(|f| f.url).unwrap_or_default();
+    ctx.store.update(id, |f| {
+        f.status = Some(parts.status.as_u16());
+        f.response_headers = shown.clone();
+        f.server_protocol = protocol_name(parts.version).to_string();
+        f.timing.ttfb_ms = Some(ttfb);
+    });
+    let owned = OwnedCall {
+        method: method.to_string(),
+        url,
+        headers: shown.clone(),
+        body: decoded.clone(),
+        status: Some(parts.status.as_u16()),
+    };
+    let (mut headers, mut bytes, mut status) = (to_header_map(&shown), Bytes::from(decoded), parts.status);
+    match run_script(script.clone(), owned, true).await {
+        Err(e) => note_script(ctx, id, format!("{}: {e}", script.name)),
+        Ok(out) => {
+            for line in &out.logs {
+                note_script(ctx, id, format!("{}: {line}", script.name));
+            }
+            match out.verdict {
+                Verdict::Block => {
+                    let why = out.message.unwrap_or_else(|| format!("Blocked by the script “{}”.", script.name));
+                    return fail(ctx, id, StatusCode::BAD_GATEWAY, why);
+                }
+                Verdict::Continue | Verdict::Replace => {
+                    if let Some(list) = out.headers {
+                        headers = to_header_map(&list);
+                    }
+                    if let Some(new_body) = out.body {
+                        bytes = Bytes::from(new_body);
+                    }
+                    if let Some(code) = out.status.and_then(|c| StatusCode::from_u16(c).ok()) {
+                        status = code;
+                    }
+                }
+            }
+        }
+    }
+    send_buffered(ctx, id, started, version, parts, headers, bytes, status)
+}
+
+/// Sends a response that was held whole: the headers that described the old body are dropped, and the flow shows what
+/// was sent.
+#[allow(clippy::too_many_arguments)]
+fn send_buffered(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    mut parts: http::response::Parts,
+    mut headers: HeaderMap,
+    bytes: Bytes,
+    status: StatusCode,
+) -> Resp {
+    for name in headers.keys().filter(|k| is_hop_by_hop(k)).cloned().collect::<Vec<_>>() {
+        headers.remove(name);
+    }
+    headers.remove(header::CONTENT_LENGTH);
+    headers.remove(header::CONTENT_ENCODING);
+    parts.status = status;
+    parts.headers = headers;
+    parts.version = version;
+    let total = started.elapsed().as_millis() as u64;
+    let listed = header_list(&parts.headers);
+    let size = bytes.len() as u64;
+    ctx.store.update(id, |f| {
+        f.status = Some(status.as_u16());
+        f.response_headers = listed;
+        f.response_body = bytes[..bytes.len().min(ctx.body_limit)].to_vec();
+        f.response_size = size;
+        f.response_truncated = bytes.len() > ctx.body_limit;
+        f.timing.total_ms = Some(total);
+        f.state = FlowState::Completed;
+    });
+    if let Some(spec) = ctx.validate.lock().remove(&id) {
+        check_response(ctx.store.clone(), id, spec);
+    }
+    Response::from_parts(parts, full(bytes))
 }
 
 /// Answers with a made-up response and records it as the flow's answer.

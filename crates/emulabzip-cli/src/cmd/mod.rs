@@ -24,6 +24,7 @@ pub mod perf;
 pub mod plugin;
 pub mod report;
 pub mod screenshot;
+pub mod script;
 pub mod session;
 pub mod size;
 pub mod startup;

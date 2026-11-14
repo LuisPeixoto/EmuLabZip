@@ -95,6 +95,9 @@ pub struct Flow {
     /// What checking the response against an OpenAPI file found, when a rule asked for it.
     #[serde(default)]
     pub validation: Option<crate::openapi::Validation>,
+    /// What a rule script wrote to its log, said by message, or why it did not run.
+    #[serde(default)]
+    pub script_notes: Vec<String>,
 }
 
 impl Flow {
@@ -134,6 +137,7 @@ impl Flow {
             operation: None,
             mapped_to: None,
             validation: None,
+            script_notes: Vec::new(),
         }
     }
 

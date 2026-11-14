@@ -257,6 +257,11 @@ enum Command {
         #[command(subcommand)]
         action: RnAction,
     },
+    /// Approve the WebAssembly scripts that network rules run
+    Script {
+        #[command(subcommand)]
+        action: ScriptAction,
+    },
     /// Check the responses in a HAR file against an OpenAPI description
     Openapi {
         #[command(subcommand)]
@@ -1006,6 +1011,21 @@ enum FlutterAction {
         /// How many classes to list
         #[arg(long, default_value_t = 15)]
         top: usize,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ScriptAction {
+    /// What a script file does, and whether it is approved
+    Show { file: std::path::PathBuf },
+    /// Allow a script to run in rules. The approval is for the file's exact bytes
+    Approve { file: std::path::PathBuf },
+    /// Take the approval back: give the file, or the start of its hash
+    Revoke { script: String },
+    /// The approved scripts
+    List {
         #[arg(long)]
         json: bool,
     },
@@ -1831,6 +1851,10 @@ async fn run() -> ExitCode {
         Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
             cmd::frameworks::rn_console(&app, metro, seconds, json).await
         }
+        Command::Script { action: ScriptAction::Show { file } } => cmd::script::show(&file),
+        Command::Script { action: ScriptAction::Approve { file } } => cmd::script::approve(&file),
+        Command::Script { action: ScriptAction::Revoke { script } } => cmd::script::revoke(&script),
+        Command::Script { action: ScriptAction::List { json } } => cmd::script::list(json),
         Command::Openapi { action: OpenapiAction::Check { spec, har, json } } => cmd::openapi::run(&spec, &har, json),
         Command::Link { action: LinkAction::Open { url, app } } => {
             cmd::link::open(&lab, device, &url, app.as_deref()).await
