@@ -36,6 +36,9 @@ if [[ -n "${ANDROID:-}" ]]; then
   # The audits: security, text that does not fit, colour vision, visual regression, analytics and build size.
   # Install the Compose demo first; its weak mode (--es weak 1) is what they find. Analytics needs the internet.
   cargo test -p emulabzip-cli --test live_phase12 -- --ignored --test-threads=1
+  # WebViews, input, flows, deep links and network rules. Install the Compose demo first: tools/compose-app/install.sh
+  # They tap, type and set the proxy on the device, and need the internet.
+  cargo test -p emulabzip-cli --test live_phase13 -- --ignored --test-threads=1
   # Chrome has to be past its first run: write its command line, and dismiss the notification prompt once.
   # They also need the internet (example.com, cloudflare-quic.com).
   cargo test -p emulabzip-cli --test live_net -- --ignored --test-threads=1
