@@ -9,6 +9,7 @@
 pub mod analytics;
 pub mod breakpoints;
 pub mod ca;
+pub mod cdp;
 pub mod classify;
 pub mod conditions;
 pub mod decode;

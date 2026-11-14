@@ -466,6 +466,70 @@ impl EmuLabServer {
     }
 
     #[tool(
+        description = "The WebViews and browsers on an Android device that can be inspected (a WebView in a debuggable app that turned on WebView.setWebContentsDebuggingEnabled, or Chrome), each with its pages: id, title and address."
+    )]
+    async fn webview_list(&self, Parameters(a): Parameters<args::Device>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                let sockets = self.lab.devtools_sockets(&target).await.map_err(|e| e.to_string())?;
+                let mut out = Vec::new();
+                for s in sockets {
+                    let pages =
+                        emulabzip_frameworks::webview::pages(&self.lab, &target, &s.socket).await.unwrap_or_default();
+                    out.push(serde_json::json!({ "socket": s, "pages": pages }));
+                }
+                json(&out)
+            }
+            .await,
+        )
+    }
+
+    #[tool(
+        description = "What a web page in a WebView or Chrome writes to its console, and the errors it does not catch, over a few seconds (at most 60). Use the page meanwhile, or reload it."
+    )]
+    async fn webview_console(&self, Parameters(a): Parameters<args::Webview>) -> CallToolResult {
+        reply(
+            async {
+                let seconds = a.seconds.unwrap_or(8);
+                if seconds == 0 || seconds > 60 {
+                    return Err("seconds is between 1 and 60".to_string());
+                }
+                for (name, value) in [("app", &a.app), ("socket", &a.socket)] {
+                    if let Some(v) = value
+                        && v.len() > 120
+                    {
+                        return Err(format!("{name} is too long"));
+                    }
+                }
+                if let Some(app) = &a.app
+                    && !emulabzip_core::control::is_app_id(app)
+                {
+                    return Err(format!("`{app}` is not a package name"));
+                }
+                if let Some(socket) = &a.socket
+                    && !emulabzip_core::backend::is_socket_name(socket)
+                {
+                    return Err(format!("`{socket}` is not a socket name"));
+                }
+                let target = self.target(&a.device).await?;
+                let (_, page, view) = emulabzip_frameworks::webview::connect(
+                    &self.lab,
+                    &target,
+                    a.app.as_deref(),
+                    a.socket.as_deref(),
+                    a.page.as_deref(),
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+                let lines = view.console(seconds, 300).await.map_err(|e| e.to_string())?;
+                json(&serde_json::json!({ "page": page, "lines": lines }))
+            }
+            .await,
+        )
+    }
+
+    #[tool(
         description = "Build and raster times of the frames a Flutter app draws over a few seconds (at most 30), with the janky ones counted. Nothing is drawn while the app is idle, so use it meanwhile."
     )]
     async fn flutter_frames(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {

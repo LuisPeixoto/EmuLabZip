@@ -257,6 +257,11 @@ enum Command {
         #[command(subcommand)]
         action: RnAction,
     },
+    /// Look inside the web pages of an app's WebView, or Chrome, on an Android device
+    Webview {
+        #[command(subcommand)]
+        action: WebviewAction,
+    },
     /// Look inside heap dumps for leaks
     Heap {
         #[command(subcommand)]
@@ -991,6 +996,70 @@ enum FlutterAction {
     },
 }
 
+/// Which WebView page to look at.
+#[derive(clap::Args)]
+struct WebviewPick {
+    /// The app whose WebView to use (its package name)
+    #[arg(long)]
+    app: Option<String>,
+    /// The DevTools socket, such as webview_devtools_remote_1234. `webview list` shows them
+    #[arg(long)]
+    socket: Option<String>,
+    /// The page: its id, or part of its address. Needed when the WebView has more than one
+    #[arg(long)]
+    page: Option<String>,
+}
+
+impl WebviewPick {
+    fn pick(&self) -> cmd::webview::Pick<'_> {
+        cmd::webview::Pick { app: self.app.as_deref(), socket: self.socket.as_deref(), page: self.page.as_deref() }
+    }
+}
+
+#[derive(Subcommand)]
+enum WebviewAction {
+    /// The WebViews and browsers that can be inspected, and their pages
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    /// What a page writes to its console, and the errors it does not catch
+    Console {
+        #[command(flatten)]
+        pick: WebviewPick,
+        /// How long to listen, in seconds
+        #[arg(short, long, default_value_t = 10)]
+        seconds: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Run a JavaScript expression in a page and print its value
+    Eval {
+        #[command(flatten)]
+        pick: WebviewPick,
+        /// The expression, such as `document.title`
+        expression: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// The requests a page makes, as the browser sees them (no proxy or certificate needed)
+    Network {
+        #[command(flatten)]
+        pick: WebviewPick,
+        /// How long to watch, in seconds
+        #[arg(short, long, default_value_t = 10)]
+        seconds: u64,
+        /// Reload the page first, to see everything it loads
+        #[arg(long)]
+        reload: bool,
+        /// Save what was seen as a HAR file
+        #[arg(long)]
+        har: Option<std::path::PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
 #[derive(Subcommand)]
 enum RnAction {
     /// The React component tree
@@ -1630,6 +1699,16 @@ async fn run() -> ExitCode {
         }
         Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
             cmd::frameworks::rn_console(&app, metro, seconds, json).await
+        }
+        Command::Webview { action: WebviewAction::List { json } } => cmd::webview::list(&lab, device, json).await,
+        Command::Webview { action: WebviewAction::Console { pick, seconds, json } } => {
+            cmd::webview::console(&lab, device, pick.pick(), seconds, json).await
+        }
+        Command::Webview { action: WebviewAction::Eval { pick, expression, json } } => {
+            cmd::webview::eval(&lab, device, pick.pick(), &expression, json).await
+        }
+        Command::Webview { action: WebviewAction::Network { pick, seconds, reload, har, json } } => {
+            cmd::webview::network(&lab, device, pick.pick(), seconds, reload, har.as_deref(), json).await
         }
         Command::Startup { app, kind, runs, json } => cmd::startup::startup(&lab, device, &app, kind, runs, json).await,
         Command::Energy { app, seconds, json } => cmd::startup::energy(&lab, device, &app, seconds, json).await,

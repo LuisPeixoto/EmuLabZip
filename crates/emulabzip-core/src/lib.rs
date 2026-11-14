@@ -30,6 +30,7 @@ pub mod stream;
 pub mod tarball;
 pub mod trace;
 pub mod vision;
+pub mod webview;
 
 pub use a11y::{Audit, Finding, Severity};
 pub use backend::{Backend, DeviceIo, DeviceStream, Lab, LogOptions, is_log_needle};
@@ -61,3 +62,4 @@ pub use state::{DATA_TAR, EXTERNAL_TAR, MAX_WRITE_BYTES, StateFiles, is_safe_ent
 pub use stream::Stream;
 pub use trace::{PerfettoPreset, TraceFile, TraceFormat, TraceRequest};
 pub use vision::Vision;
+pub use webview::DevtoolsSocket;

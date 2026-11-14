@@ -84,13 +84,17 @@ pub async fn list_targets(port: u16) -> Result<Vec<Target>> {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.map_err(|_| {
         Error::failed(format!("Metro is not running on port {port}. Start it with `npx react-native start`."))
     })?;
-    let body = http_get(&mut stream, "/json/list").await?;
+    let body = http_get(&mut stream, "/json/list", "Metro").await?;
     let value: Value = serde_json::from_slice(&body).map_err(|_| Error::failed("Metro did not answer with a list."))?;
     Ok(parse_targets(&value))
 }
 
-/// A bare HTTP/1.1 GET: the body of the answer, whether it has a length or comes in chunks.
-async fn http_get<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S, path: &str) -> Result<Vec<u8>> {
+/// A bare HTTP/1.1 GET: the body of the answer, whether it has a length or comes in chunks. `who` names the server in errors.
+pub(crate) async fn http_get<S: AsyncRead + AsyncWrite + Unpin>(
+    stream: &mut S,
+    path: &str,
+    who: &str,
+) -> Result<Vec<u8>> {
     let request =
         format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).await?;
@@ -100,19 +104,21 @@ async fn http_get<S: AsyncRead + AsyncWrite + Unpin>(stream: &mut S, path: &str)
     })
     .await;
     if read.is_err() {
-        return Err(Error::failed("Metro did not answer in time."));
+        return Err(Error::failed(format!("{who} did not answer in time.")));
     }
-    let split =
-        raw.windows(4).position(|w| w == b"\r\n\r\n").ok_or_else(|| Error::failed("Metro sent a broken answer."))?;
+    let split = raw
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .ok_or_else(|| Error::failed(format!("{who} sent a broken answer.")))?;
     let head = String::from_utf8_lossy(&raw[..split]).to_ascii_lowercase();
     if !head.starts_with("http/1.1 200") && !head.starts_with("http/1.0 200") {
-        return Err(Error::failed(format!("Metro answered: {}", head.lines().next().unwrap_or(""))));
+        return Err(Error::failed(format!("{who} answered: {}", head.lines().next().unwrap_or(""))));
     }
     let body = &raw[split + 4..];
     if head.contains("transfer-encoding: chunked") { Ok(dechunk(body)) } else { Ok(body.to_vec()) }
 }
 
-fn dechunk(mut body: &[u8]) -> Vec<u8> {
+pub(crate) fn dechunk(mut body: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     while let Some(line_end) = body.windows(2).position(|w| w == b"\r\n") {
         let size = std::str::from_utf8(&body[..line_end])

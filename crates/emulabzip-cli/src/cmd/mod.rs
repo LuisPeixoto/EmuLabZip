@@ -28,3 +28,4 @@ pub mod state;
 pub mod symbols;
 pub mod trace;
 pub mod visual;
+pub mod webview;
