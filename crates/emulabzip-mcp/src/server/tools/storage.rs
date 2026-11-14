@@ -5,7 +5,14 @@ use crate::server::*;
 #[tool_router(router = storage_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
-        description = "Save an app's data (databases, preferences, files; not caches) to a state file kept by EmuLabZip, to compare later with diff_state. Stops the app. Putting a state back is not offered here."
+        description = "Save an app's data (databases, preferences, files; not caches) to a state file kept by EmuLabZip, to compare later with diff_state. Stops the app. Putting a state back is not offered here.",
+        title = "Save an app's state",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn save_state(&self, Parameters(a): Parameters<args::SaveState>) -> CallToolResult {
         reply(
@@ -36,13 +43,19 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "The state files EmuLabZip has saved, newest first, by the names diff_state takes.")]
+    #[tool(
+        description = "The state files EmuLabZip has saved, newest first, by the names diff_state takes.",
+        title = "List saved states",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
     async fn list_states(&self) -> CallToolResult {
         reply(states_list())
     }
 
     #[tool(
-        description = "What changed in the structure of an app's data between two saved states, or between a saved state and the app now: tables, columns, indexes and preference keys added, removed or changed."
+        description = "What changed in the structure of an app's data between two saved states, or between a saved state and the app now: tables, columns, indexes and preference keys added, removed or changed.",
+        title = "Compare two saved states",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn diff_state(&self, Parameters(a): Parameters<args::DiffState>) -> CallToolResult {
         reply(
@@ -76,7 +89,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "List an app's storage roots, or a folder in one. Android needs a debuggable app for the private `data` root."
+        description = "List an app's storage roots, or a folder in one. Android needs a debuggable app for the private `data` root.",
+        title = "List an app's files",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn list_files(&self, Parameters(a): Parameters<args::Files>) -> CallToolResult {
         reply(
@@ -99,7 +114,11 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "Read one file of an app: text as it is, binary files as base64. Files over 256 KB are cut.")]
+    #[tool(
+        description = "Read one file of an app: text as it is, binary files as base64. Files over 256 KB are cut.",
+        title = "Read an app's file",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
     async fn read_file(&self, Parameters(a): Parameters<args::Files>) -> CallToolResult {
         reply(self.read_file_inner(a).await)
     }

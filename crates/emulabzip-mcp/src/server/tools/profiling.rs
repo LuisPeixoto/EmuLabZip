@@ -5,20 +5,28 @@ use crate::server::*;
 #[tool_router(router = profiling_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
-        description = "Read recent log lines (logcat on Android, the unified log on iOS), filtered by app, level, tag or text. Returns a snapshot, newest last."
+        description = "Read recent log lines (logcat on Android, the unified log on iOS), filtered by app, level, tag or text. Returns a snapshot, newest last.",
+        title = "Read the log",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn read_logs(&self, Parameters(a): Parameters<args::Logs>) -> CallToolResult {
         reply(self.read_logs_inner(a).await)
     }
 
     #[tool(
-        description = "Measure CPU, memory, frame rate and battery for a few seconds: samples one second apart, device-wide or for one app."
+        description = "Measure CPU, memory, frame rate and battery for a few seconds: samples one second apart, device-wide or for one app.",
+        title = "Sample CPU, memory and frames",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn perf_snapshot(&self, Parameters(a): Parameters<args::Perf>) -> CallToolResult {
         reply(self.perf_inner(a).await)
     }
 
-    #[tool(description = "Where an app's memory goes: PSS by category on Android, footprint by VM region on iOS.")]
+    #[tool(
+        description = "Where an app's memory goes: PSS by category on Android, footprint by VM region on iOS.",
+        title = "Memory breakdown of an app",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
     async fn memory_report(&self, Parameters(a): Parameters<args::App>) -> CallToolResult {
         reply(
             async { json(&self.lab.memory(&self.target(&a.device).await?, &a.app).await.map_err(|e| e.to_string())?) }
@@ -27,7 +35,14 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Time how long an app takes to open (cold, warm or hot), several times. Returns the median and every run. It stops and opens the app on the device."
+        description = "Time how long an app takes to open (cold, warm or hot), several times. Returns the median and every run. It stops and opens the app on the device.",
+        title = "Measure app start time",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn measure_startup(&self, Parameters(a): Parameters<args::Startup>) -> CallToolResult {
         reply(
@@ -45,7 +60,14 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Measure the energy an app uses over a few seconds (at most 120). Android reports the system's estimate, wake locks, jobs and network; iOS reports CPU time. Use the app meanwhile."
+        description = "Measure the energy an app uses over a few seconds (at most 120). Android reports the system's estimate, wake locks, jobs and network; iOS reports CPU time. Use the app meanwhile.",
+        title = "Measure energy use",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn measure_energy(&self, Parameters(a): Parameters<args::Energy>) -> CallToolResult {
         reply(
@@ -61,7 +83,14 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Take a heap dump of a debuggable Android app and look for leaks: destroyed Activities and removed Fragments still alive, each with the path from a GC root that keeps it, plus the objects that keep the most memory alive."
+        description = "Take a heap dump of a debuggable Android app and look for leaks: destroyed Activities and removed Fragments still alive, each with the path from a GC root that keeps it, plus the objects that keep the most memory alive.",
+        title = "Dump and analyze the heap",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn analyze_heap(&self, Parameters(a): Parameters<args::Heap>) -> CallToolResult {
         reply(
@@ -84,21 +113,27 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "List the traces recorded with EmuLabZip (Perfetto system traces, simpleperf CPU profiles, Instruments recordings)."
+        description = "List the traces recorded with EmuLabZip (Perfetto system traces, simpleperf CPU profiles, Instruments recordings).",
+        title = "List recorded traces",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn list_traces(&self) -> CallToolResult {
         reply(json(&library::list()))
     }
 
     #[tool(
-        description = "Summarize a recording: for a Perfetto trace, CPU by process and thread, frame times and jank, memory and the busiest slices; for a CPU profile, the hottest functions."
+        description = "Summarize a recording: for a Perfetto trace, CPU by process and thread, frame times and jank, memory and the busiest slices; for a CPU profile, the hottest functions.",
+        title = "Summarize a trace",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn trace_summary(&self, Parameters(a): Parameters<args::Recording>) -> CallToolResult {
         reply(self.trace_summary_inner(&a.id).await)
     }
 
     #[tool(
-        description = "Run PerfettoSQL on a Perfetto recording (tables such as slice, sched, thread, process, counter). Returns up to 5000 rows."
+        description = "Run PerfettoSQL on a Perfetto recording (tables such as slice, sched, thread, process, counter). Returns up to 5000 rows.",
+        title = "Query a trace with SQL",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn trace_query(&self, Parameters(a): Parameters<args::Query>) -> CallToolResult {
         reply(
@@ -115,7 +150,14 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Record a trace on a device and keep it in the library: a Perfetto system trace (Android), a simpleperf CPU profile (Android) or an Instruments template (iOS Simulator). Takes as long as the duration."
+        description = "Record a trace on a device and keep it in the library: a Perfetto system trace (Android), a simpleperf CPU profile (Android) or an Instruments template (iOS Simulator). Takes as long as the duration.",
+        title = "Record a trace",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn record_trace(&self, Parameters(a): Parameters<args::RecordTrace>) -> CallToolResult {
         reply(self.record_inner(a).await)
