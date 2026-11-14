@@ -131,6 +131,11 @@ pub trait Backend: Send + Sync {
         Err(Error::Unsupported("Connecting to a device port"))
     }
 
+    /// The DevTools sockets the device listens on: debuggable WebViews and browsers.
+    async fn devtools_sockets(&self, _id: &str) -> Result<Vec<crate::DevtoolsSocket>> {
+        Err(Error::Unsupported("WebView inspection"))
+    }
+
     /// Opens a connection to an abstract unix socket the device is listening on (a WebView's DevTools, for example).
     async fn connect_socket(&self, _id: &str, _name: &str) -> Result<DeviceStream> {
         Err(Error::Unsupported("Connecting to a device socket"))
@@ -471,6 +476,10 @@ impl Lab {
             return Err(Error::invalid("port", "0"));
         }
         self.backend(target.platform)?.connect_port(&target.id, port).await
+    }
+
+    pub async fn devtools_sockets(&self, target: &Target) -> Result<Vec<crate::DevtoolsSocket>> {
+        self.backend(target.platform)?.devtools_sockets(&target.id).await
     }
 
     /// `name` is an abstract socket name without the leading `@`: letters, digits, `_`, `.` and `-`.

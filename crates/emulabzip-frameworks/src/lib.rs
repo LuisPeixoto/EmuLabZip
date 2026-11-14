@@ -7,5 +7,6 @@
 pub mod flutter;
 pub mod react_native;
 pub mod rpc;
+pub mod webview;
 
 pub use rpc::Rpc;

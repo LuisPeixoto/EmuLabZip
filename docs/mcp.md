@@ -43,6 +43,7 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 | `measure_startup` | The median and every run of cold, warm or hot start times (stops and opens the app) |
 | `measure_energy` | The energy an app uses over a few seconds, at most 120 |
 | `detect_frameworks` | The UI frameworks an app is built with |
+| `webview_list`, `webview_console` | The WebViews and browsers of an Android device that can be inspected with their pages, and what a page writes to its console over a few seconds (at most 60) |
 | `flutter_widget_tree`, `flutter_frames`, `flutter_memory` | Inside a running Flutter debug or profile app: its widgets with their source lines, frame times over a few seconds (at most 30), and the Dart heap |
 | `react_tree` | The component tree of a React Native development app, through Metro |
 | `react_state` | The [state](react-native-state.md) of a React Native development app: Redux, React Query, contexts and registered stores, cut to a size an assistant can read |
@@ -91,6 +92,7 @@ and nothing reaches a shell unquoted.
 - It cannot run a plugin you have not enabled. `run_plugin` refuses it and says so.
 - It cannot throw data away or rewrite it. Restoring a state, wiping or deleting a device, loading or deleting an emulator
   snapshot, and every [edit](storage-editing.md) are **not** offered. `diff_state` takes the names `list_states` shows, never a path.
+- It cannot run JavaScript in a web page. `webview_eval` is not offered, because a script can change what the app stores.
 - It cannot download anything. `trace_summary` and `trace_query` need the Perfetto trace processor, which is only
   downloaded after you agree in the app or run `emulabzip trace summary` once.
 - It reads only what the device exposes to the tools above: the files of apps you can already browse, and only when

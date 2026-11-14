@@ -79,6 +79,19 @@ pub struct Flutter {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct Webview {
+    pub device: Option<String>,
+    /// The app whose WebView to use (its package name). Optional when only one WebView is open.
+    pub app: Option<String>,
+    /// The DevTools socket, such as `webview_devtools_remote_1234`, as `webview_list` shows it.
+    pub socket: Option<String>,
+    /// The page: its id, or part of its address. Optional when the WebView has one page.
+    pub page: Option<String>,
+    /// For `webview_console`: how long to listen, 1 to 60 seconds (default 8).
+    pub seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReactNative {
     /// The app's package name or bundle id, to pick its runtime among those Metro lists.
     pub app: String,

@@ -58,6 +58,8 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "list_emulator_snapshots",
         "save_emulator_snapshot",
         "react_state",
+        "webview_list",
+        "webview_console",
         "control_locale",
         "control_font_scale",
         "control_display_size",
@@ -254,9 +256,16 @@ fn state_tools_never_offer_what_destroys_data_and_refuse_paths() {
     let tools = s.call(2, "tools/list", json!({}));
     let names: Vec<&str> =
         tools["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-    for withheld in
-        ["restore_state", "wipe_device", "delete_device", "edit_row", "write_file", "load_emulator_snapshot"]
-    {
+    for withheld in [
+        "restore_state",
+        "wipe_device",
+        "delete_device",
+        "edit_row",
+        "write_file",
+        "load_emulator_snapshot",
+        // Running script in a page can change the app's data, so only the CLI and the app offer it.
+        "webview_eval",
+    ] {
         assert!(!names.contains(&withheld), "{withheld} must not be offered to assistants");
     }
     for bad in ["../../etc/passwd", "a/b", "", "nothing-by-this-name"] {

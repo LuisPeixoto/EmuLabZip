@@ -28,5 +28,6 @@ pub mod state;
 pub mod storage;
 pub mod trace;
 pub mod video;
+pub mod webviews;
 
 pub use backend::AndroidBackend;
