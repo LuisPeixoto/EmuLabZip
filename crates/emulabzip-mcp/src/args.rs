@@ -344,6 +344,16 @@ pub struct OpenUrl {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct CheckLink {
+    pub device: Option<String>,
+    /// The link to check, such as `https://shop.example.com/cart/3` or `myapp://open/3`.
+    pub url: String,
+    /// The app that should open it: a package name or bundle id. Without it the domain file is read but the app's own
+    /// side is not checked.
+    pub app: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct LaunchApp {
     pub device: Option<String>,
     /// The package name or bundle id.

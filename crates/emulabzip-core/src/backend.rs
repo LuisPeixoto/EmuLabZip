@@ -131,6 +131,11 @@ pub trait Backend: Send + Sync {
         Err(Error::Unsupported("Connecting to a device port"))
     }
 
+    /// What the device says about a link: who opens it, and what it decided about the app's claim on the domain.
+    async fn link_facts(&self, _id: &str, _app: Option<&str>, _url: &str) -> Result<crate::links::Facts> {
+        Err(Error::Unsupported("Checking deep links"))
+    }
+
     /// The DevTools sockets the device listens on: debuggable WebViews and browsers.
     async fn devtools_sockets(&self, _id: &str) -> Result<Vec<crate::DevtoolsSocket>> {
         Err(Error::Unsupported("WebView inspection"))
@@ -476,6 +481,17 @@ impl Lab {
             return Err(Error::invalid("port", "0"));
         }
         self.backend(target.platform)?.connect_port(&target.id, port).await
+    }
+
+    /// Asks the device about a link. The link and the app are checked first, as for [`Control::OpenUrl`].
+    pub async fn link_facts(&self, target: &Target, app: Option<&str>, url: &str) -> Result<crate::links::Facts> {
+        Control::OpenUrl { url: url.to_string() }.validate()?;
+        if let Some(app) = app
+            && !crate::control::is_app_id(app)
+        {
+            return Err(Error::invalid("app", app));
+        }
+        self.backend(target.platform)?.link_facts(&target.id, app, url).await
     }
 
     pub async fn devtools_sockets(&self, target: &Target) -> Result<Vec<crate::DevtoolsSocket>> {

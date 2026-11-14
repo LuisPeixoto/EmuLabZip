@@ -184,6 +184,10 @@ impl Backend for AndroidBackend {
         Ok(Box::new(self.adb.connect_tcp(id, port).await?))
     }
 
+    async fn link_facts(&self, id: &str, app: Option<&str>, url: &str) -> Result<emulabzip_core::links::Facts> {
+        crate::links::facts(&self.adb, id, app, url).await
+    }
+
     async fn devtools_sockets(&self, id: &str) -> Result<Vec<emulabzip_core::DevtoolsSocket>> {
         let out = self.adb.shell(id, &crate::webviews::command()).await?;
         Ok(crate::webviews::parse(&out))

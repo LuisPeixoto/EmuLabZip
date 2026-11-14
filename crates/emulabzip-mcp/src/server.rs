@@ -1226,6 +1226,23 @@ impl EmuLabServer {
         reply(self.control(&a.device, Control::OpenUrl { url: a.url }, "Link opened").await)
     }
 
+    #[tool(
+        description = "Check a deep link: whether the domain's assetlinks.json (Android) or apple-app-site-association (iOS) lists the app, whether the app's signing key or team id matches, what the device decided about the domain, and which app opens the link. Returns findings with what to fix. Reads one file from the link's own domain over https."
+    )]
+    async fn check_link(&self, Parameters(a): Parameters<args::CheckLink>) -> CallToolResult {
+        reply(
+            async {
+                let target = self.target(&a.device).await?;
+                let report = emulabzip_net::links::check(&self.lab, &target, &a.url, a.app.as_deref())
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let _ = emulabzip_core::links::note_link(&a.url, a.app.as_deref(), Some(report.worst));
+                json(&report)
+            }
+            .await,
+        )
+    }
+
     #[tool(description = "Start an app on the device, by package name or bundle id, as the launcher would.")]
     async fn launch_app(&self, Parameters(a): Parameters<args::LaunchApp>) -> CallToolResult {
         reply(self.control(&a.device, Control::Launch { app: a.app }, "App started").await)

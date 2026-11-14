@@ -68,6 +68,7 @@ pub fn commands_for(control: &Control) -> Result<Vec<String>> {
             v
         }
         Control::ResetBattery => vec![command(["dumpsys", "battery", "reset"])],
+        Control::VerifyAppLinks { app } => vec![command(["pm", "verify-app-links", "--re-verify", app])],
         Control::Launch { app } => {
             vec![command(["monkey", "-p", app, "-c", "android.intent.category.LAUNCHER", "1"])]
         }
@@ -207,7 +208,7 @@ pub async fn info(adb: &AdbClient, serial: &str, app: Option<&str>) -> Result<Co
     let emulator = console_port(serial).is_some();
     let mut supported: Vec<&str> =
         vec!["appearance", "statusBar", "clearStatusBar", "notification", "openUrl", "battery", "resetBattery"];
-    supported.extend(["fontScale", "display", "resetDisplay", "tap", "swipe", "text", "key", "launch"]);
+    supported.extend(["fontScale", "display", "resetDisplay", "tap", "swipe", "text", "key", "launch", "verifyLinks"]);
     if app.is_some() {
         supported.extend(["permission", "locale", "resetLocale"]);
     }

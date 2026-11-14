@@ -257,6 +257,11 @@ enum Command {
         #[command(subcommand)]
         action: RnAction,
     },
+    /// Open a deep link, and check that the domain and the app agree about it
+    Link {
+        #[command(subcommand)]
+        action: LinkAction,
+    },
     /// Record touches into a flow, play it again, and export it to Maestro or a shell script (Android)
     Flow {
         #[command(subcommand)]
@@ -996,6 +1001,34 @@ enum FlutterAction {
         /// How many classes to list
         #[arg(long, default_value_t = 15)]
         top: usize,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum LinkAction {
+    /// Open a link on the device, and keep it in the history
+    Open {
+        url: String,
+        /// The app that should open it (kept with the link)
+        #[arg(long)]
+        app: Option<String>,
+    },
+    /// Check a link: the domain's assetlinks.json or apple-app-site-association, the app's claim on the domain, and who
+    /// opens it. Exits with an error when something is wrong
+    Check {
+        url: String,
+        /// The app that should open it (a package name or bundle id)
+        #[arg(long)]
+        app: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Ask Android to verify an app's domains again (`pm verify-app-links --re-verify`)
+    Verify { app: String },
+    /// The links opened and checked before
+    History {
         #[arg(long)]
         json: bool,
     },
@@ -1778,6 +1811,14 @@ async fn run() -> ExitCode {
         Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
             cmd::frameworks::rn_console(&app, metro, seconds, json).await
         }
+        Command::Link { action: LinkAction::Open { url, app } } => {
+            cmd::link::open(&lab, device, &url, app.as_deref()).await
+        }
+        Command::Link { action: LinkAction::Check { url, app, json } } => {
+            cmd::link::run_check(&lab, device, &url, app.as_deref(), json).await
+        }
+        Command::Link { action: LinkAction::Verify { app } } => cmd::link::verify(&lab, device, &app).await,
+        Command::Link { action: LinkAction::History { json } } => cmd::link::history(json),
         Command::Flow { action: FlowAction::Record { name, app, no_launch, seconds, out } } => {
             cmd::flow::record(&lab, device, &name, app.as_deref(), !no_launch, seconds, out).await
         }

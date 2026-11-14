@@ -18,6 +18,7 @@ pub mod heapdump;
 pub mod info;
 pub mod input;
 pub mod layout;
+pub mod links;
 pub mod logcat;
 pub mod meminfo;
 pub mod network;

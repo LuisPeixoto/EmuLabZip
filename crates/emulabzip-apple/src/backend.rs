@@ -318,6 +318,10 @@ impl Backend for AppleBackend {
             .map_err(|e| Error::failed(e.to_string()))?
     }
 
+    async fn link_facts(&self, id: &str, app: Option<&str>, _url: &str) -> Result<emulabzip_core::links::Facts> {
+        crate::links::facts(id, app).await
+    }
+
     async fn controls(&self, id: &str, _app: Option<&str>) -> Result<ControlInfo> {
         controls::info(id).await
     }

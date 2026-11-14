@@ -93,6 +93,10 @@ pub enum Control {
         density: Option<u32>,
     },
     ResetDisplay,
+    /// Asks Android to check again which of the app's domains it can open links for (`pm verify-app-links`).
+    VerifyAppLinks {
+        app: String,
+    },
     /// Starts an app, by package name or bundle id, as the launcher would.
     Launch {
         app: String,
@@ -337,7 +341,7 @@ impl Control {
                     return Err(Error::invalid("text", "it cannot contain `%s`, which Android reads as a space"));
                 }
             }
-            Control::Launch { app } if !is_app_id(app) => {
+            Control::Launch { app } | Control::VerifyAppLinks { app } if !is_app_id(app) => {
                 return Err(Error::invalid("app", app.clone()));
             }
             Control::Key { key } if key_code(key).is_none() => {

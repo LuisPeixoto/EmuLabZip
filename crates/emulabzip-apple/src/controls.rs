@@ -66,6 +66,11 @@ pub fn args_for(control: &Control) -> Result<Vec<Vec<String>>> {
             return Err(Error::Unsupported("Changing the screen size of the simulator"));
         }
         Control::Launch { app } => vec![v(&["launch", app])],
+        Control::VerifyAppLinks { .. } => {
+            return Err(Error::Unsupported(
+                "Asking iOS to verify a domain (the simulator reads the file when it needs it)",
+            ));
+        }
         Control::Tap { .. } | Control::Swipe { .. } | Control::Text { .. } | Control::Key { .. } => {
             return Err(Error::Unsupported(
                 "Touches, keys and text on the simulator (iOS has no public way to send them)",

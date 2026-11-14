@@ -73,6 +73,7 @@ Every tool takes an optional `device` (an id or a name). When only one device is
 |------|------|
 | `record_trace` | Records a Perfetto trace, a CPU profile or an Instruments template (up to 120 seconds) and keeps it |
 | `control_location`, `control_appearance`, `control_status_bar`, `control_battery` | Changes the device, or puts it back |
+| `check_link` | Checks a [deep link](deep-links.md): the domain's `assetlinks.json` or `apple-app-site-association`, the app's claim on the domain, and who opens it, with what to fix |
 | `launch_app`, `list_flows`, `play_flow` | Starts an app, lists the saved [flows](automation.md) and plays one (at most two minutes) |
 | `tap`, `swipe`, `input_text`, `press_key` | Touches, drags, types and presses keys on an Android device (iOS has no public way to send them) |
 | `control_permission`, `control_notification`, `open_url` | Grants or revokes a permission, posts a notification or push, opens a link |

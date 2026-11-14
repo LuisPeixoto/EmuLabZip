@@ -13,6 +13,7 @@ base64.workspace = true
 emulabzip-audit.workspace = true
 emulabzip-core.workspace = true
 emulabzip-frameworks.workspace = true
+emulabzip-net.workspace = true
 emulabzip-heap.workspace = true
 emulabzip-plugin.workspace = true
 emulabzip-report.workspace = true
