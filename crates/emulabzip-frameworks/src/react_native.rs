@@ -99,8 +99,19 @@ pub(crate) async fn http_get<S: AsyncRead + AsyncWrite + Unpin>(
         format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).await?;
     let mut raw = Vec::new();
+    // Chrome's DevTools server keeps the connection open after answering, whatever `Connection` says, so the answer is
+    // read for as long as its own length says, and not until the other side closes.
     let read = tokio::time::timeout(Duration::from_secs(10), async {
-        (&mut *stream).take(8 * 1024 * 1024).read_to_end(&mut raw).await
+        let mut chunk = [0u8; 8192];
+        loop {
+            if answer_is_complete(&raw) || raw.len() > 8 * 1024 * 1024 {
+                return Ok::<(), std::io::Error>(());
+            }
+            match stream.read(&mut chunk).await? {
+                0 => return Ok(()),
+                n => raw.extend_from_slice(&chunk[..n]),
+            }
+        }
     })
     .await;
     if read.is_err() {
@@ -116,6 +127,21 @@ pub(crate) async fn http_get<S: AsyncRead + AsyncWrite + Unpin>(
     }
     let body = &raw[split + 4..];
     if head.contains("transfer-encoding: chunked") { Ok(dechunk(body)) } else { Ok(body.to_vec()) }
+}
+
+/// Whether `raw` holds a whole HTTP/1.1 answer: the head, and a body of the length it says or the last chunk.
+fn answer_is_complete(raw: &[u8]) -> bool {
+    let Some(split) = raw.windows(4).position(|w| w == b"\r\n\r\n") else { return false };
+    let head = String::from_utf8_lossy(&raw[..split]).to_ascii_lowercase();
+    let body = &raw[split + 4..];
+    if let Some(length) = head.lines().find_map(|l| l.strip_prefix("content-length:")) {
+        return length.trim().parse::<usize>().is_ok_and(|n| body.len() >= n);
+    }
+    if head.contains("transfer-encoding: chunked") {
+        return body.ends_with(b"0\r\n\r\n");
+    }
+    // No length: only the end of the connection says it is done.
+    false
 }
 
 pub(crate) fn dechunk(mut body: &[u8]) -> Vec<u8> {
@@ -650,6 +676,16 @@ mod tests {
         two[1].app_id = Some("com.second".into());
         assert!(pick(&two, "com.nobody").is_none());
         assert_eq!(pick(&two, "com.second").unwrap().id, "dev-2");
+    }
+
+    #[test]
+    fn an_answer_is_complete_by_its_length_or_its_last_chunk() {
+        assert!(!answer_is_complete(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhel"));
+        assert!(answer_is_complete(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello"));
+        assert!(!answer_is_complete(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n"));
+        assert!(answer_is_complete(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"));
+        assert!(!answer_is_complete(b"HTTP/1.1 200 OK\r\n\r\nbody with no length"));
+        assert!(!answer_is_complete(b"HTTP/1.1 200"));
     }
 
     #[test]

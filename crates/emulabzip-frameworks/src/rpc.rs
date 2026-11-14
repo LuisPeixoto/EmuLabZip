@@ -27,6 +27,9 @@ type Pending = Arc<Waiting>;
 
 /// A connection to a debugging protocol.
 pub struct Rpc {
+    /// Chrome's DevTools server refuses a message with any property besides `id`, `method` and `params`, so the
+    /// `"jsonrpc": "2.0"` that the Dart VM service wants is left off for it.
+    plain: bool,
     next: AtomicU64,
     out: mpsc::UnboundedSender<String>,
     pending: Pending,
@@ -52,6 +55,22 @@ impl Rpc {
     /// Like [`Rpc::connect`], saying which page the connection comes from. Metro only lets a debugger in whose
     /// `Origin` is its own address, so a connection without one is refused with 401.
     pub async fn connect_as<S>(stream: S, url: &str, origin: Option<&str>) -> Result<Rpc>
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        Rpc::open(stream, url, origin, false).await
+    }
+
+    /// Like [`Rpc::connect`] for Chrome's own DevTools server (a WebView, or Chrome), which is strict about what a
+    /// message may contain.
+    pub async fn connect_chrome<S>(stream: S, url: &str) -> Result<Rpc>
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        Rpc::open(stream, url, None, true).await
+    }
+
+    async fn open<S>(stream: S, url: &str, origin: Option<&str>, plain: bool) -> Result<Rpc>
     where
         S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
@@ -97,7 +116,7 @@ impl Rpc {
                 }
             })
         };
-        Ok(Rpc { next: AtomicU64::new(1), out, pending, events, task })
+        Ok(Rpc { plain, next: AtomicU64::new(1), out, pending, events, task })
     }
 
     /// Calls `method` and returns its `result`.
@@ -111,7 +130,11 @@ impl Rpc {
             };
             map.insert(id, tx);
         }
-        let request = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
+        let request = if self.plain {
+            json!({ "id": id, "method": method, "params": params })
+        } else {
+            json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params })
+        };
         if self.out.send(request.to_string()).is_err() {
             return Err(Error::failed("The app closed the debugger connection."));
         }

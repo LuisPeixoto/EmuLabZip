@@ -496,7 +496,7 @@ pub fn evaluate(
             None,
         ));
         if platform == Platform::Android {
-            resolution(&mut out, facts, app);
+            resolution(&mut out, facts, app, false);
         }
         return out;
     }
@@ -559,8 +559,16 @@ fn file_checks<'a>(out: &mut Vec<Finding>, name: &str, file: Option<&'a Fetch>) 
     Some(file)
 }
 
-fn resolution(out: &mut Vec<Finding>, facts: &Facts, app: Option<&str>) {
+/// `verified`: the device has verified the link's domain for the app, so a chooser that lists a browser too is not
+/// what the user will see: a verified app link goes straight to the app.
+fn resolution(out: &mut Vec<Finding>, facts: &Facts, app: Option<&str>, verified: bool) {
     match &facts.resolved {
+        Some(r) if r.chooser && verified => out.push(f(
+            Level::Info,
+            "A browser matches too",
+            "The device verified the domain for the app, so the link opens the app directly and not a chooser.",
+            None,
+        )),
         Some(r) if r.chooser => out.push(f(
             Level::Warn,
             "Several apps open this link",
@@ -669,7 +677,11 @@ fn android(out: &mut Vec<Finding>, link: &Link, host: &str, app: Option<&str>, f
             ));
         }
     }
-    resolution(out, facts, app);
+    let verified = facts
+        .app_links
+        .as_ref()
+        .is_some_and(|a| a.state_of(host) == Some("verified") && a.link_handling_allowed != Some(false));
+    resolution(out, facts, app, verified);
     if link.path.is_empty() {
         out.push(f(Level::Info, "The link has no path", "Some intent filters only match links with a path.", None));
     }
@@ -1089,6 +1101,30 @@ mod tests {
         assert!(unverified.iter().any(|x| x.fix.as_deref().is_some_and(|f| f.contains("--re-verify"))));
         let nobody = evaluate(&url, Platform::Android, None, None, &Facts::default());
         assert!(nobody.iter().any(|x| x.title == "No app opens this link"));
+    }
+
+    #[test]
+    fn a_verified_app_link_is_not_called_ambiguous_because_a_browser_matches_too() {
+        let url = link("https://shop.example.com/demo/cart");
+        let chooser = Resolved {
+            component: "android/com.android.internal.app.ResolverActivity".into(),
+            package: "android".into(),
+            chooser: true,
+        };
+        let verified =
+            Facts { app_links: parse_get_app_links(APP_LINKS), resolved: Some(chooser.clone()), ..Facts::default() };
+        let r = evaluate(&url, Platform::Android, Some("dev.x.app"), None, &verified);
+        assert!(r.iter().any(|x| x.title == "A browser matches too" && x.level == Level::Info), "{:#?}", levels(&r));
+        assert!(!r.iter().any(|x| x.title == "Several apps open this link"));
+        // Not verified: the chooser really is what the user gets.
+        let unverified = evaluate(
+            &link("https://other.example.com/x"),
+            Platform::Android,
+            Some("dev.x.app"),
+            None,
+            &Facts { resolved: Some(chooser), ..verified },
+        );
+        assert!(unverified.iter().any(|x| x.title == "Several apps open this link" && x.level == Level::Warn));
     }
 
     #[test]

@@ -257,7 +257,7 @@ impl WebView {
     /// Connects to `page` through the DevTools `socket` and starts the domains that report what the page does.
     pub async fn attach(lab: &Lab, target: &Target, socket: &str, page: &Page) -> Result<WebView> {
         let stream = lab.connect_socket(target, socket).await?;
-        let rpc = Rpc::connect(stream, &format!("ws://localhost{}", page.ws_path)).await?;
+        let rpc = Rpc::connect_chrome(stream, &format!("ws://localhost{}", page.ws_path)).await?;
         Ok(WebView { rpc })
     }
 
