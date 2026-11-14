@@ -5,7 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("emulabzip-cli-phase9-{name}-{}", std::process::id()));
+    // Several tests ask for the same name at once, so each call gets a folder of its own.
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("emulabzip-cli-phase9-{name}-{}-{n}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
