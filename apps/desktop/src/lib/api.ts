@@ -173,6 +173,33 @@ export interface Evaluated {
   error: boolean;
 }
 
+export type LinkLevel = "pass" | "info" | "warn" | "fail";
+
+export interface LinkFinding {
+  level: LinkLevel;
+  title: string;
+  detail: string;
+  fix: string | null;
+}
+
+export interface LinkReport {
+  url: string;
+  platform: "android" | "ios";
+  app: string | null;
+  fileUrl: string | null;
+  findings: LinkFinding[];
+  domains: { domain: string; state: string }[];
+  worst: LinkLevel;
+}
+
+export interface LinkHistoryEntry {
+  url: string;
+  atMs: number;
+  app: string | null;
+  pinned: boolean;
+  result: LinkLevel | null;
+}
+
 export interface FlowLabel {
   id: string | null;
   text: string | null;
@@ -1277,6 +1304,12 @@ export const api = {
   listApps: (target: Target) => invoke<App[]>("list_apps", { target }),
   screenshot: (target: Target) => invoke<string>("screenshot", { target }),
   savePng: (name: string, data: string) => invoke<string | null>("save_png", { name, data }),
+  linkHistory: () => invoke<LinkHistoryEntry[]>("link_history"),
+  linkOpen: (target: Target, url: string, appId: string | null) => invoke<void>("link_open", { target, url, app: appId }),
+  linkCheck: (target: Target, url: string, appId: string | null) => invoke<LinkReport>("link_check", { target, url, app: appId }),
+  linkVerify: (target: Target, appId: string) => invoke<void>("link_verify", { target, app: appId }),
+  linkPin: (url: string, pinned: boolean) => invoke<LinkHistoryEntry[]>("link_pin", { url, pinned }),
+  linkForget: (url: string) => invoke<LinkHistoryEntry[]>("link_forget", { url }),
   flowList: () => invoke<FlowEntry[]>("flow_list"),
   flowGet: (id: string) => invoke<FlowDoc>("flow_get", { id }),
   flowSave: (flow: FlowDoc) => invoke<string>("flow_save", { flow }),

@@ -10,6 +10,7 @@ mod edit;
 mod files;
 mod frameworks;
 mod layout;
+mod links;
 mod network;
 mod plugins;
 mod profiling;
@@ -96,6 +97,12 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            links::link_history,
+            links::link_open,
+            links::link_check,
+            links::link_verify,
+            links::link_pin,
+            links::link_forget,
             automation::flow_list,
             automation::flow_get,
             automation::flow_save,
