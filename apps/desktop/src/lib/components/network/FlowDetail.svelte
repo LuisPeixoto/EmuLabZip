@@ -7,7 +7,7 @@
   import BodyViewer from "./BodyViewer.svelte";
   import Messages from "./Messages.svelte";
 
-  type Tab = "headers" | "request" | "response" | "messages" | "timing";
+  type Tab = "headers" | "request" | "response" | "messages" | "timing" | "contract";
   let tab = $state<Tab>("headers");
 
   const d = $derived(net.detail);
@@ -30,6 +30,7 @@
       name: `Mock ${flow.method} ${path}`,
       enabled: true,
       matcher: { methods: [flow.method], host: flow.host, path, urlContains: null },
+      thenContinue: false,
       action: {
         type: "mock",
         status: flow.status ?? 200,
@@ -47,6 +48,9 @@
     ...(flow?.kind === "webSocket" ? [{ id: "messages" as Tab, label: "Messages", note: String(flow.messages.length + flow.messagesDropped) }] : []),
     { id: "request", label: "Request", note: d?.request ? bytes(d.request.size) : undefined },
     { id: "response", label: "Response", note: d?.response ? bytes(d.response.size) : undefined },
+    ...(flow?.validation
+      ? [{ id: "contract" as Tab, label: "Contract", note: flow.validation.outcome === "violations" ? String(flow.validation.violations.length) : undefined }]
+      : []),
     { id: "timing", label: "Timing" },
   ]);
 
@@ -106,6 +110,18 @@
       </p>
     {/if}
 
+    {#if flow.mappedTo}
+      <p class="mx-4 mb-1 flex items-start gap-2 rounded-lg border border-line bg-accent-soft px-3 py-2 text-base">
+        <Icon name="route" size={14} class="mt-px shrink-0 text-accent" />
+        <span class="min-w-0 break-all">{flow.mocked ? "Answered with the file" : "Sent to"} <span class="mono">{flow.mappedTo}</span>{flow.mocked ? "" : " instead of what the app asked"}</span>
+      </p>
+    {/if}
+    {#if flow.scriptNotes?.length}
+      <ul class="mx-4 mb-1 space-y-0.5 rounded-lg border border-line bg-panel px-3 py-2 text-base text-muted">
+        {#each flow.scriptNotes as n, i (i)}<li class="mono text-sm break-words">{n}</li>{/each}
+      </ul>
+    {/if}
+
     {#if tunnel}
       <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-md text-muted">
         <p>This connection was passed through without being decoded, so its contents are not available.</p>
@@ -129,6 +145,26 @@
           {@render headers(flow.requestHeaders, "Request")}
           {@render headers(flow.responseHeaders, "Response")}
           {#if flow.responseTrailers?.length}{@render headers(flow.responseTrailers, "Trailers")}{/if}
+        {:else if tab === "contract" && flow.validation}
+          {@const v = flow.validation}
+          <div class="selectable space-y-3 px-4 py-4">
+            <p class="flex items-center gap-2 text-lg font-semibold {v.outcome === 'ok' ? 'text-ok' : v.outcome === 'violations' ? 'text-err' : 'text-muted'}">
+              <Icon name={v.outcome === "ok" ? "check" : v.outcome === "violations" ? "x" : "info"} size={16} />
+              {v.outcome === "ok" ? "Matches the spec" : v.outcome === "violations" ? `${v.violations.length} ${v.violations.length === 1 ? "thing does" : "things do"} not match the spec` : v.outcome === "unknown" ? "The spec does not describe this request" : "Not checked"}
+            </p>
+            <p class="mono text-sm text-faint">{v.spec}{v.operation ? ` · ${v.operation}` : ""}</p>
+            {#if v.note}<p class="text-md text-muted">{v.note}</p>{/if}
+            {#if v.violations.length}
+              <ul class="divide-y divide-line rounded-xl border border-line">
+                {#each v.violations as x, i (i)}
+                  <li class="px-3 py-2">
+                    <p class="mono text-sm font-medium">{x.pointer || "the response"}</p>
+                    <p class="text-base text-muted">{x.message}</p>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
         {:else if tab === "messages"}
           <Messages messages={flow.messages} dropped={flow.messagesDropped} />
         {:else if tab === "request"}

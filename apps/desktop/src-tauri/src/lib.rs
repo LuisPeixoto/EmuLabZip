@@ -16,6 +16,7 @@ mod plugins;
 mod profiling;
 mod quality;
 mod report;
+mod scripts;
 mod sessions;
 mod state;
 mod states;
@@ -97,6 +98,10 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            scripts::rule_pick_file,
+            scripts::rule_pick_folder,
+            scripts::script_info,
+            scripts::script_approve,
             links::link_history,
             links::link_open,
             links::link_check,

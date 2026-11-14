@@ -378,6 +378,7 @@
                 <span class="w-[210px] shrink-0 truncate" title="{f.host}:{f.port}">{f.host}</span>
                 <span class="min-w-0 flex-1 truncate text-muted" title={f.path}>
                   {#if f.operation}<span class="font-semibold text-fg">{f.operation}</span>{" "}{/if}{f.path}
+                  {#if f.contract === "violations"}<span class="ml-1.5 rounded bg-err/12 px-1 py-px text-tiny font-semibold text-err" title="The response does not match the OpenAPI file">{f.violations} {f.violations === 1 ? "violation" : "violations"}</span>{:else if f.contract === "ok"}<span class="ml-1.5 rounded bg-ok/12 px-1 py-px text-tiny font-semibold text-ok" title="The response matches the OpenAPI file">contract ✓</span>{/if}
                   {#if f.grpcStatus != null}<span class="ml-1.5 rounded px-1 py-px text-tiny font-semibold {f.grpcStatus === 0 ? 'bg-ok/12 text-ok' : 'bg-err/12 text-err'}">{grpcNames[f.grpcStatus] ?? `grpc ${f.grpcStatus}`}</span>{/if}
                 </span>
                 <span class="w-[34px] shrink-0 text-faint {protocol(f) === 'h3' ? 'font-semibold text-accent' : ''}">{protocol(f)}</span>

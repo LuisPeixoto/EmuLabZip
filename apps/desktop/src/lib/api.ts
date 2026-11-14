@@ -589,6 +589,10 @@ export interface FlowSummary {
   operation: string | null;
   /** The gRPC status code of a call that ended: 0 is OK. */
   grpcStatus: number | null;
+  /** `ok`, `violations`, `unknown` or `unchecked`, when a rule checked the response against an OpenAPI file. */
+  contract: string | null;
+  /** How many things were wrong with it. */
+  violations: number;
 }
 
 export interface NetBatch {
@@ -702,6 +706,11 @@ export interface Flow extends Omit<FlowSummary, "contentType" | "durationMs" | "
   requestTruncated: boolean;
   responseTruncated: boolean;
   timing: { ttfbMs: number | null; totalMs: number | null };
+  /** Where a rule sent the request instead, or the file it answered with. */
+  mappedTo: string | null;
+  validation: Validation | null;
+  /** What rule scripts said about this request, or why one did not run. */
+  scriptNotes: string[];
 }
 
 export interface FlowDetail {
@@ -876,7 +885,33 @@ export type RuleAction =
   | { type: "mock"; status: number; headers: [string, string][]; body: string; base64: boolean; delayMs: number }
   | { type: "delay"; ms: number }
   | { type: "block" }
-  | { type: "breakpoint"; request: boolean; response: boolean };
+  | { type: "breakpoint"; request: boolean; response: boolean }
+  | { type: "mapLocal"; path: string; contentType: string | null; status: number | null }
+  | { type: "mapRemote"; scheme: string | null; host: string | null; port: number | null; pathPrefix: string | null; preserveHost: boolean }
+  | { type: "validate"; spec: string }
+  | { type: "script"; path: string };
+
+export interface ScriptInfo {
+  name: string;
+  sha256: string;
+  onRequest: boolean;
+  onResponse: boolean;
+  approved: boolean;
+}
+
+export interface Violation {
+  pointer: string;
+  message: string;
+}
+
+export interface Validation {
+  spec: string;
+  operation: string | null;
+  /** `ok`, `violations`, `unknown` or `unchecked`. */
+  outcome: string;
+  violations: Violation[];
+  note: string | null;
+}
 
 export interface Rule {
   id: number;
@@ -884,6 +919,8 @@ export interface Rule {
   enabled: boolean;
   matcher: RuleMatcher;
   action: RuleAction;
+  /** After this rule, keep looking at the rules below it. */
+  thenContinue: boolean;
 }
 
 export interface Paused {
@@ -1336,6 +1373,10 @@ export const api = {
   webviewEval: (target: Target, socket: string, page: string, expression: string) => invoke<Evaluated>("webview_eval", { target, socket, page, expression }),
   webviewReload: (target: Target, socket: string, page: string) => invoke<void>("webview_reload", { target, socket, page }),
   openSafari: () => invoke<void>("open_safari"),
+  rulePickFile: (kind: "openapi" | "script" | "file") => invoke<string | null>("rule_pick_file", { kind }),
+  rulePickFolder: () => invoke<string | null>("rule_pick_folder"),
+  scriptInfo: (path: string) => invoke<ScriptInfo>("script_info", { path }),
+  scriptApprove: (path: string) => invoke<ScriptInfo>("script_approve", { path }),
   themeImport: () => invoke<string | null>("theme_import"),
   themeExport: (name: string, json: string) => invoke<string | null>("theme_export", { name, json }),
   saveText: (name: string, contents: string) => invoke<string | null>("save_text", { name, contents }),
