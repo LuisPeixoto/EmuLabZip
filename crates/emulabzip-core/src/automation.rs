@@ -536,15 +536,15 @@ pub async fn record(
     name: &str,
     app: Option<&str>,
     launch: bool,
-    stop: impl Future<Output = ()>,
-    mut progress: impl FnMut(&Step),
+    stop: impl Future<Output = ()> + Send,
+    mut progress: impl FnMut(&Step) + Send,
 ) -> Result<Flow> {
     let first = lab.layout(target).await.ok();
     let screen = first.as_ref().map(|l| (l.screen.width.max(0) as u32, l.screen.height.max(0) as u32));
     let mut tree: Option<UiNode> = first.map(|l| l.root);
     let mut input = lab.input(target).await?;
     let mut recorder = Recorder::new(name, app, screen, launch);
-    type Reading<'a> = Pin<Box<dyn Future<Output = Result<LayoutSnapshot>> + 'a>>;
+    type Reading<'a> = Pin<Box<dyn Future<Output = Result<LayoutSnapshot>> + Send + 'a>>;
     let mut reading: Option<Reading<'_>> = None;
     tokio::pin!(stop);
     loop {
@@ -581,8 +581,8 @@ pub async fn play(
     lab: &Lab,
     target: &Target,
     flow: &Flow,
-    stop: impl Future<Output = ()>,
-    mut progress: impl FnMut(usize, &Step),
+    stop: impl Future<Output = ()> + Send,
+    mut progress: impl FnMut(usize, &Step) + Send,
 ) -> Result<()> {
     flow.validate()?;
     let scale = match (flow.width, flow.height) {

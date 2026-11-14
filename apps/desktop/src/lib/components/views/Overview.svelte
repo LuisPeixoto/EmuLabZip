@@ -5,12 +5,46 @@
   import { app } from "../../stores/app.svelte";
   import Icon from "../Icon.svelte";
   import PlatformIcon from "../PlatformIcon.svelte";
+  import { gesture, toDevice } from "../../screen";
 
   let sections = $state<InfoSection[] | null>(null);
   let error = $state<string | null>(null);
   let screen = $state<string | null>(null);
   let screenBusy = $state(false);
   let copied = $state<string | null>(null);
+
+  // Touching the picture of the screen touches the device (Android): a click is a tap, a drag is a swipe.
+  let interact = $state(false);
+  let picture: HTMLImageElement | undefined = $state();
+  let press: { x: number; y: number; at: number } | null = null;
+  const android = $derived(app.device?.platform === "android");
+
+  function where(e: PointerEvent) {
+    if (!picture) return null;
+    return toDevice({ x: e.clientX, y: e.clientY }, picture.getBoundingClientRect(), 5, { width: picture.naturalWidth, height: picture.naturalHeight });
+  }
+
+  function pressed(e: PointerEvent) {
+    const p = interact ? where(e) : null;
+    if (!p) return;
+    press = { ...p, at: performance.now() };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  }
+
+  async function released(e: PointerEvent) {
+    const from = press;
+    press = null;
+    const target = app.target;
+    if (!from || !target) return;
+    const g = gesture(from, where(e) ?? from, performance.now() - from.at);
+    try {
+      await api.controlApply(target, g.kind === "tap" ? { action: "tap", x: g.x, y: g.y } : { action: "swipe", x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2, durationMs: g.ms });
+    } catch (err) {
+      app.toast(errorText(err), "err");
+    }
+    // The screen takes a moment to react.
+    setTimeout(refreshScreen, 700);
+  }
 
   const sectionIcon: Record<string, string> = {
     Device: "smartphone",
@@ -139,12 +173,30 @@
         <aside class="flex flex-col items-center gap-3 self-start rounded-2xl border border-line bg-panel p-4 lg:sticky lg:top-0">
           <div class="flex w-full items-center justify-between">
             <h2 class="text-md font-semibold">Screen</h2>
+            <span class="flex-1"></span>
+            {#if android}
+              <button
+                onclick={() => (interact = !interact)}
+                aria-pressed={interact}
+                title="Click the picture to tap, drag to swipe"
+                class="mr-1 h-7 rounded-lg border px-2 text-sm {interact ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line text-muted hover:bg-hover hover:text-fg'}"
+              >Interact</button>
+            {/if}
             <button onclick={refreshScreen} title="Refresh" class="grid size-7 place-items-center rounded-lg text-faint hover:bg-hover hover:text-fg">
               <Icon name="refresh" size={13} class={screenBusy ? "animate-spin" : ""} />
             </button>
           </div>
           {#if screen}
-            <img src="data:image/png;base64,{screen}" alt="Device screen" class="w-full rounded-[18px] border-[5px] border-[#11141b] shadow-xl" />
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <img
+              bind:this={picture}
+              src="data:image/png;base64,{screen}"
+              alt="Device screen"
+              draggable="false"
+              onpointerdown={pressed}
+              onpointerup={released}
+              class="w-full touch-none rounded-[18px] border-[5px] border-[#11141b] shadow-xl select-none {interact ? 'cursor-crosshair ring-2 ring-accent' : ''}"
+            />
           {:else}
             <div class="skeleton aspect-[9/19.5] w-full rounded-[18px]"></div>
           {/if}

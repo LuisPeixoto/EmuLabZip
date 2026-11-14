@@ -60,6 +60,7 @@
       items: [
         { view: "devices", icon: "smartphone", label: "Devices" },
         { view: "controls", icon: "sliders", label: "Controls" },
+        { view: "automation", icon: "play", label: "Automation" },
         { view: "plugins", icon: "zap", label: "Plugins" },
       ],
     },
