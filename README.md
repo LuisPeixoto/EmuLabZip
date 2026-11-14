@@ -34,6 +34,9 @@
   <a href="docs/sessions.md">Sessions</a> ·
   <a href="docs/mcp.md">MCP</a> ·
   <a href="docs/cli.md">CLI</a> ·
+  <a href="docs/webviews.md">WebViews</a> ·
+  <a href="docs/automation.md">Automation</a> ·
+  <a href="docs/deep-links.md">Deep links</a> ·
   <a href="docs/themes.md">Themes</a> ·
   <a href="docs/customizing.md">Customizing</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
@@ -75,6 +78,10 @@ request, record a whole run and compare two devices. It ships as a native deskto
   changed; [make, start, stop, wipe and snapshot](docs/devices.md) emulators and simulators; [edit rows and
   preferences](docs/storage-editing.md) with a confirmation and Undo; read DataStore, MMKV, AsyncStorage, Core Data and
   Realm files; and read [Redux, React Query and context state](docs/react-native-state.md) from a React Native app.
+- **Hybrid apps and automation.** Inspect an app's [WebViews](docs/webviews.md) (console, JavaScript, requests) and open
+  Safari's Web Inspector on iOS; [touch, type and record a flow](docs/automation.md) on Android and export it to Maestro;
+  [check a deep link](docs/deep-links.md) against the domain's files and the device; and [map requests to files or other
+  servers, check responses against OpenAPI and run sandboxed WebAssembly scripts](docs/network-rules.md).
 - **Yours to arrange.** Ten [themes](docs/themes.md) and a theme editor, imports and a community gallery; panes that
   [resize](docs/customizing.md), a sidebar you can collapse and reorder, and text size, density and scale you set.
 - **Quality beyond speed.** A [security and privacy audit](docs/security-audit.md), a [build size](docs/package-size.md)
@@ -185,6 +192,18 @@ request, record a whole run and compare two devices. It ships as a native deskto
   <tr>
     <td width="50%"><img src="docs/images/theme-gallery.png" alt="The Gallery tab with four community themes" /><br /><sub><b>Gallery</b>: themes from the community, and a button to share yours.</sub></td>
     <td width="50%"><img src="docs/images/layout-custom.png" alt="The Logs view with a collapsed sidebar and a resized detail pane" /><br /><sub><b>Your layout</b>: resize panes, collapse the sidebar.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/webview-console.png" alt="The Web pages panel with the console of a WebView" /><br /><sub><b>WebViews</b>: the console, the errors and JavaScript of a page inside an app.</sub></td>
+    <td width="50%"><img src="docs/images/webview-network.png" alt="A WebView's requests in the Network view, marked WEBVIEW" /><br /><sub><b>Page requests</b>: seen by the page itself, with no proxy and no certificate.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/automation.png" alt="The Automation view with a recorded flow" /><br /><sub><b>Flows</b>: record touches, play them again, export to Maestro.</sub></td>
+    <td width="50%"><img src="docs/images/deep-links.png" alt="A deep link check where every step passed" /><br /><sub><b>Deep links</b>: the domain's file, the app's key and what the device decided.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/network-contract.png" alt="A request with two violations of its OpenAPI file" /><br /><sub><b>Contract</b>: responses checked against an OpenAPI file.</sub></td>
+    <td width="50%"><img src="docs/images/rules-script.png" alt="The Rules dialog with a script rule" /><br /><sub><b>Rule scripts</b>: sandboxed WebAssembly, approved by you.</sub></td>
   </tr>
 </table>
 
@@ -370,6 +389,11 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [React Native state](docs/react-native-state.md) | Redux, React Query, context and registered stores, and a Redux action log |
 | [Replaying a recording](docs/replay.md) | Answer an app's requests from a session or a HAR file, offline and the same every time |
 | [Mocks and breakpoints](docs/mocks.md) | Rules that answer, delay, block or hold requests |
+| [Network rules](docs/network-rules.md) | Map to a file or another server, check against OpenAPI, chain rules |
+| [Rule scripts](docs/rule-scripts.md) | WebAssembly scripts that change requests and responses, with approvals |
+| [Web pages in apps](docs/webviews.md) | WebView console, JavaScript and requests, and Safari's Web Inspector |
+| [Input and flows](docs/automation.md) | Touch, type, record a flow, export to Maestro |
+| [Deep links](docs/deep-links.md) | Open a link and check the domain files, the app and the device |
 | [WebSocket messages](docs/websockets.md) | Reading frames, compression, limits |
 | [Packet captures](docs/pcap.md) | Importing `.pcap` and `.pcapng`, capturing with `emulator -tcpdump` |
 | [Layout and accessibility](docs/layout.md) | The view tree, the audit and what it checks |

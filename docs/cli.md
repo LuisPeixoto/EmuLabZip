@@ -125,7 +125,7 @@ device is put back when it stops, also after an error. See [Network](network.md)
 | `--no-connect` | Only run the proxy; do not change any device. |
 | `--har <file>` | Save the requests as a HAR file when stopping. |
 | `--json` | One JSON object per request. |
-| `--rules <file>` | Mock, delay or block requests with the rules in a JSON file. See [Mocks and breakpoints](mocks.md). |
+| `--rules <file>` | Mock, delay, block, map to a file or another server, check against OpenAPI or script requests with the rules in a JSON file. See [Mocks and breakpoints](mocks.md) and [Network rules](network-rules.md). |
 | `--http3` | Talk HTTP/3 to servers that offer it. `--show-h3` also shows apps the offers. |
 | `--conditions <preset>` | Slow the network: `fast-3g`, `slow-3g`, `slow-wifi`, `high-latency`, `packet-loss` or `offline`. See [Network conditions](network-conditions.md). |
 | `--down <kbps>`, `--up <kbps>`, `--latency <ms>`, `--loss <percent>` | Numbers of your own, or changes to a preset. |
@@ -268,6 +268,54 @@ Changes the device. See [Controls](controls.md).
 | `control permission <app> <permission> grant\|revoke\|reset` | An Android permission name, or an iOS service such as `photos`. |
 | `control notify [<app>] [--title …] [--body …] [--payload <file>]` | A notification (Android) or a simulated push (iOS). |
 | `control open <url>` | Opens a link on the device. |
+| `control tap <x> <y>` / `control swipe <x1> <y1> <x2> <y2> [--ms n]` | A touch or a drag, in pixels (Android). See [Input and flows](automation.md). |
+| `control text <text>` / `control key <name>` | Types printable ASCII, or presses a key (Android). |
+| `control launch <app>` | Starts an app. |
+
+### `emulabzip webview`
+
+The pages inside an app's WebView, or in Chrome, on an Android device. See [Web pages in apps](webviews.md).
+
+| Command | What it does |
+|---------|--------------|
+| `webview list [--json]` | The sockets that can be inspected, and their pages. |
+| `webview console [--seconds n]` | What a page writes to its console, and the errors it does not catch. |
+| `webview eval <expression>` | Runs JavaScript in a page and prints the value. Fails when the script throws. |
+| `webview network [--seconds n] [--reload] [--har <file>]` | The requests the page makes, as the browser sees them. |
+
+Each takes `--app <package>`, `--socket <name>` and `--page <id or part of its address>` to say which page, and `--json`.
+
+### `emulabzip flow`
+
+Records touches into a flow, plays it, and exports it. See [Input and flows](automation.md).
+
+| Command | What it does |
+|---------|--------------|
+| `flow record --name <name> [--app <app>] [--no-launch] [--seconds n] [--out <file>]` | Records the touches on the device until <kbd>Ctrl+C</kbd>. |
+| `flow list`, `flow show <flow> [--json]`, `flow remove <flow>` | The saved flows, the steps of one, and deleting one. A flow is its id or a `.json` file. |
+| `flow play <flow>` | Plays it on the device, scaled to its screen. |
+| `flow export <flow> --maestro\|--script [--out <file>]` | A Maestro flow, or a shell script of `emulabzip control` commands. |
+
+### `emulabzip link`
+
+Opens a deep link and checks that the domain and the app agree about it. See [Deep links](deep-links.md).
+
+| Command | What it does |
+|---------|--------------|
+| `link open <url> [--app <app>]` | Opens it on the device and keeps it in the history. |
+| `link check <url> [--app <app>] [--json]` | Reads the domain's `assetlinks.json` or `apple-app-site-association`, asks the device, and lists findings with their fix. Exits with an error when one is a problem. |
+| `link verify <app>` | Asks Android to verify the app's domains again. |
+| `link history [--json]` | The links opened and checked before. |
+
+### `emulabzip openapi check`
+
+`openapi check --spec <file> --har <file> [--json]` checks every response in a HAR file against an OpenAPI 3 description, and
+exits with an error when one does not match. See [Network rules](network-rules.md#contract).
+
+### `emulabzip script`
+
+Approves the WebAssembly scripts that rules run. `script show <file>`, `script approve <file>`, `script revoke <file or hash>`
+and `script list`. See [Rule scripts](rule-scripts.md).
 
 ### `emulabzip plugin`
 

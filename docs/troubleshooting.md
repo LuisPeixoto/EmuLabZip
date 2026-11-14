@@ -268,6 +268,32 @@ and simulators of other kinds are not supported for location on Android.
 Notifications are posted from the shell with `cmd notification post` (tried on Android 14). Turn on
 notifications for "Android Shell" if the device hides them. The app argument is ignored on Android.
 
+## Web pages: my WebView is not listed
+
+A WebView is listed only when its app calls `WebView.setWebContentsDebuggingEnabled(true)` (a debug build usually does) and
+the page is open. Chrome is listed while it is open. The list is read when you open **Frameworks** and when you press
+**Refresh**. On iOS use Safari's Develop menu; see [Web pages in apps](webviews.md).
+
+## Flows: my touches are not recorded
+
+Only the touchscreen is read: touch the emulator's own window. Taps sent from EmuLabZip (**Interact**, **Play**) or by
+`adb shell input` never reach it, and typed text is not recorded. A tap gets the name of the view it hit only when the screen
+was read in time, which takes two or three seconds after the touch before; the point is kept either way. See
+[Input and flows](automation.md).
+
+## Deep links: the check says the domain is not verified
+
+On Android, ask the device to try again with **Verify again** or `emulabzip link verify <app>`, then check after a few
+seconds. A fingerprint mismatch usually means the file lists the release key and the build on the device is signed with the
+debug key. A domain file that redirects (to `www`, or from http to https) is refused by both systems. See
+[Deep links](deep-links.md).
+
+## Network: a script rule does nothing
+
+A script runs only after its exact bytes were approved (**Approve this script** in the rule, or `emulabzip script approve`).
+Change the file and it has to be approved again. If a script runs but the request is unchanged, the flow's details say what
+the script wrote or why it failed. See [Rule scripts](rule-scripts.md).
+
 ## Plugins: a plugin cannot be run
 
 It has to be enabled first, and editing its `plugin.json` disables it again. A plugin that exits with an error shows the

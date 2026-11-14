@@ -25,6 +25,9 @@
     fail: { icon: "x", tone: "text-err", label: "Problem" },
   };
 
+  /** Notes are not problems: a check that found only notes looks right. */
+  const verdict = (worst: LinkLevel): LinkLevel => (worst === "info" ? "pass" : worst);
+
   async function run(kind: "open" | "check") {
     const target = app.target;
     const link = url.trim();
@@ -107,7 +110,7 @@
     {#if report}
       <section class="rounded-2xl border border-line bg-panel">
         <header class="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
-          <Icon name={mark[report.worst].icon} size={15} class={mark[report.worst].tone} />
+          <Icon name={mark[verdict(report.worst)].icon} size={15} class={mark[verdict(report.worst)].tone} />
           <h2 class="text-lg font-semibold">{report.worst === "fail" ? "Something is wrong" : report.worst === "warn" ? "Works, with warnings" : "Looks right"}</h2>
           <span class="mono min-w-0 flex-1 truncate text-xs text-faint">{report.fileUrl ?? report.url}</span>
           {#if android && appId && report.domains.length}

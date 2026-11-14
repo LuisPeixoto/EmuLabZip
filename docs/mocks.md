@@ -24,6 +24,10 @@ Every field that is set has to match.
 | **Block** | The app gets a gateway error, as if the network had failed. Nothing reaches the server. |
 | **Hold** (`breakpoint`) | The request, the response, or both, stop and wait for you. |
 
+Four more actions send a request to a file or to another server, check the response against an OpenAPI file, or run a
+WebAssembly script, and a rule can let the ones below it apply too: see [Network rules](network-rules.md) and
+[Rule scripts](rule-scripts.md).
+
 Flows that a rule touched show a **MOCK** or **RULE** badge in the list and in the details.
 
 A rule is for one thing you chose. To answer *everything* from a recording, see [Replaying a recording](replay.md). A rule

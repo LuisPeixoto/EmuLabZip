@@ -6,6 +6,39 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-14
+
+Phase 13: automation and hybrid apps.
+
+### Added
+
+- **WebViews.** `emulabzip webview list|console|eval|network`, the **Web pages** panel in Frameworks and the `webview_list` and
+  `webview_console` MCP tools read a debuggable Android WebView, or Chrome, through the Chrome DevTools Protocol: pages, a live
+  console with uncaught errors, JavaScript, and the page's requests in the Network view (marked WEBVIEW) and in a HAR file. On
+  iOS a panel guides you to Safari's Web Inspector. See [Web pages in apps](docs/webviews.md).
+- **Input.** `control tap|swipe|text|key|launch` in the command line, the app (a touchable screen under **Interact**, a keys
+  card) and MCP (`tap`, `swipe`, `input_text`, `press_key`, `launch_app`). Android only; launching also works on iOS.
+- **Flows.** `emulabzip flow record|list|show|play|export|remove` and the **Automation** view record touches from the
+  touchscreen, play them scaled to the screen, and export them as a Maestro flow or a shell script. A tap remembers the id or
+  text of the view it hit when the screen was read in time. `list_flows` and `play_flow` are MCP tools. See
+  [Input and flows](docs/automation.md).
+- **Deep links.** `emulabzip link open|check|verify|history`, the **Deep links** view and `check_link` check a link against the
+  domain's `assetlinks.json` or `apple-app-site-association`, the app's signing key, team id and entitlement, what the device
+  decided (`pm get-app-links`) and who opens it, with what to fix, and keep a history with pins. See
+  [Deep links](docs/deep-links.md).
+- **Network rules.** New rule actions **File** (map local, never outside its folder), **Server** (map remote), **Contract** (check
+  responses against an OpenAPI 3 file, with a Contract tab and a badge in the list) and **Script** (sandboxed WebAssembly with
+  fuel and memory limits, run only after its exact bytes are approved), and rules that can let the ones below them apply
+  (`thenContinue`). `emulabzip openapi check` checks a HAR file, and `emulabzip script` approves scripts. Three example scripts
+  are in `tools/rule-scripts`. See [Network rules](docs/network-rules.md) and [Rule scripts](docs/rule-scripts.md).
+- The Compose demo has a WebView screen and app links, and the website serves the `assetlinks.json` and
+  `apple-app-site-association` they use.
+
+### Fixed
+
+- The HTTP reader used for DevTools endpoints stops at the length the server says, so Chrome's DevTools server, which keeps
+  the connection open, answers at once.
+
 ## [0.12.1] - 2026-11-08
 
 A new look, and a layout that is yours to arrange.
