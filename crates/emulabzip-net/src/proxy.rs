@@ -257,7 +257,7 @@ impl Proxy {
     }
 }
 
-fn client_tls_config(extra_pem: &[String]) -> Result<rustls::ClientConfig> {
+pub(crate) fn client_tls_config(extra_pem: &[String]) -> Result<rustls::ClientConfig> {
     let mut roots = rustls::RootCertStore::empty();
     roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     for cert in rustls_native_certs::load_native_certs().certs {

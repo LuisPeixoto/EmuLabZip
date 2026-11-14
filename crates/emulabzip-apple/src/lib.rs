@@ -19,6 +19,7 @@ pub mod info;
 pub mod layout;
 pub mod leaks;
 pub mod lifecycle;
+pub mod links;
 pub mod memory;
 pub mod network;
 pub mod oslog;

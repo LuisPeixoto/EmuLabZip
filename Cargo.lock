@@ -1320,6 +1320,7 @@ dependencies = [
  "emulabzip-core",
  "emulabzip-frameworks",
  "emulabzip-heap",
+ "emulabzip-net",
  "emulabzip-plugin",
  "emulabzip-report",
  "emulabzip-session",

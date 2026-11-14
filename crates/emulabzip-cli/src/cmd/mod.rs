@@ -15,6 +15,7 @@ pub mod i18n;
 pub mod info;
 pub mod layout;
 pub mod lifecycle;
+pub mod link;
 pub mod logs;
 pub mod mem;
 pub mod net;

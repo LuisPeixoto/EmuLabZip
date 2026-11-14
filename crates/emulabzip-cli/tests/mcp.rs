@@ -42,6 +42,7 @@ fn lists_every_tool_with_a_description_and_a_schema() {
         "control_permission",
         "control_notification",
         "open_url",
+        "check_link",
         "launch_app",
         "list_flows",
         "play_flow",
