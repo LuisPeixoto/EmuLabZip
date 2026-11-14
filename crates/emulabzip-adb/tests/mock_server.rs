@@ -47,6 +47,10 @@ async fn serve(listener: TcpListener) {
                         s.write_all(b"hello from the device").await.unwrap();
                         return;
                     }
+                    if service == "localabstract:chrome_devtools_remote" {
+                        s.write_all(b"hello from a socket").await.unwrap();
+                        return;
+                    }
                     if service == "root:" {
                         s.write_all(b"adbd cannot run as root in production builds\n").await.unwrap();
                         return;
@@ -146,4 +150,13 @@ async fn connects_to_a_device_port_without_forwarding() {
     let mut got = String::new();
     s.read_to_string(&mut got).await.unwrap();
     assert_eq!(got, "hello from the device");
+}
+
+#[tokio::test]
+async fn connects_to_an_abstract_socket_without_forwarding() {
+    let c = client().await;
+    let mut s = c.connect_local("emulator-5554", "chrome_devtools_remote").await.unwrap();
+    let mut got = String::new();
+    s.read_to_string(&mut got).await.unwrap();
+    assert_eq!(got, "hello from a socket");
 }

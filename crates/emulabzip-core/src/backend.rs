@@ -34,6 +34,13 @@ pub type DeviceStream = Box<dyn DeviceIo>;
 pub const MAX_NEEDLE: usize = 80;
 
 /// Whether `needle` is safe to put in a log search: short, and plain characters.
+/// An abstract unix socket name as the device lists it, without the leading `@`.
+pub fn is_socket_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 100
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-'))
+}
+
 pub fn is_log_needle(needle: &str) -> bool {
     !needle.is_empty()
         && needle.len() <= MAX_NEEDLE
@@ -122,6 +129,11 @@ pub trait Backend: Send + Sync {
     /// Opens a connection to a TCP port the device is listening on (the app's debugger, for example).
     async fn connect_port(&self, _id: &str, _port: u16) -> Result<DeviceStream> {
         Err(Error::Unsupported("Connecting to a device port"))
+    }
+
+    /// Opens a connection to an abstract unix socket the device is listening on (a WebView's DevTools, for example).
+    async fn connect_socket(&self, _id: &str, _name: &str) -> Result<DeviceStream> {
+        Err(Error::Unsupported("Connecting to a device socket"))
     }
 
     /// Starts counting the energy `app` uses. It is paired with [`Backend::energy_end`].
@@ -459,6 +471,14 @@ impl Lab {
             return Err(Error::invalid("port", "0"));
         }
         self.backend(target.platform)?.connect_port(&target.id, port).await
+    }
+
+    /// `name` is an abstract socket name without the leading `@`: letters, digits, `_`, `.` and `-`.
+    pub async fn connect_socket(&self, target: &Target, name: &str) -> Result<DeviceStream> {
+        if !is_socket_name(name) {
+            return Err(Error::invalid("socket", name));
+        }
+        self.backend(target.platform)?.connect_socket(&target.id, name).await
     }
 
     pub async fn energy_begin(&self, target: &Target, app: &str) -> Result<()> {
@@ -825,6 +845,9 @@ mod tests {
         assert!(matches!(lab.recent_logs(&t, "Dart VM service").await.unwrap_err(), Error::Unsupported(_)));
         assert!(matches!(lab.connect_port(&t, 0).await.err().unwrap(), Error::Invalid { .. }));
         assert!(matches!(lab.connect_port(&t, 8080).await.err().unwrap(), Error::Unsupported(_)));
+        assert!(matches!(lab.connect_socket(&t, "a b").await.err().unwrap(), Error::Invalid { .. }));
+        assert!(matches!(lab.connect_socket(&t, "@x").await.err().unwrap(), Error::Invalid { .. }));
+        assert!(matches!(lab.connect_socket(&t, "chrome_devtools_remote").await.err().unwrap(), Error::Unsupported(_)));
     }
 
     #[tokio::test]
