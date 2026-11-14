@@ -5,7 +5,9 @@ use crate::server::*;
 #[tool_router(router = automation_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
-        description = "List the plugins installed on this computer: programs that collect their own data from a device. Only enabled plugins can be run."
+        description = "List the plugins installed on this computer: programs that collect their own data from a device. Only enabled plugins can be run.",
+        title = "List plugins",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn list_plugins(&self) -> CallToolResult {
         let (plugins, problems) = plugin::discover();
@@ -19,14 +21,23 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Run an enabled plugin on a device and return what it reported: metrics, tables, text and log lines. Plugins that the user has not enabled are refused."
+        description = "Run an enabled plugin on a device and return what it reported: metrics, tables, text and log lines. Plugins that the user has not enabled are refused.",
+        title = "Run a plugin",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn run_plugin(&self, Parameters(a): Parameters<args::RunPlugin>) -> CallToolResult {
         reply(self.run_plugin_inner(a).await)
     }
 
     #[tool(
-        description = "Check a deep link: whether the domain's assetlinks.json (Android) or apple-app-site-association (iOS) lists the app, whether the app's signing key or team id matches, what the device decided about the domain, and which app opens the link. Returns findings with what to fix. Reads one file from the link's own domain over https."
+        description = "Check a deep link: whether the domain's assetlinks.json (Android) or apple-app-site-association (iOS) lists the app, whether the app's signing key or team id matches, what the device decided about the domain, and which app opens the link. Returns findings with what to fix. Reads one file from the link's own domain over https.",
+        title = "Check a deep link",
+        annotations(read_only_hint = true, open_world_hint = true)
     )]
     async fn check_link(&self, Parameters(a): Parameters<args::CheckLink>) -> CallToolResult {
         reply(
@@ -43,14 +54,23 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "The saved flows: runs of touches, text and key presses recorded from a device (emulabzip flow record, or the Automation view), by id with their app and number of steps."
+        description = "The saved flows: runs of touches, text and key presses recorded from a device (emulabzip flow record, or the Automation view), by id with their app and number of steps.",
+        title = "List saved flows",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn list_flows(&self) -> CallToolResult {
         reply(json(&emulabzip_core::automation::list()))
     }
 
     #[tool(
-        description = "Play a saved flow on an Android device: the taps, swipes, text and key presses that were recorded, scaled to this screen. Flows that would take longer than two minutes are refused here; play them from the command line."
+        description = "Play a saved flow on an Android device: the taps, swipes, text and key presses that were recorded, scaled to this screen. Flows that would take longer than two minutes are refused here; play them from the command line.",
+        title = "Play a saved flow",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn play_flow(&self, Parameters(a): Parameters<args::PlayFlow>) -> CallToolResult {
         reply(

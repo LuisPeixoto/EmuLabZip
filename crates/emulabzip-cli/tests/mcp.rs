@@ -88,6 +88,42 @@ fn lists_every_tool_with_a_description_and_a_schema() {
     assert!(logs["inputSchema"]["properties"]["grep"]["description"].as_str().unwrap().contains("case-insensitive"));
 }
 
+/// A client decides what to ask the person before a tool runs from its annotations, so every tool must say what it does to
+/// the world, and nothing that changes it may claim to be harmless, or be destructive without being gated.
+#[test]
+fn every_tool_has_a_title_and_says_what_it_does_to_the_world() {
+    let mut s = Server::start_session();
+    let tools = s.call(2, "tools/list", json!({}));
+    let tools = tools["result"]["tools"].as_array().unwrap();
+    for t in tools {
+        let name = t["name"].as_str().unwrap();
+        let title = t["title"].as_str().or_else(|| t["annotations"]["title"].as_str()).unwrap_or("");
+        assert!(title.len() >= 4 && title != name, "{name} has no readable title");
+        let a = &t["annotations"];
+        let read_only = a["readOnlyHint"].as_bool().unwrap_or_else(|| panic!("{name} does not say readOnlyHint"));
+        assert!(a["openWorldHint"].is_boolean(), "{name} does not say openWorldHint");
+        if !read_only {
+            assert!(
+                a["destructiveHint"].is_boolean(),
+                "{name} changes things but does not say whether it destroys them"
+            );
+        }
+    }
+    // Only what is gated may destroy: none of the tools offered without a flag does.
+    let destructive: Vec<&str> = tools
+        .iter()
+        .filter(|t| t["annotations"]["destructiveHint"] == true)
+        .map(|t| t["name"].as_str().unwrap())
+        .collect();
+    assert!(destructive.is_empty(), "destructive tools offered by default: {destructive:?}");
+    // Reading tools say so, and the ones that change a device do not.
+    let by = |n: &str| tools.iter().find(|t| t["name"] == n).unwrap_or_else(|| panic!("no tool {n}"));
+    assert_eq!(by("read_logs")["annotations"]["readOnlyHint"], true);
+    assert_eq!(by("check_link")["annotations"]["openWorldHint"], true);
+    assert_eq!(by("tap")["annotations"]["readOnlyHint"], false);
+    assert_eq!(by("tap")["annotations"]["destructiveHint"], false);
+}
+
 #[test]
 fn answers_without_a_device() {
     let mut s = Server::start_session();

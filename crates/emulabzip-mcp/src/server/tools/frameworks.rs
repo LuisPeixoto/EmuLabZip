@@ -5,7 +5,9 @@ use crate::server::*;
 #[tool_router(router = frameworks_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
-        description = "Which UI frameworks an app is built with, found from its files: Flutter, React Native, Hermes, Jetpack Compose or SwiftUI."
+        description = "Which UI frameworks an app is built with, found from its files: Flutter, React Native, Hermes, Jetpack Compose or SwiftUI.",
+        title = "Detect UI frameworks",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn detect_frameworks(&self, Parameters(a): Parameters<args::App>) -> CallToolResult {
         reply(
@@ -18,7 +20,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "The widget tree of a running Flutter debug or profile app, with the file and line each widget of the app's own code was made at."
+        description = "The widget tree of a running Flutter debug or profile app, with the file and line each widget of the app's own code was made at.",
+        title = "Flutter widget tree",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn flutter_widget_tree(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
         reply(
@@ -32,7 +36,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "The WebViews and browsers on an Android device that can be inspected (a WebView in a debuggable app that turned on WebView.setWebContentsDebuggingEnabled, or Chrome), each with its pages: id, title and address."
+        description = "The WebViews and browsers on an Android device that can be inspected (a WebView in a debuggable app that turned on WebView.setWebContentsDebuggingEnabled, or Chrome), each with its pages: id, title and address.",
+        title = "List WebViews",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn webview_list(&self, Parameters(a): Parameters<args::Device>) -> CallToolResult {
         reply(
@@ -52,7 +58,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "What a web page in a WebView or Chrome writes to its console, and the errors it does not catch, over a few seconds (at most 60). Use the page meanwhile, or reload it."
+        description = "What a web page in a WebView or Chrome writes to its console, and the errors it does not catch, over a few seconds (at most 60). Use the page meanwhile, or reload it.",
+        title = "WebView console",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn webview_console(&self, Parameters(a): Parameters<args::Webview>) -> CallToolResult {
         reply(
@@ -96,7 +104,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Build and raster times of the frames a Flutter app draws over a few seconds (at most 30), with the janky ones counted. Nothing is drawn while the app is idle, so use it meanwhile."
+        description = "Build and raster times of the frames a Flutter app draws over a few seconds (at most 30), with the janky ones counted. Nothing is drawn while the app is idle, so use it meanwhile.",
+        title = "Flutter frame times",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn flutter_frames(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
         reply(
@@ -112,13 +122,19 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "The Dart heap of a running Flutter app and the classes that use the most memory.")]
+    #[tool(
+        description = "The Dart heap of a running Flutter app and the classes that use the most memory.",
+        title = "Flutter Dart heap",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
     async fn flutter_memory(&self, Parameters(a): Parameters<args::Flutter>) -> CallToolResult {
         reply(async { json(&self.flutter(&a).await?.memory(15).await.map_err(|e| e.to_string())?) }.await)
     }
 
     #[tool(
-        description = "The state of a React Native development app: Redux stores, React Query caches, React contexts and stores registered in globalThis.__EMULABZIP_STORES__, read through Metro (must be running). Release builds have none of this."
+        description = "The state of a React Native development app: Redux stores, React Query caches, React contexts and stores registered in globalThis.__EMULABZIP_STORES__, read through Metro (must be running). Release builds have none of this.",
+        title = "React Native state",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn react_state(&self, Parameters(a): Parameters<args::ReactNative>) -> CallToolResult {
         reply(
@@ -136,7 +152,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "The React component tree of a React Native development app, with props, read through Metro (must be running). Metro allows one debugger at a time, so this can close React Native DevTools."
+        description = "The React component tree of a React Native development app, with props, read through Metro (must be running). Metro allows one debugger at a time, so this can close React Native DevTools.",
+        title = "React component tree",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn react_tree(&self, Parameters(a): Parameters<args::ReactNative>) -> CallToolResult {
         reply(

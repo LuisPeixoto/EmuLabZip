@@ -5,7 +5,9 @@ use crate::server::*;
 #[tool_router(router = controls_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
-        description = "What a device supports changing, its appearance, and the permissions of an app when `app` is given."
+        description = "What a device supports changing, its appearance, and the permissions of an app when `app` is given.",
+        title = "What controls the device supports",
+        annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn control_info(&self, Parameters(a): Parameters<args::App>) -> CallToolResult {
         reply(
@@ -23,7 +25,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Change the device's location (emulators and simulators). Without lat and lon, go back to the default location."
+        description = "Change the device's location (emulators and simulators). Without lat and lon, go back to the default location.",
+        title = "Set or clear the location",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_location(&self, Parameters(a): Parameters<args::Location>) -> CallToolResult {
         reply(
@@ -40,7 +44,11 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "Switch the device between light and dark mode.")]
+    #[tool(
+        description = "Switch the device between light and dark mode.",
+        title = "Light or dark mode",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
+    )]
     async fn control_appearance(&self, Parameters(a): Parameters<args::Appearance>) -> CallToolResult {
         reply(
             async {
@@ -57,7 +65,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Show an app in another language or a pseudo-locale (en-XA for long text, ar-XB for right to left), to find text that does not fit; or put the language back. Android changes one app (Android 13+); iOS changes the whole simulator and apps pick it up when they start."
+        description = "Show an app in another language or a pseudo-locale (en-XA for long text, ar-XB for right to left), to find text that does not fit; or put the language back. Android changes one app (Android 13+); iOS changes the whole simulator and apps pick it up when they start.",
+        title = "Set or reset an app's language",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_locale(&self, Parameters(a): Parameters<args::Locale>) -> CallToolResult {
         reply(
@@ -77,7 +87,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Make the device's text bigger or smaller, as a percentage of normal (100 is normal, 130 and 200 are common accessibility settings), to find text that does not fit. Set 100 to put it back."
+        description = "Make the device's text bigger or smaller, as a percentage of normal (100 is normal, 130 and 200 are common accessibility settings), to find text that does not fit. Set 100 to put it back.",
+        title = "Set the text size",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_font_scale(&self, Parameters(a): Parameters<args::FontScale>) -> CallToolResult {
         reply(
@@ -91,7 +103,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Change the screen size (pixels) and density (dpi) of an Android device, or put them back with reset."
+        description = "Change the screen size (pixels) and density (dpi) of an Android device, or put them back with reset.",
+        title = "Set or reset the display size",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_display_size(&self, Parameters(a): Parameters<args::DisplaySize>) -> CallToolResult {
         reply(
@@ -111,7 +125,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Show a clean status bar (fixed time, battery and signal), for screenshots; or clear the override."
+        description = "Show a clean status bar (fixed time, battery and signal), for screenshots; or clear the override.",
+        title = "Set or clear the status bar",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_status_bar(&self, Parameters(a): Parameters<args::StatusBar>) -> CallToolResult {
         reply(
@@ -127,7 +143,9 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Grant, revoke or reset one permission of an app (an Android permission name, or an iOS service such as photos)."
+        description = "Grant, revoke or reset one permission of an app (an Android permission name, or an iOS service such as photos).",
+        title = "Grant or revoke a permission",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_permission(&self, Parameters(a): Parameters<args::Permission>) -> CallToolResult {
         reply(
@@ -141,7 +159,16 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "Post a notification (Android) or send a simulated push to an app (iOS).")]
+    #[tool(
+        description = "Post a notification (Android) or send a simulated push to an app (iOS).",
+        title = "Post a notification",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
     async fn control_notification(&self, Parameters(a): Parameters<args::Notification>) -> CallToolResult {
         reply(
             self.control(
@@ -159,26 +186,56 @@ impl EmuLabServer {
     }
 
     #[tool(
-        description = "Open a web address or an app's own link on the device. Links that read local files or run script are refused."
+        description = "Open a web address or an app's own link on the device. Links that read local files or run script are refused.",
+        title = "Open a link",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn open_url(&self, Parameters(a): Parameters<args::OpenUrl>) -> CallToolResult {
         reply(self.control(&a.device, Control::OpenUrl { url: a.url }, "Link opened").await)
     }
 
-    #[tool(description = "Start an app on the device, by package name or bundle id, as the launcher would.")]
+    #[tool(
+        description = "Start an app on the device, by package name or bundle id, as the launcher would.",
+        title = "Start an app",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
     async fn launch_app(&self, Parameters(a): Parameters<args::LaunchApp>) -> CallToolResult {
         reply(self.control(&a.device, Control::Launch { app: a.app }, "App started").await)
     }
 
     #[tool(
-        description = "Touch a point of the screen of an Android device. Positions are pixels, as in a screenshot (get_layout lists where each view is). iOS has no public way to send touches."
+        description = "Touch a point of the screen of an Android device. Positions are pixels, as in a screenshot (get_layout lists where each view is). iOS has no public way to send touches.",
+        title = "Tap the screen",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn tap(&self, Parameters(a): Parameters<args::Tap>) -> CallToolResult {
         reply(self.control(&a.device, Control::Tap { x: a.x, y: a.y }, "Tapped").await)
     }
 
     #[tool(
-        description = "Drag a finger across the screen of an Android device, from one point to another in pixels. From a point to itself it is a long press."
+        description = "Drag a finger across the screen of an Android device, from one point to another in pixels. From a point to itself it is a long press.",
+        title = "Swipe the screen",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn swipe(&self, Parameters(a): Parameters<args::Swipe>) -> CallToolResult {
         reply(
@@ -191,18 +248,38 @@ impl EmuLabServer {
         )
     }
 
-    #[tool(description = "Type text into the focused field of an Android device. Printable ASCII only.")]
+    #[tool(
+        description = "Type text into the focused field of an Android device. Printable ASCII only.",
+        title = "Type text",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
     async fn input_text(&self, Parameters(a): Parameters<args::InputText>) -> CallToolResult {
         reply(self.control(&a.device, Control::Text { text: a.text }, "Typed").await)
     }
 
-    #[tool(description = "Press a key on an Android device: back, home, enter, tab, delete, volume_up, app_switch…")]
+    #[tool(
+        description = "Press a key on an Android device: back, home, enter, tab, delete, volume_up, app_switch…",
+        title = "Press a key",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
     async fn press_key(&self, Parameters(a): Parameters<args::PressKey>) -> CallToolResult {
         reply(self.control(&a.device, Control::Key { key: a.key }, "Pressed").await)
     }
 
     #[tool(
-        description = "Pretend the battery is at a level, charging or not (Android); or go back to the real battery."
+        description = "Pretend the battery is at a level, charging or not (Android); or go back to the real battery.",
+        title = "Set or reset the battery",
+        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]
     async fn control_battery(&self, Parameters(a): Parameters<args::Battery>) -> CallToolResult {
         reply(
