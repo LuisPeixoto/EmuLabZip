@@ -504,6 +504,59 @@ async fn a_mock_can_have_a_binary_body_and_a_delay() {
 }
 
 #[tokio::test]
+async fn a_validate_rule_checks_the_response_against_an_openapi_file() {
+    let upstream = start_upstream(false).await;
+    let dir = std::env::temp_dir().join(format!("emulabzip-e2e-openapi-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let spec = dir.join("api.yaml");
+    std::fs::write(
+        &spec,
+        "openapi: 3.0.3\ninfo: {title: t, version: '1'}\npaths:\n  /good:\n    get:\n      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {type: object, required: [ok], properties: {ok: {type: boolean}}}\n  /bad:\n    get:\n      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n              schema: {type: object, required: [ok], properties: {ok: {type: boolean}}}\n",
+    )
+    .unwrap();
+    let json_mock = |body: &str| Action::Mock {
+        status: 200,
+        headers: vec![("content-type".into(), "application/json".into())],
+        body: body.into(),
+        base64: false,
+        delay_ms: 0,
+    };
+    let mut check = rule("contract", "/*", Action::Validate { spec: spec.display().to_string() });
+    check.then_continue = true;
+    let rig = start_proxy_with_rules(vec![
+        check,
+        rule("good", "/good", json_mock(r#"{"ok": true}"#)),
+        rule("bad", "/bad", json_mock(r#"{"ok": "yes"}"#)),
+    ])
+    .await;
+    for path in ["/good", "/bad"] {
+        let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+        let (status, _, _) = send_h1(client, get(&format!("http://{}{path}", upstream.addr))).await;
+        assert_eq!(status, StatusCode::OK);
+    }
+    let checked = |path: &'static str| {
+        let store = rig.store.clone();
+        async move { flow_where(&store, "a checked flow", |f| f.path == path && f.validation.is_some()).await }
+    };
+    let good = checked("/good").await;
+    assert_eq!(good.validation.as_ref().unwrap().outcome, "ok", "{:?}", good.validation);
+    assert_eq!(good.rule.as_deref(), Some("contract + good"));
+    let bad = checked("/bad").await;
+    let v = bad.validation.unwrap();
+    assert_eq!((v.outcome.as_str(), v.violations.len()), ("violations", 1), "{v:?}");
+    assert_eq!(v.violations[0].pointer, "/ok");
+    assert_eq!(v.operation.as_deref(), Some("GET /bad"));
+    // A rule whose file cannot be read is refused when it is saved.
+    assert!(
+        rig.proxy
+            .rules()
+            .set(vec![rule("x", "/*", Action::Validate { spec: dir.join("missing.yaml").display().to_string() })])
+            .is_err()
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[tokio::test]
 async fn a_map_remote_rule_sends_the_request_to_another_server() {
     let upstream = start_upstream(false).await;
     let mut to_local = rule(

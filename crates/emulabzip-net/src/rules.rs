@@ -97,6 +97,9 @@ pub enum Action {
         #[serde(default)]
         status: Option<u16>,
     },
+    /// Check the response against an OpenAPI description (a file on this computer, JSON or YAML). The answer is not
+    /// changed: what is wrong shows on the flow. Add `thenContinue` to let the rules below apply too.
+    Validate { spec: String },
     /// Send the request to another server, as if the app had asked for it. What is left out stays as it was.
     #[serde(rename_all = "camelCase")]
     MapRemote {
@@ -352,6 +355,13 @@ impl Rule {
                 {
                     return Err(Error::invalid("path", p.clone()));
                 }
+            }
+            Action::Validate { spec } => {
+                if !Path::new(spec).is_absolute() {
+                    return Err(Error::invalid("OpenAPI file", "give the full path of the file"));
+                }
+                // The file is read now, so a spec that cannot be used is said when the rule is saved.
+                crate::openapi::Spec::load(Path::new(spec))?;
             }
             Action::Delay { ms } if *ms > MAX_DELAY_MS => {
                 return Err(Error::invalid("delay", format!("{ms} ms (at most {MAX_DELAY_MS})")));

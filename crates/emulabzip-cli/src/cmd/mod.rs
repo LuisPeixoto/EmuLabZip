@@ -19,6 +19,7 @@ pub mod link;
 pub mod logs;
 pub mod mem;
 pub mod net;
+pub mod openapi;
 pub mod perf;
 pub mod plugin;
 pub mod report;
