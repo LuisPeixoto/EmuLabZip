@@ -61,8 +61,13 @@ the emulator console for the location.
   and `ar-XB`. *Display size* is `wm size` and `wm density`. All three can be put back. See
   [Language, text size and text that does not fit](localization.md).
 
+- *Touch, swipe, text and keys* are `input tap`, `input swipe`, `input text` and `input keyevent`; *Launch* is `monkey -p`
+  with the launcher category; *Verify links* is `pm verify-app-links --re-verify`. See [Input and flows](automation.md) and
+  [Deep links](deep-links.md).
+
 **iOS Simulator.** Everything is `xcrun simctl`: `location`, `ui appearance`, `status_bar`, `privacy`, `push` and
-`openurl`, with `ui content_size` for the text size and the global defaults (`AppleLanguages`, `AppleLocale`) for the language, which an app takes when it starts again. iOS does not report which permissions an app has, so the card offers the services and the actions only.
+`openurl`, with `ui content_size` for the text size and the global defaults (`AppleLanguages`, `AppleLocale`) for the language, which an app takes when it starts again. iOS does not report which permissions an app has, so the card offers the services and the actions only. *Launch* is `simctl launch`;
+touches, swipes, text and keys are not offered on iOS, which has no public way to send them.
 
 ## Safety
 

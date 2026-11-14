@@ -131,15 +131,24 @@ analyzer reads sizes, folders and dex headers, not bytecode, and not an installe
 Android changes the language per app, not per device; the Firebase decoder was tested on payloads made to Google's layout,
 not on live traffic; there is no analytics tool over MCP.
 
-## Phase 13: Automation and hybrid apps (v0.13)
+## ✅ Phase 13: Automation and hybrid apps (v0.13)
 
-**WebViews** on Android through the Chrome DevTools Protocol (`webview_devtools_remote` sockets forwarded with `adb`),
-with their console and network inside EmuLabZip, and a shortcut to Safari's Web Inspector on iOS · **input** on Android
-(tap, swipe and text through `adb input`) and **recording a flow** from `getevent`, exported as a Maestro flow or a
-command-line script; iOS has no public interface for touches, so this stays Android only · a **deep link tester** with
-history, and checks for `assetlinks.json` and `apple-app-site-association` (`pm get-app-links` on Android) ·
-**programmable network rules**: map local and map remote, responses checked against an OpenAPI file, and rule scripts
-in sandboxed WebAssembly.
+**WebViews** on Android through the Chrome DevTools Protocol, over ADB's `localabstract` sockets with nothing forwarded: their
+console, JavaScript and requests inside EmuLabZip (the requests in the Network view, marked WEBVIEW), and a guided shortcut to
+Safari's Web Inspector on iOS · **input** on Android (tap, swipe, text, keys and launching an app) in the app, the command
+line and MCP, and **recording a flow** from `getevent`, played again and exported as a Maestro flow or a shell script; iOS has
+no public interface for touches, so this stays Android only · a **deep link tester** with history and pins, checking the
+domain's `assetlinks.json` or `apple-app-site-association`, the app's signing key, team id and entitlement, what the device
+decided (`pm get-app-links`) and who opens the link · **programmable network rules**: map local and map remote, rule chaining,
+responses checked against an OpenAPI 3 file, and rule scripts in sandboxed WebAssembly that run only after their exact bytes
+are approved. See [Web pages in apps](webviews.md), [Input and flows](automation.md), [Deep links](deep-links.md),
+[Network rules](network-rules.md) and [Rule scripts](rule-scripts.md).
+
+Limits: WebView inspection needs a debuggable app, and iOS is a shortcut to Safari, not an in-app console; flows record the
+touchscreen only (not injected taps and not typed text) and label a tap only when the screen was read in time; the deep link
+check on a simulator cannot verify domains the way a device does; OpenAPI checks cover JSON responses, not requests; Map
+local and Map remote do not apply to gRPC calls; scripts keep nothing between calls; assistants can list WebViews, read their
+console, check links and play flows, but cannot run JavaScript in a page or approve a script.
 
 ## Phase 14: AI with context (v0.14)
 
