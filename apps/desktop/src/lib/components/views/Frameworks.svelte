@@ -6,6 +6,7 @@
   import Icon from "../Icon.svelte";
   import FlutterPanel from "../frameworks/FlutterPanel.svelte";
   import ReactPanel from "../frameworks/ReactPanel.svelte";
+  import WebViewPanel from "../frameworks/WebViewPanel.svelte";
 
   let found = $state<Framework[] | null>(null);
   let error = $state<string | null>(null);
@@ -86,5 +87,8 @@
         <p class="mt-1 max-w-[420px] text-md text-muted">Pick an app in the toolbar and EmuLabZip tells you what it is built with.</p>
       </div>
     {/if}
+
+    <!-- Web pages do not depend on an app being picked: Chrome and any debuggable WebView are listed. -->
+    <WebViewPanel />
   </div>
 </div>

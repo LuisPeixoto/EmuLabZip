@@ -139,6 +139,40 @@ export interface Framework {
   evidence: string;
 }
 
+export interface DevtoolsSocket {
+  socket: string;
+  /** `webview`, `chrome` or `other`. */
+  kind: string;
+  pid: number | null;
+  app: string | null;
+}
+
+export interface WebPage {
+  id: string;
+  title: string;
+  url: string;
+  kind: string;
+}
+
+export interface WebViewInfo {
+  socket: DevtoolsSocket;
+  pages: WebPage[];
+}
+
+export interface WebLine {
+  level: string;
+  text: string;
+  source: string | null;
+}
+
+export type WebMessage = ({ type: "line" } & WebLine) | { type: "ended" };
+
+export interface Evaluated {
+  value: string;
+  kind: string;
+  error: boolean;
+}
+
 export interface WidgetNode {
   description: string;
   widgetType: string | null;
@@ -1203,6 +1237,15 @@ export const api = {
   listApps: (target: Target) => invoke<App[]>("list_apps", { target }),
   screenshot: (target: Target) => invoke<string>("screenshot", { target }),
   savePng: (name: string, data: string) => invoke<string | null>("save_png", { name, data }),
+  webviewList: (target: Target) => invoke<WebViewInfo[]>("webview_list", { target }),
+  async webviewStart(target: Target, socket: string, page: string, network: boolean, onMessage: (m: WebMessage) => void): Promise<number> {
+    const channel = new Channel<WebMessage>();
+    channel.onmessage = onMessage;
+    return invoke<number>("webview_start", { target, socket, page, network, onEvent: channel });
+  },
+  webviewEval: (target: Target, socket: string, page: string, expression: string) => invoke<Evaluated>("webview_eval", { target, socket, page, expression }),
+  webviewReload: (target: Target, socket: string, page: string) => invoke<void>("webview_reload", { target, socket, page }),
+  openSafari: () => invoke<void>("open_safari"),
   themeImport: () => invoke<string | null>("theme_import"),
   themeExport: (name: string, json: string) => invoke<string | null>("theme_export", { name, json }),
   saveText: (name: string, contents: string) => invoke<string | null>("save_text", { name, contents }),

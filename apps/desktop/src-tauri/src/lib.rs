@@ -19,6 +19,7 @@ mod state;
 mod states;
 mod themes;
 mod traces;
+mod webview;
 
 use tauri::{Manager, RunEvent};
 
@@ -94,6 +95,11 @@ pub fn run() {
             devices::device_delete,
             devices::emulator_snapshots,
             devices::emulator_snapshot,
+            webview::webview_list,
+            webview::webview_start,
+            webview::webview_eval,
+            webview::webview_reload,
+            webview::open_safari,
             themes::theme_import,
             themes::theme_export,
             quality::audit_security,
