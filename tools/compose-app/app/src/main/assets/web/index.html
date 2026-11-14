@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmuLabZip WebView demo</title>
+<style>
+  body { font: 16px system-ui, sans-serif; margin: 0; padding: 20px; background: #f6f7fb; color: #1b2030; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p { margin: 4px 0 14px; color: #4a5368; }
+  button { font: inherit; padding: 10px 14px; margin: 0 8px 8px 0; border: 0; border-radius: 10px; background: #5b5bf0; color: #fff; }
+  pre { background: #fff; border: 1px solid #dde1ec; border-radius: 10px; padding: 10px; white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<h1>EmuLabZip WebView demo</h1>
+<p>Opened with: <b id="link">__LINK__</b></p>
+<button id="log">Write to the console</button>
+<button id="fetch">Fetch the theme gallery</button>
+<button id="fail">Fetch something that is missing</button>
+<button id="boom">Throw an error</button>
+<pre id="out">Nothing yet.</pre>
+<script>
+  const out = document.getElementById("out");
+  let taps = 0;
+  console.log("The page loaded", { href: location.href, agent: navigator.userAgent.slice(0, 40) });
+  document.getElementById("log").onclick = () => {
+    taps += 1;
+    console.info("Tapped", taps, "times");
+    if (taps % 2 === 0) console.warn("An even number of taps:", taps);
+    out.textContent = "Wrote to the console (" + taps + ").";
+  };
+  document.getElementById("fetch").onclick = async () => {
+    try {
+      const r = await fetch("https://emulabzip.luispeixoto.dev/themes/index.json", { cache: "no-store" });
+      const j = await r.json();
+      out.textContent = "The gallery has " + j.themes.length + " themes.";
+      console.log("Fetched the gallery", r.status);
+    } catch (e) {
+      out.textContent = "Failed: " + e;
+      console.error("The fetch failed", String(e));
+    }
+  };
+  document.getElementById("fail").onclick = async () => {
+    const r = await fetch("https://emulabzip.luispeixoto.dev/themes/missing.json", { cache: "no-store" });
+    out.textContent = "The server said " + r.status;
+  };
+  document.getElementById("boom").onclick = () => { throw new TypeError("This error is thrown on purpose"); };
+</script>
+</body>
+</html>

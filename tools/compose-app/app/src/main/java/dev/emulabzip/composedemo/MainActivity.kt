@@ -95,6 +95,7 @@ fun Demo(weak: Boolean = false) {
         }
         val context = androidx.compose.ui.platform.LocalContext.current
         Button(onClick = { scope.launch(Dispatchers.IO) { DemoData.write(context.applicationContext) } }, Modifier.testTag("write-data")) { Text("Write demo data") }
+        Button(onClick = { context.startActivity(android.content.Intent(context, WebViewActivity::class.java)) }, Modifier.testTag("open-web")) { Text("Open the web page") }
         Row {
             Text("Notifications", Modifier.padding(end = 12.dp))
             Switch(checked = enabled, onCheckedChange = { enabled = it }, modifier = Modifier.testTag("switch"))

@@ -13,6 +13,24 @@ emulabzip layout
 
 `testTagsAsResourceId` is switched on, so Layout shows the tags as ids.
 
+## A web page, and links
+
+**Open the web page** starts a WebView with web debugging on. EmuLabZip lists it under Frameworks → Web pages (and with
+`emulabzip webview list`), shows its console and requests, and runs JavaScript in it. The page has buttons that write to
+the console, fetch from the site, fetch something missing (a 404) and throw an error.
+
+The same screen is what the app's links open:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "emulabzip-demo://open/cart" dev.emulabzip.composedemo
+adb shell am start -a android.intent.action.VIEW -d "https://emulabzip.luispeixoto.dev/demo/cart" dev.emulabzip.composedemo
+emulabzip link check https://emulabzip.luispeixoto.dev/demo/cart --app dev.emulabzip.composedemo
+```
+
+The app link is verified against `https://emulabzip.luispeixoto.dev/.well-known/assetlinks.json`, which lists the debug
+key this project is built with. The iOS demo's `apple-app-site-association` uses a placeholder team id, so the check for
+it reports the mismatch, which is what it is there to show.
+
 ## A release build with R8
 
 ```bash
