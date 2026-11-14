@@ -8,6 +8,7 @@ pub mod crashes;
 pub mod devices;
 pub mod edit;
 pub mod files;
+pub mod flow;
 pub mod frameworks;
 pub mod heap;
 pub mod i18n;

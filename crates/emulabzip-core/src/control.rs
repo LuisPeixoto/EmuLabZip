@@ -93,6 +93,10 @@ pub enum Control {
         density: Option<u32>,
     },
     ResetDisplay,
+    /// Starts an app, by package name or bundle id, as the launcher would.
+    Launch {
+        app: String,
+    },
     /// A touch at a point of the screen, in pixels. Android only: iOS has no public way to send touches.
     Tap {
         x: u32,
@@ -332,6 +336,9 @@ impl Control {
                 if text.contains("%s") {
                     return Err(Error::invalid("text", "it cannot contain `%s`, which Android reads as a space"));
                 }
+            }
+            Control::Launch { app } if !is_app_id(app) => {
+                return Err(Error::invalid("app", app.clone()));
             }
             Control::Key { key } if key_code(key).is_none() => {
                 let names: Vec<&str> = KEYS.iter().map(|(n, _)| *n).collect();

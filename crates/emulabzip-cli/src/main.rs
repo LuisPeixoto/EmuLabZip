@@ -257,6 +257,11 @@ enum Command {
         #[command(subcommand)]
         action: RnAction,
     },
+    /// Record touches into a flow, play it again, and export it to Maestro or a shell script (Android)
+    Flow {
+        #[command(subcommand)]
+        action: FlowAction,
+    },
     /// Look inside the web pages of an app's WebView, or Chrome, on an Android device
     Webview {
         #[command(subcommand)]
@@ -996,6 +1001,54 @@ enum FlutterAction {
     },
 }
 
+#[derive(Subcommand)]
+enum FlowAction {
+    /// Record the touches on the device until Ctrl+C. Touch the emulator window: `adb shell input` taps are not seen
+    Record {
+        /// A name for the flow
+        #[arg(long)]
+        name: String,
+        /// The app the flow is for, so it can start it and a Maestro file names it
+        #[arg(long)]
+        app: Option<String>,
+        /// Do not start with a step that launches the app
+        #[arg(long)]
+        no_launch: bool,
+        /// Stop after this many seconds
+        #[arg(short, long)]
+        seconds: Option<u64>,
+        /// Save to this file instead of the flows folder
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+    },
+    /// The saved flows
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    /// The steps of a flow: its id, or a .json file
+    Show {
+        flow: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Write a flow as a Maestro flow (--maestro) or as a shell script of `emulabzip control` commands (--script)
+    Export {
+        flow: String,
+        #[arg(long, conflicts_with = "script", required_unless_present = "script")]
+        maestro: bool,
+        #[arg(long)]
+        script: bool,
+        /// Where to write it. Printed when left out
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+    },
+    /// Play a flow on the device, scaled when its screen is another size
+    Play { flow: String },
+    /// Delete a saved flow
+    Remove { flow: String },
+}
+
 /// Which WebView page to look at.
 #[derive(clap::Args)]
 struct WebviewPick {
@@ -1353,6 +1406,8 @@ enum BatteryAction {
 
 #[derive(Subcommand)]
 enum ControlAction {
+    /// Start an app, by package name or bundle id
+    Launch { app: String },
     /// Touch a point of the screen, in pixels (Android)
     Tap { x: u32, y: u32 },
     /// Drag a finger from one point to another, in pixels. From a point to itself it is a long press (Android)
@@ -1541,6 +1596,7 @@ async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> 
             let payload = read_payload(payload)?;
             apply(lab, device, Control::Notification { app, title, body, payload }, "Notification sent").await
         }
+        ControlAction::Launch { app } => apply(lab, device, Control::Launch { app }, "Started").await,
         ControlAction::Tap { x, y } => apply(lab, device, Control::Tap { x, y }, "Tapped").await,
         ControlAction::Swipe { x1, y1, x2, y2, ms } => {
             apply(lab, device, Control::Swipe { x1, y1, x2, y2, duration_ms: ms }, "Swiped").await
@@ -1722,6 +1778,16 @@ async fn run() -> ExitCode {
         Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
             cmd::frameworks::rn_console(&app, metro, seconds, json).await
         }
+        Command::Flow { action: FlowAction::Record { name, app, no_launch, seconds, out } } => {
+            cmd::flow::record(&lab, device, &name, app.as_deref(), !no_launch, seconds, out).await
+        }
+        Command::Flow { action: FlowAction::List { json } } => cmd::flow::list(json),
+        Command::Flow { action: FlowAction::Show { flow, json } } => cmd::flow::show(&flow, json),
+        Command::Flow { action: FlowAction::Export { flow, maestro, script: _, out } } => {
+            cmd::flow::export(&flow, maestro, out)
+        }
+        Command::Flow { action: FlowAction::Play { flow } } => cmd::flow::play(&lab, device, &flow).await,
+        Command::Flow { action: FlowAction::Remove { flow } } => cmd::flow::remove(&flow).await,
         Command::Webview { action: WebviewAction::List { json } } => cmd::webview::list(&lab, device, json).await,
         Command::Webview { action: WebviewAction::Console { pick, seconds, json } } => {
             cmd::webview::console(&lab, device, pick.pick(), seconds, json).await

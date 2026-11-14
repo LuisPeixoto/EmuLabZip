@@ -1226,6 +1226,39 @@ impl EmuLabServer {
         reply(self.control(&a.device, Control::OpenUrl { url: a.url }, "Link opened").await)
     }
 
+    #[tool(description = "Start an app on the device, by package name or bundle id, as the launcher would.")]
+    async fn launch_app(&self, Parameters(a): Parameters<args::LaunchApp>) -> CallToolResult {
+        reply(self.control(&a.device, Control::Launch { app: a.app }, "App started").await)
+    }
+
+    #[tool(
+        description = "The saved flows: runs of touches, text and key presses recorded from a device (emulabzip flow record, or the Automation view), by id with their app and number of steps."
+    )]
+    async fn list_flows(&self) -> CallToolResult {
+        reply(json(&emulabzip_core::automation::list()))
+    }
+
+    #[tool(
+        description = "Play a saved flow on an Android device: the taps, swipes, text and key presses that were recorded, scaled to this screen. Flows that would take longer than two minutes are refused here; play them from the command line."
+    )]
+    async fn play_flow(&self, Parameters(a): Parameters<args::PlayFlow>) -> CallToolResult {
+        reply(
+            async {
+                // An id of a saved flow, never a path.
+                let flow = emulabzip_core::automation::load(&a.flow).map_err(|e| e.to_string())?;
+                if flow.duration_ms() > 120_000 {
+                    return Err("That flow takes more than two minutes. Play it with `emulabzip flow play`.".into());
+                }
+                let target = self.target(&a.device).await?;
+                emulabzip_core::automation::play(&self.lab, &target, &flow, std::future::pending(), |_, _| {})
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(format!("Played {} ({} steps)", flow.name, flow.steps.len()))
+            }
+            .await,
+        )
+    }
+
     #[tool(
         description = "Touch a point of the screen of an Android device. Positions are pixels, as in a screenshot (get_layout lists where each view is). iOS has no public way to send touches."
     )]

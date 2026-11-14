@@ -65,6 +65,7 @@ pub fn args_for(control: &Control) -> Result<Vec<Vec<String>>> {
         Control::Display { .. } | Control::ResetDisplay => {
             return Err(Error::Unsupported("Changing the screen size of the simulator"));
         }
+        Control::Launch { app } => vec![v(&["launch", app])],
         Control::Tap { .. } | Control::Swipe { .. } | Control::Text { .. } | Control::Key { .. } => {
             return Err(Error::Unsupported(
                 "Touches, keys and text on the simulator (iOS has no public way to send them)",
@@ -164,6 +165,7 @@ pub async fn info(udid: &str) -> Result<ControlInfo> {
             "locale",
             "resetLocale",
             "fontScale",
+            "launch",
         ]
         .map(String::from)
         .to_vec(),
