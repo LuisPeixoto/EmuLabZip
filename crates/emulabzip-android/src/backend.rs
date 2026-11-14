@@ -184,6 +184,10 @@ impl Backend for AndroidBackend {
         Ok(Box::new(self.adb.connect_tcp(id, port).await?))
     }
 
+    async fn connect_socket(&self, id: &str, name: &str) -> Result<emulabzip_core::DeviceStream> {
+        Ok(Box::new(self.adb.connect_local(id, name).await?))
+    }
+
     async fn energy_begin(&self, id: &str, _app: &str) -> Result<()> {
         energy::begin(&self.adb, id).await
     }

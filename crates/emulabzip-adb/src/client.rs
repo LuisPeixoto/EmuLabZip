@@ -149,6 +149,14 @@ impl AdbClient {
         Ok(c.into_inner())
     }
 
+    /// Opens a connection to an abstract unix socket the device is listening on (`webview_devtools_remote_1234`, with
+    /// no leading `@`) and hands back the raw socket. Like [`AdbClient::connect_tcp`], nothing is forwarded on the host.
+    pub async fn connect_local(&self, serial: &str, name: &str) -> Result<TcpStream> {
+        let mut c = self.transport(serial).await?;
+        c.request(&format!("localabstract:{name}")).await?;
+        Ok(c.into_inner())
+    }
+
     /// Makes `remote` on the device reach `local` on this computer, like `adb reverse`. Both are
     /// socket specs such as `tcp:9090`.
     pub async fn reverse(&self, serial: &str, remote: &str, local: &str) -> Result<()> {
