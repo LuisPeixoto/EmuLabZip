@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "ABCDE12345.dev.emulabzip.swiftdemo"
+        ],
+        "components": [
+          {
+            "/": "/demo/*",
+            "comment": "The demo pages"
+          },
+          {
+            "/": "/demo/private/*",
+            "exclude": true
+          }
+        ]
+      }
+    ]
+  }
+}

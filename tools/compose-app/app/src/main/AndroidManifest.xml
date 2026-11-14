@@ -12,6 +12,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- A WebView page, and what the app's links open: an app link that is verified against the site's
+             assetlinks.json, and a link of the app's own. See docs/deep-links.md. -->
+        <activity android:name=".WebViewActivity" android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="emulabzip.luispeixoto.dev" android:pathPrefix="/demo" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="emulabzip-demo" android:host="open" />
+            </intent-filter>
+        </activity>
         <!-- Exposed on purpose, for the security audit to find (see WeakDemo.kt). -->
         <receiver android:name=".PingReceiver" android:exported="true">
             <intent-filter>

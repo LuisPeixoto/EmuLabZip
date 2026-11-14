@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.emulabzip.composedemo",
+      "sha256_cert_fingerprints": [
+        "2A:6F:BF:F7:1F:5B:60:BF:14:6C:43:A8:B4:E1:EF:A8:01:2F:31:7B:C1:6E:A6:76:DC:BD:57:A8:EB:3F:2B:75"
+      ]
+    }
+  }
+]
