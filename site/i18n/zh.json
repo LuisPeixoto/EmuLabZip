@@ -101,7 +101,13 @@
       { "id": "themes", "shot": "themes", "label": "主题", "title": "十个主题，也可以是你自己的", "text": "默认是更明亮的深色，另有浅色、高对比度等。每张卡片都是该主题下应用的实时缩略图。", "alt": "外观设置，显示主题卡片网格" },
       { "id": "theme-editor", "shot": "theme-editor", "label": "主题编辑器", "title": "制作主题，即时查看", "text": "可选择每种颜色和字体，从一个强调色开始生成，文字难以阅读时会给出提示。", "alt": "主题编辑器，次要文字带有对比度警告" },
       { "id": "theme-gallery", "shot": "theme-gallery", "label": "图库", "title": "来自社区的主题", "text": "安装他人分享的主题，也可以一键通过 pull request 分享你的主题。", "alt": "图库标签页，显示四个社区主题" },
-      { "id": "layout-custom", "shot": "layout-custom", "label": "你的布局", "title": "随意调整大小，折叠侧边栏", "text": "拖动面板之间的分隔线，双击即可恢复，侧边栏可折叠为图标。", "alt": "日志视图，侧边栏已折叠，详情面板已调整大小" }
+      { "id": "layout-custom", "shot": "layout-custom", "label": "你的布局", "title": "随意调整大小，折叠侧边栏", "text": "拖动面板之间的分隔线，双击即可恢复，侧边栏可折叠为图标。", "alt": "日志视图，侧边栏已折叠，详情面板已调整大小" },
+      { "id": "webviews", "shot": "webview-console", "label": "WebView", "title": "应用内的网页", "text": "选择可调试应用的 WebView 或 Chrome：查看控制台、未捕获的错误，并可运行 JavaScript。", "alt": "Frameworks 视图，显示 WebView 的控制台和脚本结果" },
+      { "id": "webview-network", "shot": "webview-network", "label": "页面请求", "title": "页面自己看到的请求", "text": "WebView 的请求会以 WEBVIEW 标记出现在 Network 中，无需代理和证书，也可保存为 HAR 文件。", "alt": "Network 视图，列出 WebView 的三个请求并打开详情" },
+      { "id": "automation", "shot": "automation", "label": "流程", "title": "录制、回放并导出为 Maestro", "text": "触摸模拟器，触摸连同停顿会变成流程。可回放、编辑，或保存为 Maestro 或脚本。", "alt": "Automation 视图，显示一个七步的录制流程" },
+      { "id": "deep-links", "shot": "deep-links", "label": "深层链接", "title": "链接为何能或不能打开应用", "text": "读取域名的 assetlinks.json 或 apple-app-site-association、签名密钥和设备的判断，并说明如何修复。", "alt": "Deep links 视图，检查的每一步都通过" },
+      { "id": "contract", "shot": "network-contract", "label": "契约", "title": "服务器按规范响应吗？", "text": "用 OpenAPI 文件检查响应：每个问题都指出在响应体中的位置，显示在请求的 Contract 标签页。", "alt": "Network 视图，一个请求违反了 OpenAPI 文件的两处" },
+      { "id": "rule-scripts", "shot": "rules-script", "label": "规则脚本", "title": "规则中的沙箱 WebAssembly", "text": "用没有文件和网络权限的小脚本修改请求或响应，只有你批准后才会运行。", "alt": "规则对话框，显示一条脚本规则和批准提示" }
     ]
   },
   "cli": {
@@ -168,8 +174,8 @@
       { "state": "done", "version": "v0.10", "title": "时间线与回放", "text": "点击、日志和请求的时间线，屏幕录像，以及网络回放。" },
       { "state": "done", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
       { "state": "done", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
-      { "state": "next", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView、输入与录制的操作流程、深层链接测试和可编程规则。" },
-      { "state": "later", "version": "v0.14", "title": "带上下文的 AI", "text": "时间线、回放和快照作为 MCP 工具，以及常见问题的提示词。" },
+      { "state": "done", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView 控制台与请求、触摸输入与 Maestro 流程、深层链接检查，以及文件、OpenAPI 和脚本规则。" },
+      { "state": "next", "version": "v0.14", "title": "带上下文的 AI", "text": "时间线、回放和快照作为 MCP 工具，以及常见问题的提示词。" },
       { "state": "later", "version": "v0.15", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 上的 Android、Wear OS、电视和 Apple 各平台。" },
       { "state": "later", "version": "v1.0", "title": "团队与生态", "text": "可分享的报告、规则库、VS Code 扩展和稳定性承诺。" }
     ]

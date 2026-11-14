@@ -101,7 +101,13 @@
       { "id": "themes", "shot": "themes", "label": "Themes", "title": "Ten themes, and your own", "text": "A lighter dark by default, a light theme, high contrast and more. Each card is a live picture of the app in that theme.", "alt": "The Appearance settings with a grid of theme cards" },
       { "id": "theme-editor", "shot": "theme-editor", "label": "Theme editor", "title": "Make a theme, and see it at once", "text": "Pick every colour and font, start from one accent, and get a warning when text would be hard to read.", "alt": "The theme editor with a contrast warning for secondary text" },
       { "id": "theme-gallery", "shot": "theme-gallery", "label": "Gallery", "title": "Themes from the community", "text": "Install themes shared by other people, and share yours with a pull request from one button.", "alt": "The Gallery tab with four community themes" },
-      { "id": "layout-custom", "shot": "layout-custom", "label": "Your layout", "title": "Resize anything, collapse the sidebar", "text": "Drag the line between panes, double-click to restore it, and fold the sidebar down to icons.", "alt": "The Logs view with a collapsed sidebar and a resized detail pane" }
+      { "id": "layout-custom", "shot": "layout-custom", "label": "Your layout", "title": "Resize anything, collapse the sidebar", "text": "Drag the line between panes, double-click to restore it, and fold the sidebar down to icons.", "alt": "The Logs view with a collapsed sidebar and a resized detail pane" },
+      { "id": "webviews", "shot": "webview-console", "label": "WebViews", "title": "The pages inside an app", "text": "Pick a WebView of a debuggable app or Chrome: its console, the errors it does not catch, and a line to run JavaScript.", "alt": "The Frameworks view with a WebView's console and the result of a script" },
+      { "id": "webview-network", "shot": "webview-network", "label": "Page requests", "title": "Requests seen by the page itself", "text": "The WebView's requests appear in Network marked WEBVIEW, with no proxy and no certificate, and go into a HAR file.", "alt": "The Network view listing three requests of a WebView with its detail open" },
+      { "id": "automation", "shot": "automation", "label": "Flows", "title": "Record, play, export to Maestro", "text": "Touch the emulator, and the touches become a flow with its pauses. Play it again, edit it, or save it as Maestro or a script.", "alt": "The Automation view with a recorded flow of seven steps" },
+      { "id": "deep-links", "shot": "deep-links", "label": "Deep links", "title": "Why a link does or does not open the app", "text": "Reads the domain's assetlinks.json or apple-app-site-association, the signing key and what the device decided, and says what to fix.", "alt": "The Deep links view with a check where every step passed" },
+      { "id": "contract", "shot": "network-contract", "label": "Contract", "title": "Does the server answer as its spec says?", "text": "Check responses against an OpenAPI file: each problem with where it is in the body, in the request's Contract tab.", "alt": "The Network view with a request that has two violations of its OpenAPI file" },
+      { "id": "rule-scripts", "shot": "rules-script", "label": "Rule scripts", "title": "Sandboxed WebAssembly in a rule", "text": "Change a request or a response with a small script that has no files and no network, and runs only after you approve it.", "alt": "The Rules dialog with a script rule and its approval notice" }
     ]
   },
   "cli": {
@@ -168,8 +174,8 @@
       { "state": "done", "version": "v0.10", "title": "Timeline and replay", "text": "A timeline of touches, logs and requests, screen video, and network replay." },
       { "state": "done", "version": "v0.11", "title": "App state as data", "text": "Snapshots of the sandbox and of emulators, a write mode in Storage, more viewers." },
       { "state": "done", "version": "v0.12", "title": "Quality beyond performance", "text": "Security audit, APK and IPA size, localization, visual regression and analytics." },
-      { "state": "next", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebViews, input and recorded flows, deep link tests and programmable rules." },
-      { "state": "later", "version": "v0.14", "title": "AI with context", "text": "The timeline, replay and snapshots as MCP tools, and prompts for common questions." },
+      { "state": "done", "version": "v0.13", "title": "Automation and hybrid apps", "text": "WebView console and requests, touch input and flows for Maestro, deep link checks, and rules for files, OpenAPI and scripts." },
+      { "state": "next", "version": "v0.14", "title": "AI with context", "text": "The timeline, replay and snapshots as MCP tools, and prompts for common questions." },
       { "state": "later", "version": "v0.15", "title": "Devices and platforms", "text": "Physical iPhones, Android over Wi-Fi, Wear OS, TV and Apple platforms." },
       { "state": "later", "version": "v1.0", "title": "Team and ecosystem", "text": "Shareable reports, rule libraries, a VS Code extension and a stable promise." }
     ]
