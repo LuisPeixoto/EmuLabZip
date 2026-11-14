@@ -1,7 +1,7 @@
 import { api, errorText, targetOf, type App, type Device, type HostInfo, type PlatformStatus, type Target } from "../api";
 import { load, loadValue, save } from "../prefs";
 
-export type View = "overview" | "layout" | "frameworks" | "sessions" | "compare" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins" | "devices" | "audit" | "size" | "visual" | "analytics" | "automation";
+export type View = "overview" | "layout" | "frameworks" | "sessions" | "compare" | "logs" | "performance" | "memory" | "storage" | "network" | "traces" | "crashes" | "controls" | "plugins" | "devices" | "audit" | "size" | "visual" | "analytics" | "automation" | "links";
 
 export interface Toast {
   id: number;
