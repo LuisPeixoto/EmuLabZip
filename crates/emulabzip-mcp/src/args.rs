@@ -343,6 +343,40 @@ pub struct OpenUrl {
     pub url: String,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Tap {
+    pub device: Option<String>,
+    /// Pixels from the left edge of the screen, as in a screenshot.
+    pub x: u32,
+    /// Pixels from the top edge of the screen.
+    pub y: u32,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct Swipe {
+    pub device: Option<String>,
+    pub x1: u32,
+    pub y1: u32,
+    pub x2: u32,
+    pub y2: u32,
+    /// How long the drag takes, in milliseconds (default 300, at most 10000). From a point to itself it is a long press.
+    pub duration_ms: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct InputText {
+    pub device: Option<String>,
+    /// Printable ASCII only, at most 1000 characters. It is typed into the field that has focus.
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PressKey {
+    pub device: Option<String>,
+    /// `back`, `home`, `enter`, `tab`, `delete`, `volume_up`, `app_switch`, `dpad_down`…
+    pub key: String,
+}
+
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 pub struct Battery {
     pub device: Option<String>,

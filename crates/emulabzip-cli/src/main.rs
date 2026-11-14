@@ -1353,6 +1353,22 @@ enum BatteryAction {
 
 #[derive(Subcommand)]
 enum ControlAction {
+    /// Touch a point of the screen, in pixels (Android)
+    Tap { x: u32, y: u32 },
+    /// Drag a finger from one point to another, in pixels. From a point to itself it is a long press (Android)
+    Swipe {
+        x1: u32,
+        y1: u32,
+        x2: u32,
+        y2: u32,
+        /// How long it takes, in milliseconds
+        #[arg(long)]
+        ms: Option<u32>,
+    },
+    /// Type text into the focused field: printable ASCII only (Android)
+    Text { text: String },
+    /// Press a key: back, home, enter, tab, delete, volume_up… (Android)
+    Key { key: String },
     /// Show what the device supports, its appearance and the permissions of --app
     Info {
         #[arg(short, long)]
@@ -1525,6 +1541,12 @@ async fn run_control(lab: &Lab, device: Option<&str>, action: ControlAction) -> 
             let payload = read_payload(payload)?;
             apply(lab, device, Control::Notification { app, title, body, payload }, "Notification sent").await
         }
+        ControlAction::Tap { x, y } => apply(lab, device, Control::Tap { x, y }, "Tapped").await,
+        ControlAction::Swipe { x1, y1, x2, y2, ms } => {
+            apply(lab, device, Control::Swipe { x1, y1, x2, y2, duration_ms: ms }, "Swiped").await
+        }
+        ControlAction::Text { text } => apply(lab, device, Control::Text { text }, "Typed").await,
+        ControlAction::Key { key } => apply(lab, device, Control::Key { key }, "Pressed").await,
         ControlAction::Open { url } => apply(lab, device, Control::OpenUrl { url }, "Link opened").await,
         ControlAction::Locale { locale, app } => {
             let said = format!("Language set to {locale}");

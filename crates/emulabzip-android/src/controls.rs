@@ -35,6 +35,11 @@ pub fn hhmm(time: &str) -> Option<String> {
     (h < 24 && m < 60).then(|| format!("{h:02}{m:02}"))
 }
 
+/// Text as `input text` wants it: a space is `%s`. (The shell's own special characters are quoted by `command`.)
+pub fn input_text(text: &str) -> String {
+    text.replace(' ', "%s")
+}
+
 /// The shell commands that apply a control, in order. The location is not among them: it goes
 /// through the emulator console.
 pub fn commands_for(control: &Control) -> Result<Vec<String>> {
@@ -63,6 +68,24 @@ pub fn commands_for(control: &Control) -> Result<Vec<String>> {
             v
         }
         Control::ResetBattery => vec![command(["dumpsys", "battery", "reset"])],
+        Control::Tap { x, y } => vec![command(["input", "tap", &x.to_string(), &y.to_string()])],
+        Control::Swipe { x1, y1, x2, y2, duration_ms } => {
+            let ms = duration_ms.unwrap_or(emulabzip_core::control::DEFAULT_SWIPE_MS);
+            vec![command([
+                "input",
+                "swipe",
+                &x1.to_string(),
+                &y1.to_string(),
+                &x2.to_string(),
+                &y2.to_string(),
+                &ms.to_string(),
+            ])]
+        }
+        Control::Text { text } => vec![command(["input", "text", &input_text(text)])],
+        Control::Key { key } => {
+            let code = emulabzip_core::control::key_code(key).ok_or_else(|| Error::invalid("key", key.clone()))?;
+            vec![command(["input", "keyevent", code])]
+        }
         Control::Locale { locale, app } => {
             let app = app.as_deref().ok_or_else(|| {
                 Error::failed(
@@ -181,7 +204,7 @@ pub async fn info(adb: &AdbClient, serial: &str, app: Option<&str>) -> Result<Co
     let emulator = console_port(serial).is_some();
     let mut supported: Vec<&str> =
         vec!["appearance", "statusBar", "clearStatusBar", "notification", "openUrl", "battery", "resetBattery"];
-    supported.extend(["fontScale", "display", "resetDisplay"]);
+    supported.extend(["fontScale", "display", "resetDisplay", "tap", "swipe", "text", "key"]);
     if app.is_some() {
         supported.extend(["permission", "locale", "resetLocale"]);
     }
@@ -323,6 +346,29 @@ mod tests {
         assert_eq!(cmds(Control::Display { width: None, height: None, density: Some(280) }), ["wm density 280"]);
         assert_eq!(cmds(Control::ResetDisplay), ["wm size reset", "wm density reset"]);
         assert_eq!(failure("Can't find service: locale").as_deref(), Some("Can't find service: locale"));
+    }
+
+    #[test]
+    fn touches_keys_and_text_become_input_commands() {
+        let cmds = |c: Control| commands_for(&c).unwrap();
+        assert_eq!(cmds(Control::Tap { x: 540, y: 1200 }), ["input tap 540 1200"]);
+        assert_eq!(
+            cmds(Control::Swipe { x1: 100, y1: 900, x2: 100, y2: 300, duration_ms: None }),
+            ["input swipe 100 900 100 300 300"]
+        );
+        assert_eq!(
+            cmds(Control::Swipe { x1: 5, y1: 6, x2: 5, y2: 6, duration_ms: Some(800) }),
+            ["input swipe 5 6 5 6 800"]
+        );
+        assert_eq!(cmds(Control::Key { key: "back".into() }), ["input keyevent KEYCODE_BACK"]);
+        assert!(commands_for(&Control::Key { key: "bogus".into() }).is_err());
+        // A space is `%s`, and what the shell would act on is quoted, so it is typed and never run.
+        assert_eq!(input_text("a b"), "a%sb");
+        let typed = cmds(Control::Text { text: "hi there; reboot $(id) 'x'".into() });
+        assert_eq!(typed.len(), 1);
+        assert!(typed[0].starts_with("input text "), "{typed:?}");
+        assert!(typed[0].contains("hi%sthere"), "{typed:?}");
+        assert!(typed[0].contains('\''), "the text is quoted: {typed:?}");
     }
 
     #[test]
