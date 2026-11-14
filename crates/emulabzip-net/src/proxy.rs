@@ -34,6 +34,7 @@ use crate::conditions::{Conditions, Shaped, Shaper};
 use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::http3::{self, Http3};
 use crate::io::{BoxIo, Prefixed};
+use crate::openapi::{Spec, Validation};
 use crate::replay::{Recorded, ReplaySet};
 use crate::rules::{Action, MAX_MAPPED_FILE, Mapped, Rule, RuleSet, map_remote, mime_for, mock_bytes, resolve_local};
 use crate::store::FlowStore;
@@ -99,6 +100,8 @@ struct Ctx {
     shaper: Arc<Shaper>,
     /// The recording requests are answered from, when there is one. It can be set and cleared while running.
     replay: Mutex<Option<Arc<ReplaySet>>>,
+    /// Flows whose response is to be checked against an OpenAPI file, by the file that was asked for.
+    validate: Mutex<std::collections::HashMap<FlowId, Arc<Spec>>>,
     shutdown: watch::Receiver<bool>,
 }
 
@@ -249,6 +252,7 @@ impl Proxy {
             http3,
             shaper: Shaper::new(config.conditions),
             replay: Mutex::new(config.replay),
+            validate: Mutex::new(std::collections::HashMap::new()),
             shutdown: rx,
         });
         tracing::info!(%addr, "proxy listening");
@@ -562,6 +566,7 @@ fn effective_host(connect_host: &str, headers: &HeaderMap) -> String {
 }
 
 fn fail(ctx: &Ctx, id: FlowId, status: StatusCode, message: String) -> Resp {
+    ctx.validate.lock().remove(&id);
     ctx.store.update(id, |f| {
         f.state = FlowState::Failed;
         f.error = Some(message.clone());
@@ -635,6 +640,21 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
             Action::Mock { .. } => return mock(&ctx, id, started, client_version, rule).await,
             Action::MapLocal { .. } => return map_local(&ctx, id, started, client_version, rule, &path).await,
             Action::Delay { ms } => tokio::time::sleep(std::time::Duration::from_millis(*ms)).await,
+            Action::Validate { spec } => match Spec::cached(std::path::Path::new(spec)) {
+                Ok(spec) => {
+                    ctx.validate.lock().insert(id, spec);
+                }
+                Err(e) => {
+                    let shown = Validation {
+                        spec: spec.clone(),
+                        operation: None,
+                        outcome: "unchecked".into(),
+                        violations: Vec::new(),
+                        note: Some(e.to_string()),
+                    };
+                    ctx.store.update(id, |f| f.validation = Some(shown));
+                }
+            },
             Action::MapRemote { scheme: s, host: h, port: p, path_prefix, preserve_host: keep } => {
                 target = map_remote(
                     s.as_deref(),
@@ -778,7 +798,10 @@ async fn forward_grpc(
                 return fail(&ctx, id, StatusCode::BAD_GATEWAY, format!("Blocked by the rule “{}”.", rule.name));
             }
             // A breakpoint needs the whole message, and a file or another server does not fit a stream of messages.
-            Action::Breakpoint { .. } | Action::MapLocal { .. } | Action::MapRemote { .. } => {}
+            Action::Breakpoint { .. }
+            | Action::MapLocal { .. }
+            | Action::MapRemote { .. }
+            | Action::Validate { .. } => {}
         }
     }
     if ctx.replay_is_strict() {
@@ -991,6 +1014,9 @@ fn respond_h3(
         f.timing.total_ms = Some(total);
         f.state = FlowState::Completed;
     });
+    if let Some(spec) = ctx.validate.lock().remove(&id) {
+        check_response(ctx.store.clone(), id, spec);
+    }
     if ctx.http3.hides() {
         http3::hide_from_headers(&mut parts.headers);
     }
@@ -1128,7 +1154,42 @@ fn answer(
         f.mocked = true;
         f.state = FlowState::Completed;
     });
+    if let Some(spec) = ctx.validate.lock().remove(&id) {
+        check_response(ctx.store.clone(), id, spec);
+    }
     res
+}
+
+/// Checks a finished response against an OpenAPI file, off the request's own task, and puts the result on the flow.
+fn check_response(store: Arc<FlowStore>, id: FlowId, spec: Arc<Spec>) {
+    let work = move || {
+        let Some(flow) = store.get(id) else { return };
+        let Some(status) = flow.status else { return };
+        let operation_less = |note: &str| Validation {
+            spec: spec.name().to_string(),
+            operation: None,
+            outcome: "unchecked".into(),
+            violations: Vec::new(),
+            note: Some(note.into()),
+        };
+        let result = if flow.response_truncated {
+            operation_less("The body is bigger than what is kept, so it was not checked.")
+        } else {
+            let encoding = Flow::header(&flow.response_headers, "content-encoding");
+            match crate::decode::decode(encoding, &flow.response_body) {
+                Ok(body) => spec.check(&flow.method, &flow.path, status, flow.content_type().as_deref(), &body),
+                Err(e) => operation_less(&format!("The body could not be decoded: {e}")),
+            }
+        };
+        store.update(id, |f| f.validation = Some(result));
+    };
+    // Off the async executor: a big schema takes a moment, and the response is already on its way.
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => {
+            handle.spawn_blocking(work);
+        }
+        Err(_) => work(),
+    }
 }
 
 /// Answers with a file from this computer, for a Map local rule.
@@ -1290,6 +1351,7 @@ fn respond(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, res:
         size: 0,
         trailers: Vec::new(),
         finished: false,
+        check: ctx.validate.lock().remove(&id),
     };
     Response::from_parts(parts, tapped.map_err(|e| -> BoxErr { Box::new(e) }).boxed_unsync())
 }
@@ -1307,6 +1369,8 @@ struct TapBody {
     /// What came after the body, such as gRPC's `grpc-status`.
     trailers: Headers,
     finished: bool,
+    /// An OpenAPI file to check the response against once it has all arrived.
+    check: Option<Arc<Spec>>,
 }
 
 impl TapBody {
@@ -1318,6 +1382,7 @@ impl TapBody {
         let (body, size) = (std::mem::take(&mut self.buf), self.size);
         let trailers = std::mem::take(&mut self.trailers);
         let truncated = size as usize > self.limit;
+        let failed = error.is_some();
         self.store.update(self.id, |f| {
             f.response_body = body;
             f.response_trailers = trailers;
@@ -1332,6 +1397,9 @@ impl TapBody {
                 None => f.state = FlowState::Completed,
             }
         });
+        if !failed && let Some(spec) = self.check.take() {
+            check_response(self.store.clone(), self.id, spec);
+        }
     }
 }
 

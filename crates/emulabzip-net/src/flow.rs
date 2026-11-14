@@ -92,6 +92,9 @@ pub struct Flow {
     /// Where a Map remote rule sent the request instead, when it did.
     #[serde(default)]
     pub mapped_to: Option<String>,
+    /// What checking the response against an OpenAPI file found, when a rule asked for it.
+    #[serde(default)]
+    pub validation: Option<crate::openapi::Validation>,
 }
 
 impl Flow {
@@ -130,6 +133,7 @@ impl Flow {
             source: None,
             operation: None,
             mapped_to: None,
+            validation: None,
         }
     }
 
@@ -177,6 +181,8 @@ impl Flow {
             source: self.source.clone(),
             operation: self.operation.clone(),
             grpc_status: self.grpc_status(),
+            contract: self.validation.as_ref().map(|v| v.outcome.clone()),
+            violations: self.validation.as_ref().map_or(0, |v| v.violations.len()),
         }
     }
 }
@@ -211,6 +217,10 @@ pub struct FlowSummary {
     pub operation: Option<String>,
     /// The gRPC status code when the flow is a gRPC call that ended: 0 is OK.
     pub grpc_status: Option<u32>,
+    /// `ok`, `violations`, `unknown` or `unchecked`, when the response was checked against an OpenAPI file.
+    pub contract: Option<String>,
+    /// How many things were wrong with it.
+    pub violations: usize,
 }
 
 pub fn now_ms() -> u64 {

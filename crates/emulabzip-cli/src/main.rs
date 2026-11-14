@@ -257,6 +257,11 @@ enum Command {
         #[command(subcommand)]
         action: RnAction,
     },
+    /// Check the responses in a HAR file against an OpenAPI description
+    Openapi {
+        #[command(subcommand)]
+        action: OpenapiAction,
+    },
     /// Open a deep link, and check that the domain and the app agree about it
     Link {
         #[command(subcommand)]
@@ -1001,6 +1006,21 @@ enum FlutterAction {
         /// How many classes to list
         #[arg(long, default_value_t = 15)]
         top: usize,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum OpenapiAction {
+    /// Does every response in the HAR file match the spec? Exits with an error when one does not
+    Check {
+        /// The OpenAPI 3.0 or 3.1 file, JSON or YAML
+        #[arg(long)]
+        spec: std::path::PathBuf,
+        /// A HAR file: `emulabzip net --har` writes one, and so does the app
+        #[arg(long)]
+        har: std::path::PathBuf,
         #[arg(long)]
         json: bool,
     },
@@ -1811,6 +1831,7 @@ async fn run() -> ExitCode {
         Command::Rn { action: RnAction::Console { app, metro, seconds, json } } => {
             cmd::frameworks::rn_console(&app, metro, seconds, json).await
         }
+        Command::Openapi { action: OpenapiAction::Check { spec, har, json } } => cmd::openapi::run(&spec, &har, json),
         Command::Link { action: LinkAction::Open { url, app } } => {
             cmd::link::open(&lab, device, &url, app.as_deref()).await
         }
