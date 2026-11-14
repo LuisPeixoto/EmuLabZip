@@ -35,7 +35,7 @@ use crate::flow::{BODY_LIMIT, Flow, FlowId, FlowKind, FlowState, Headers};
 use crate::http3::{self, Http3};
 use crate::io::{BoxIo, Prefixed};
 use crate::replay::{Recorded, ReplaySet};
-use crate::rules::{Action, Rule, RuleSet, mock_bytes};
+use crate::rules::{Action, MAX_MAPPED_FILE, Mapped, Rule, RuleSet, map_remote, mime_for, mock_bytes, resolve_local};
 use crate::store::FlowStore;
 use crate::ws::{Deflate, Direction, FrameParser, MAX_MESSAGES, parse_extensions};
 
@@ -617,15 +617,37 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
     );
     let id = ctx.store.begin(flow);
 
-    // A rule may answer, delay, fail or hold the request.
-    let rule = ctx.rules.find(parts.method.as_str(), &host, &path);
+    // Rules may answer, delay, send elsewhere, fail or hold the request. The first one that matches decides, and one
+    // that only changes the request can let the ones below it apply too.
+    let chain = ctx.rules.matching(parts.method.as_str(), &host, &path);
     let mut headers = parts.headers.clone();
     let mut body = body;
-    if let Some(rule) = &rule {
-        ctx.store.update(id, |f| f.rule = Some(rule.name.clone()));
+    // Where the request goes: the address the app used, unless a Map remote rule says otherwise.
+    let mut target = Mapped { scheme: scheme.to_string(), host: host.to_string(), port, path: path.clone() };
+    let mut preserve_host = false;
+    if !chain.is_empty() {
+        let names: Vec<&str> = chain.iter().map(|r| r.name.as_str()).collect();
+        let shown = names.join(" + ");
+        ctx.store.update(id, |f| f.rule = Some(shown));
+    }
+    for rule in &chain {
         match &rule.action {
             Action::Mock { .. } => return mock(&ctx, id, started, client_version, rule).await,
+            Action::MapLocal { .. } => return map_local(&ctx, id, started, client_version, rule, &path).await,
             Action::Delay { ms } => tokio::time::sleep(std::time::Duration::from_millis(*ms)).await,
+            Action::MapRemote { scheme: s, host: h, port: p, path_prefix, preserve_host: keep } => {
+                target = map_remote(
+                    s.as_deref(),
+                    h.as_deref(),
+                    *p,
+                    path_prefix.as_deref(),
+                    rule.matcher.path.as_deref(),
+                    &target,
+                );
+                preserve_host = *keep;
+                let shown = format!("{}://{}:{}{}", target.scheme, target.host, target.port, target.path);
+                ctx.store.update(id, |f| f.mapped_to = Some(shown));
+            }
             Action::Block => {
                 return fail(&ctx, id, StatusCode::BAD_GATEWAY, format!("Blocked by the rule “{}”.", rule.name));
             }
@@ -670,11 +692,15 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
         }
     }
 
-    let uri =
-        match Uri::builder().scheme(scheme).authority(format!("{host}:{port}")).path_and_query(path.as_str()).build() {
-            Ok(uri) => uri,
-            Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
-        };
+    let uri = match Uri::builder()
+        .scheme(target.scheme.as_str())
+        .authority(format!("{}:{}", target.host, target.port))
+        .path_and_query(target.path.as_str())
+        .build()
+    {
+        Ok(uri) => uri,
+        Err(e) => return fail(&ctx, id, StatusCode::BAD_REQUEST, format!("The address is not valid: {e}")),
+    };
     let h3_body = body.clone();
     let mut upstream = Request::new(full(body));
     *upstream.method_mut() = parts.method.clone();
@@ -688,19 +714,26 @@ async fn forward(req: Request<Incoming>, ctx: Arc<Ctx>, scheme: &str, host: &str
             upstream.headers_mut().append(name.clone(), value.clone());
         }
     }
+    if preserve_host && let Ok(value) = header::HeaderValue::from_str(&host) {
+        upstream.headers_mut().insert(header::HOST, value);
+    }
 
-    let holds_response = matches!(rule.as_ref().map(|r| &r.action), Some(Action::Breakpoint { response: true, .. }));
-    if scheme == "https"
+    let holds_response = chain.iter().any(|r| matches!(r.action, Action::Breakpoint { response: true, .. }));
+    if target.scheme == "https"
         && !holds_response
-        && let Some(udp_port) = ctx.http3.port_for(&host, port)
+        && let Some(udp_port) = ctx.http3.port_for(&target.host, target.port)
     {
-        let sent =
-            ctx.http3.request(&host, udp_port, parts.method.clone(), &path, upstream.headers(), h3_body.clone()).await;
+        let sent = ctx
+            .http3
+            .request(&target.host, udp_port, parts.method.clone(), &target.path, upstream.headers(), h3_body.clone())
+            .await;
         match sent {
-            Ok((head, bytes)) => return respond_h3(&ctx, id, started, client_version, &host, port, head, bytes),
+            Ok((head, bytes)) => {
+                return respond_h3(&ctx, id, started, client_version, &target.host, target.port, head, bytes);
+            }
             Err(e) => {
-                tracing::debug!(%host, error = %error_chain(&*e), "HTTP/3 failed; using TCP");
-                ctx.http3.failed(&host, port);
+                tracing::debug!(host = %target.host, error = %error_chain(&*e), "HTTP/3 failed; using TCP");
+                ctx.http3.failed(&target.host, target.port);
             }
         }
     }
@@ -744,7 +777,8 @@ async fn forward_grpc(
             Action::Block => {
                 return fail(&ctx, id, StatusCode::BAD_GATEWAY, format!("Blocked by the rule “{}”.", rule.name));
             }
-            Action::Breakpoint { .. } => {}
+            // A breakpoint needs the whole message, and a file or another server does not fit a stream of messages.
+            Action::Breakpoint { .. } | Action::MapLocal { .. } | Action::MapRemote { .. } => {}
         }
     }
     if ctx.replay_is_strict() {
@@ -1059,16 +1093,29 @@ async fn mock(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, r
         Ok(bytes) => bytes,
         Err(e) => return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     };
+    answer(ctx, id, started, version, *status, headers, bytes)
+}
+
+/// Answers with a made-up response and records it as the flow's answer.
+fn answer(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    status: u16,
+    headers: &Headers,
+    bytes: Vec<u8>,
+) -> Resp {
     let mut map = to_header_map(headers);
     // The length is the body's, whatever the rule said.
     map.remove(header::CONTENT_LENGTH);
     map.remove(header::TRANSFER_ENCODING);
     let mut res = Response::new(full(bytes.clone()));
-    *res.status_mut() = StatusCode::from_u16(*status).unwrap_or(StatusCode::OK);
+    *res.status_mut() = StatusCode::from_u16(status).unwrap_or(StatusCode::OK);
     *res.headers_mut() = map;
     *res.version_mut() = version;
     let total = started.elapsed().as_millis() as u64;
-    let (code, shown) = (*status, header_list(res.headers()));
+    let (code, shown) = (status, header_list(res.headers()));
     let size = bytes.len() as u64;
     ctx.store.update(id, |f| {
         f.status = Some(code);
@@ -1082,6 +1129,50 @@ async fn mock(ctx: &Ctx, id: FlowId, started: Instant, version: http::Version, r
         f.state = FlowState::Completed;
     });
     res
+}
+
+/// Answers with a file from this computer, for a Map local rule.
+async fn map_local(
+    ctx: &Ctx,
+    id: FlowId,
+    started: Instant,
+    version: http::Version,
+    rule: &Rule,
+    request_path: &str,
+) -> Resp {
+    let Action::MapLocal { path, content_type, status } = &rule.action else {
+        return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, "Not a map-local rule.".into());
+    };
+    let (root, matcher_path, request_path) =
+        (std::path::PathBuf::from(path), rule.matcher.path.clone(), request_path.to_string());
+    let file = tokio::task::spawn_blocking(move || resolve_local(&root, matcher_path.as_deref(), &request_path)).await;
+    let file = match file {
+        Ok(Ok(file)) => file,
+        Ok(Err(e)) => {
+            return fail(ctx, id, StatusCode::NOT_FOUND, format!("The rule “{}” has nothing to serve: {e}", rule.name));
+        }
+        Err(e) => return fail(ctx, id, StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    };
+    match tokio::fs::metadata(&file).await {
+        Ok(m) if m.len() > MAX_MAPPED_FILE => {
+            return fail(
+                ctx,
+                id,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("{} is too big to serve.", file.display()),
+            );
+        }
+        Ok(_) => {}
+        Err(e) => return fail(ctx, id, StatusCode::NOT_FOUND, e.to_string()),
+    }
+    let bytes = match tokio::fs::read(&file).await {
+        Ok(bytes) => bytes,
+        Err(e) => return fail(ctx, id, StatusCode::NOT_FOUND, format!("Could not read {}: {e}", file.display())),
+    };
+    let kind = content_type.clone().unwrap_or_else(|| mime_for(&file).to_string());
+    let shown = file.display().to_string();
+    ctx.store.update(id, |f| f.mapped_to = Some(shown));
+    answer(ctx, id, started, version, status.unwrap_or(200), &vec![("content-type".to_string(), kind)], bytes)
 }
 
 /// Holds a response at a breakpoint. The body is read in full and decoded, so it can be edited as

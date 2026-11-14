@@ -436,6 +436,7 @@ fn rule(name: &str, path: &str, action: Action) -> Rule {
         enabled: true,
         matcher: Matcher { path: Some(path.into()), ..Default::default() },
         action,
+        then_continue: false,
     }
 }
 
@@ -500,6 +501,75 @@ async fn a_mock_can_have_a_binary_body_and_a_delay() {
     let (_, _, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
     assert_eq!(&body[..], &[0xff, 0xfe, 0x00]);
     assert!(started.elapsed() >= Duration::from_millis(300));
+}
+
+#[tokio::test]
+async fn a_map_remote_rule_sends_the_request_to_another_server() {
+    let upstream = start_upstream(false).await;
+    let mut to_local = rule(
+        "to local",
+        "/api/*",
+        Action::MapRemote {
+            scheme: None,
+            host: Some("127.0.0.1".into()),
+            port: Some(upstream.addr.port()),
+            path_prefix: Some("/".into()),
+            preserve_host: false,
+        },
+    );
+    to_local.then_continue = false;
+    let rig = start_proxy_with_rules(vec![to_local]).await;
+    // The app asks a server that does not exist; the rule sends it to the real one, with the path rewritten.
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, _, body) = send_h1(client, get("http://unreachable.invalid/api/hello")).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+    let flow = flow_where(&rig.store, "the mapped flow", |f| f.state == FlowState::Completed).await;
+    assert_eq!(flow.host, "unreachable.invalid", "the flow shows what the app asked");
+    assert_eq!(flow.rule.as_deref(), Some("to local"));
+    assert_eq!(flow.mapped_to.as_deref(), Some(format!("http://127.0.0.1:{}/hello", upstream.addr.port()).as_str()));
+}
+
+#[tokio::test]
+async fn a_map_local_rule_answers_with_a_file_and_stays_inside_its_folder() {
+    let upstream = start_upstream(false).await;
+    let dir = std::env::temp_dir().join(format!("emulabzip-e2e-maplocal-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("hello.txt"), "from a file").unwrap();
+    std::fs::write(dir.join("data.json"), "{\"a\":1}").unwrap();
+    std::fs::write(dir.parent().unwrap().join(format!("emulabzip-secret-{}", std::process::id())), "secret").unwrap();
+    let rig = start_proxy_with_rules(vec![rule(
+        "local files",
+        "/files/*",
+        Action::MapLocal { path: dir.display().to_string(), content_type: None, status: None },
+    )])
+    .await;
+    let ask = |path: String| {
+        let addr = upstream.addr;
+        let proxy = rig.proxy.addr();
+        async move {
+            let client = TcpStream::connect(proxy).await.unwrap();
+            send_h1(client, get(&format!("http://{addr}{path}"))).await
+        }
+    };
+    let (status, headers, body) = ask("/files/hello.txt".into()).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"from a file"[..]));
+    assert_eq!(headers["content-type"], "text/plain; charset=utf-8");
+    let (_, headers, _) = ask("/files/data.json".into()).await;
+    assert_eq!(headers["content-type"], "application/json");
+    let (status, _, _) = ask("/files/missing.txt".into()).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let secret = format!("/files/..%2Femulabzip-secret-{}", std::process::id());
+    let (status, _, body) = ask(secret).await;
+    assert_ne!(status, StatusCode::OK);
+    assert!(!String::from_utf8_lossy(&body).contains("secret\n") || status != StatusCode::OK);
+    let flow =
+        flow_where(&rig.store, "the file flow", |f| f.path == "/files/hello.txt" && f.state == FlowState::Completed)
+            .await;
+    assert!(flow.mocked);
+    assert!(flow.mapped_to.as_deref().is_some_and(|p| p.ends_with("hello.txt")));
+    std::fs::remove_dir_all(&dir).ok();
+    std::fs::remove_file(dir.parent().unwrap().join(format!("emulabzip-secret-{}", std::process::id()))).ok();
 }
 
 #[tokio::test]

@@ -89,6 +89,9 @@ pub struct Flow {
     pub source: Option<String>,
     /// What the request asks for when it is GraphQL or gRPC: an operation or `Service/Method`.
     pub operation: Option<String>,
+    /// Where a Map remote rule sent the request instead, when it did.
+    #[serde(default)]
+    pub mapped_to: Option<String>,
 }
 
 impl Flow {
@@ -126,6 +129,7 @@ impl Flow {
             messages_dropped: 0,
             source: None,
             operation: None,
+            mapped_to: None,
         }
     }
 
