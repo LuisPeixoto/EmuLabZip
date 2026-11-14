@@ -503,6 +503,74 @@ async fn a_mock_can_have_a_binary_body_and_a_delay() {
     assert!(started.elapsed() >= Duration::from_millis(300));
 }
 
+async fn start_proxy_with_scripts(approved: Vec<String>, rules: Vec<Rule>) -> Rig {
+    let ca = Arc::new(CertificateAuthority::generate().unwrap());
+    let store = FlowStore::new(1000);
+    let config = ProxyConfig {
+        addr: "127.0.0.1:0".parse().unwrap(),
+        script_approvals: emulabzip_net::script::ApprovalPolicy::Only(approved),
+        ..Default::default()
+    };
+    let proxy = Proxy::start(config, ca.clone(), store.clone()).await.unwrap();
+    proxy.rules().set(rules).unwrap();
+    Rig { proxy, store, ca }
+}
+
+fn example_script(name: &str) -> (String, String) {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/rule-scripts/dist").join(name);
+    let path = std::fs::canonicalize(path).unwrap();
+    let sha = emulabzip_net::script::Script::load(&path).unwrap().sha256;
+    (path.display().to_string(), sha)
+}
+
+#[tokio::test]
+async fn a_script_rule_changes_the_response_only_when_the_script_is_approved() {
+    let upstream = start_upstream(false).await;
+    let (path, sha) = example_script("add-header.wasm");
+    let script_rule = || rule("headers", "/hello", Action::Script { path: path.clone() });
+
+    let rig = start_proxy_with_scripts(vec![sha], vec![script_rule()]).await;
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, headers, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+    assert_eq!(headers["x-emulabzip-script"], "add-header: response");
+    let flow = flow_where(&rig.store, "the scripted flow", |f| f.state == FlowState::Completed).await;
+    assert_eq!(flow.rule.as_deref(), Some("headers"));
+    assert!(flow.response_headers.iter().any(|(k, v)| k == "x-emulabzip-script" && v.ends_with("response")));
+    assert!(
+        flow.request_headers.iter().any(|(k, v)| k == "x-emulabzip-script" && v.ends_with("request")),
+        "the request script ran too"
+    );
+
+    // The same script, not approved: the request goes through untouched, and the flow says why.
+    let rig = start_proxy_with_scripts(vec![], vec![script_rule()]).await;
+    let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+    let (status, headers, body) = send_h1(client, get(&format!("http://{}/hello", upstream.addr))).await;
+    assert_eq!((status, &body[..]), (StatusCode::OK, &b"hello"[..]));
+    assert!(!headers.contains_key("x-emulabzip-script"));
+    let flow = flow_where(&rig.store, "the unapproved flow", |f| f.state == FlowState::Completed).await;
+    assert!(flow.script_notes.iter().any(|n| n.contains("has not been approved")), "{:?}", flow.script_notes);
+}
+
+#[tokio::test]
+async fn a_script_can_answer_a_request_itself() {
+    let upstream = start_upstream(false).await;
+    let (path, sha) = example_script("flaky.wasm");
+    let rig = start_proxy_with_scripts(vec![sha], vec![rule("flaky", "/*", Action::Script { path })]).await;
+    let (mut failed, mut passed) = (0, 0);
+    for i in 0..20 {
+        let client = TcpStream::connect(rig.proxy.addr()).await.unwrap();
+        let (status, _, _) = send_h1(client, get(&format!("http://{}/item/{i}", upstream.addr))).await;
+        if status == StatusCode::SERVICE_UNAVAILABLE {
+            failed += 1;
+        } else {
+            assert_eq!(status, StatusCode::NOT_FOUND, "the upstream has no /item");
+            passed += 1;
+        }
+    }
+    assert!(failed > 0 && passed > 0, "about a third fail: {failed} failed, {passed} passed");
+}
+
 #[tokio::test]
 async fn a_validate_rule_checks_the_response_against_an_openapi_file() {
     let upstream = start_upstream(false).await;

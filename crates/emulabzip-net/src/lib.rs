@@ -26,6 +26,7 @@ pub mod protos;
 pub mod proxy;
 pub mod replay;
 pub mod rules;
+pub mod script;
 pub mod store;
 pub mod ws;
 

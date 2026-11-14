@@ -100,6 +100,9 @@ pub enum Action {
     /// Check the response against an OpenAPI description (a file on this computer, JSON or YAML). The answer is not
     /// changed: what is wrong shows on the flow. Add `thenContinue` to let the rules below apply too.
     Validate { spec: String },
+    /// Run a WebAssembly script on the request and on the response. It can change them, answer at once, or fail the
+    /// request, and it runs only after its exact file has been approved. See `docs/rule-scripts.md`.
+    Script { path: String },
     /// Send the request to another server, as if the app had asked for it. What is left out stays as it was.
     #[serde(rename_all = "camelCase")]
     MapRemote {
@@ -355,6 +358,13 @@ impl Rule {
                 {
                     return Err(Error::invalid("path", p.clone()));
                 }
+            }
+            Action::Script { path } => {
+                if !Path::new(path).is_absolute() {
+                    return Err(Error::invalid("script", "give the full path of the .wasm file"));
+                }
+                // Read now, so a file that cannot run as a script is said when the rule is saved.
+                crate::script::Script::load(Path::new(path))?;
             }
             Action::Validate { spec } => {
                 if !Path::new(spec).is_absolute() {

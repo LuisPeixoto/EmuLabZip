@@ -36,9 +36,14 @@ serde.workspace = true
 serde_json.workspace = true
 serde_yaml_ng.workspace = true
 jsonschema.workspace = true
+sha2.workspace = true
+wasmi.workspace = true
 time.workspace = true
 tokio.workspace = true
 tokio-rustls.workspace = true
 tracing.workspace = true
 webpki-roots.workspace = true
 zstd.workspace = true
+
+[dev-dependencies]
+wat.workspace = true
