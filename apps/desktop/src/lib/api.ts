@@ -1178,7 +1178,11 @@ export type Control =
   | { action: "notification"; app: string; title: string; body: string; payload: string | null }
   | { action: "openUrl"; url: string }
   | { action: "battery"; level: number; charging: boolean }
-  | { action: "resetBattery" };
+  | { action: "resetBattery" }
+  | { action: "tap"; x: number; y: number }
+  | { action: "swipe"; x1: number; y1: number; x2: number; y2: number; durationMs: number | null }
+  | { action: "text"; text: string }
+  | { action: "key"; key: string };
 
 export interface ControlInfo {
   appearance: Appearance | null;

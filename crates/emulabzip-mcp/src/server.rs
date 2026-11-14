@@ -1227,6 +1227,37 @@ impl EmuLabServer {
     }
 
     #[tool(
+        description = "Touch a point of the screen of an Android device. Positions are pixels, as in a screenshot (get_layout lists where each view is). iOS has no public way to send touches."
+    )]
+    async fn tap(&self, Parameters(a): Parameters<args::Tap>) -> CallToolResult {
+        reply(self.control(&a.device, Control::Tap { x: a.x, y: a.y }, "Tapped").await)
+    }
+
+    #[tool(
+        description = "Drag a finger across the screen of an Android device, from one point to another in pixels. From a point to itself it is a long press."
+    )]
+    async fn swipe(&self, Parameters(a): Parameters<args::Swipe>) -> CallToolResult {
+        reply(
+            self.control(
+                &a.device,
+                Control::Swipe { x1: a.x1, y1: a.y1, x2: a.x2, y2: a.y2, duration_ms: a.duration_ms },
+                "Swiped",
+            )
+            .await,
+        )
+    }
+
+    #[tool(description = "Type text into the focused field of an Android device. Printable ASCII only.")]
+    async fn input_text(&self, Parameters(a): Parameters<args::InputText>) -> CallToolResult {
+        reply(self.control(&a.device, Control::Text { text: a.text }, "Typed").await)
+    }
+
+    #[tool(description = "Press a key on an Android device: back, home, enter, tab, delete, volume_up, app_switch…")]
+    async fn press_key(&self, Parameters(a): Parameters<args::PressKey>) -> CallToolResult {
+        reply(self.control(&a.device, Control::Key { key: a.key }, "Pressed").await)
+    }
+
+    #[tool(
         description = "Pretend the battery is at a level, charging or not (Android); or go back to the real battery."
     )]
     async fn control_battery(&self, Parameters(a): Parameters<args::Battery>) -> CallToolResult {

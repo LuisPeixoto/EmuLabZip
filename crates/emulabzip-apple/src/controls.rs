@@ -65,6 +65,11 @@ pub fn args_for(control: &Control) -> Result<Vec<Vec<String>>> {
         Control::Display { .. } | Control::ResetDisplay => {
             return Err(Error::Unsupported("Changing the screen size of the simulator"));
         }
+        Control::Tap { .. } | Control::Swipe { .. } | Control::Text { .. } | Control::Key { .. } => {
+            return Err(Error::Unsupported(
+                "Touches, keys and text on the simulator (iOS has no public way to send them)",
+            ));
+        }
         Control::Battery { .. } | Control::ResetBattery => {
             return Err(Error::Unsupported(
                 "Changing the battery of the simulator (use the status bar to show another level)",

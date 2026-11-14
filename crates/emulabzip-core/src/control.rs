@@ -93,6 +93,29 @@ pub enum Control {
         density: Option<u32>,
     },
     ResetDisplay,
+    /// A touch at a point of the screen, in pixels. Android only: iOS has no public way to send touches.
+    Tap {
+        x: u32,
+        y: u32,
+    },
+    /// A finger dragged from one point to another, in pixels, taking `duration_ms` (300 by default). A swipe from a
+    /// point to itself is a long press.
+    #[serde(rename_all = "camelCase")]
+    Swipe {
+        x1: u32,
+        y1: u32,
+        x2: u32,
+        y2: u32,
+        duration_ms: Option<u32>,
+    },
+    /// Typed text. Android can only type printable ASCII this way.
+    Text {
+        text: String,
+    },
+    /// A key by name: `back`, `home`, `enter`… see [`KEYS`].
+    Key {
+        key: String,
+    },
 }
 
 /// What a device supports, and its state right now.
@@ -114,6 +137,48 @@ pub struct PermissionState {
     pub name: String,
     pub granted: bool,
 }
+
+/// The keys that can be pressed, by the name people use and Android's key code.
+pub const KEYS: &[(&str, &str)] = &[
+    ("back", "KEYCODE_BACK"),
+    ("home", "KEYCODE_HOME"),
+    ("app_switch", "KEYCODE_APP_SWITCH"),
+    ("menu", "KEYCODE_MENU"),
+    ("search", "KEYCODE_SEARCH"),
+    ("enter", "KEYCODE_ENTER"),
+    ("tab", "KEYCODE_TAB"),
+    ("escape", "KEYCODE_ESCAPE"),
+    ("delete", "KEYCODE_DEL"),
+    ("forward_delete", "KEYCODE_FORWARD_DEL"),
+    ("space", "KEYCODE_SPACE"),
+    ("volume_up", "KEYCODE_VOLUME_UP"),
+    ("volume_down", "KEYCODE_VOLUME_DOWN"),
+    ("mute", "KEYCODE_VOLUME_MUTE"),
+    ("power", "KEYCODE_POWER"),
+    ("wakeup", "KEYCODE_WAKEUP"),
+    ("sleep", "KEYCODE_SLEEP"),
+    ("dpad_up", "KEYCODE_DPAD_UP"),
+    ("dpad_down", "KEYCODE_DPAD_DOWN"),
+    ("dpad_left", "KEYCODE_DPAD_LEFT"),
+    ("dpad_right", "KEYCODE_DPAD_RIGHT"),
+    ("dpad_center", "KEYCODE_DPAD_CENTER"),
+    ("page_up", "KEYCODE_PAGE_UP"),
+    ("page_down", "KEYCODE_PAGE_DOWN"),
+    ("move_home", "KEYCODE_MOVE_HOME"),
+    ("move_end", "KEYCODE_MOVE_END"),
+];
+
+/// Android's key code for a key name.
+pub fn key_code(name: &str) -> Option<&'static str> {
+    KEYS.iter().find(|(n, _)| *n == name).map(|(_, code)| *code)
+}
+
+/// The largest coordinate, text length and swipe time that are sent to a device.
+pub const MAX_COORDINATE: u32 = 20_000;
+pub const MAX_TEXT: usize = 1000;
+pub const MAX_SWIPE_MS: u32 = 10_000;
+/// How long a swipe takes when it does not say.
+pub const DEFAULT_SWIPE_MS: u32 = 300;
 
 /// Schemes that read local data or run code, which a "open this link" control must not allow.
 const BLOCKED_SCHEMES: &[&str] = &["file", "javascript", "data", "content", "intent", "vbscript", "about"];
@@ -236,6 +301,42 @@ impl Control {
                     return Err(Error::invalid("density (72 to 1200 dpi)", density.unwrap_or(0).to_string()));
                 }
             }
+            Control::Tap { x, y } => {
+                for (what, v) in [("x", *x), ("y", *y)] {
+                    if v > MAX_COORDINATE {
+                        return Err(Error::invalid("a screen position in pixels", format!("{what} {v}")));
+                    }
+                }
+            }
+            Control::Swipe { x1, y1, x2, y2, duration_ms } => {
+                for (what, v) in [("x1", *x1), ("y1", *y1), ("x2", *x2), ("y2", *y2)] {
+                    if v > MAX_COORDINATE {
+                        return Err(Error::invalid("a screen position in pixels", format!("{what} {v}")));
+                    }
+                }
+                if duration_ms.is_some_and(|d| d == 0 || d > MAX_SWIPE_MS) {
+                    return Err(Error::invalid(
+                        "swipe time in milliseconds (1 to 10000)",
+                        duration_ms.unwrap_or(0).to_string(),
+                    ));
+                }
+            }
+            Control::Text { text } => {
+                if text.is_empty() || text.chars().count() > MAX_TEXT {
+                    return Err(Error::invalid("text (1 to 1000 characters)", format!("{} characters", text.len())));
+                }
+                // `input text` can only type what a keyboard of the US layout has, and reads `%s` as a space.
+                if let Some(c) = text.chars().find(|c| !(' '..='~').contains(c)) {
+                    return Err(Error::invalid("text (only printable ASCII can be typed this way)", format!("{c:?}")));
+                }
+                if text.contains("%s") {
+                    return Err(Error::invalid("text", "it cannot contain `%s`, which Android reads as a space"));
+                }
+            }
+            Control::Key { key } if key_code(key).is_none() => {
+                let names: Vec<&str> = KEYS.iter().map(|(n, _)| *n).collect();
+                return Err(Error::invalid("key", format!("{key} (use one of: {})", names.join(", "))));
+            }
             _ => {}
         }
         Ok(())
@@ -265,6 +366,37 @@ mod tests {
         for (lat, lon) in [("91", "0"), ("0", "181"), ("x", "0"), ("NaN", "0"), ("inf", "0"), ("", "")] {
             assert!(loc(lat, lon).validate().is_err(), "{lat} {lon}");
         }
+    }
+
+    #[test]
+    fn touches_keys_and_text_are_checked() {
+        let ok = |c: Control| c.validate().is_ok();
+        assert!(ok(Control::Tap { x: 540, y: 1200 }));
+        assert!(!ok(Control::Tap { x: MAX_COORDINATE + 1, y: 0 }));
+        assert!(ok(Control::Swipe { x1: 1, y1: 2, x2: 3, y2: 4, duration_ms: None }));
+        assert!(ok(Control::Swipe { x1: 1, y1: 2, x2: 1, y2: 2, duration_ms: Some(MAX_SWIPE_MS) }));
+        assert!(!ok(Control::Swipe { x1: 1, y1: 2, x2: 3, y2: 4, duration_ms: Some(0) }));
+        assert!(!ok(Control::Swipe { x1: 1, y1: 2, x2: 3, y2: 4, duration_ms: Some(MAX_SWIPE_MS + 1) }));
+        assert!(!ok(Control::Swipe { x1: 0, y1: 0, x2: 0, y2: MAX_COORDINATE + 1, duration_ms: None }));
+        assert!(ok(Control::Text { text: "Hello, World! 100% & more".into() }));
+        for bad in ["", "caf\u{e9}", "tab\there", "line\nbreak", "50%send", "\u{1b}[0m"] {
+            assert!(!ok(Control::Text { text: bad.into() }), "{bad:?}");
+        }
+        assert!(!ok(Control::Text { text: "x".repeat(MAX_TEXT + 1) }));
+        assert!(ok(Control::Text { text: "x".repeat(MAX_TEXT) }));
+        assert!(ok(Control::Key { key: "back".into() }));
+        assert!(!ok(Control::Key { key: "KEYCODE_BACK; reboot".into() }));
+        assert_eq!(key_code("enter"), Some("KEYCODE_ENTER"));
+        assert_eq!(key_code("nope"), None);
+    }
+
+    #[test]
+    fn input_controls_are_named_like_the_others_in_json() {
+        let json = serde_json::to_value(Control::Swipe { x1: 1, y1: 2, x2: 3, y2: 4, duration_ms: Some(500) }).unwrap();
+        assert_eq!(json["action"], "swipe");
+        assert_eq!(json["durationMs"], 500);
+        let back: Control = serde_json::from_value(serde_json::json!({ "action": "tap", "x": 5, "y": 6 })).unwrap();
+        assert_eq!(back, Control::Tap { x: 5, y: 6 });
     }
 
     #[test]
