@@ -87,7 +87,7 @@
         <span class="mono text-base font-semibold {flow.status >= 400 ? 'text-err' : flow.status >= 300 ? 'text-info' : 'text-ok'}">{flow.status}</span>
       {/if}
       {#if flow.mocked}<span class="rounded-md bg-accent-soft px-1.5 py-px text-2xs font-semibold text-accent" title="Answered by a rule">MOCK</span>{:else if flow.rule}<span class="rounded-md bg-warn/12 px-1.5 py-px text-2xs font-semibold text-warn" title="A rule matched this request">RULE</span>{/if}
-      {#if flow.source}<span class="rounded-md bg-hover px-1.5 py-px text-2xs font-semibold text-muted" title={flow.source === "resend" ? "Sent again from this app" : "Imported from a capture file"}>{flow.source.toUpperCase()}</span>{/if}
+      {#if flow.source}<span class="rounded-md bg-hover px-1.5 py-px text-2xs font-semibold text-muted" title={flow.source === "resend" ? "Sent again from this app" : flow.source === "webview" ? "Seen by the page itself, through the WebView's DevTools" : "Imported from a capture file"}>{flow.source.toUpperCase()}</span>{/if}
       {#if flow.operation}<span class="mono max-w-[220px] truncate rounded-md bg-hover px-1.5 py-px text-2xs font-semibold" title="The operation this request carries">{flow.operation}</span>{/if}
       {#if flow.kind === "http" && !flow.source && !flow.mocked}
         <button onclick={() => net.resend(flow.id)} title="Send this request again as it was" class="flex h-7 items-center gap-1.5 rounded-lg px-2 text-sm text-muted hover:bg-hover hover:text-fg"><Icon name="refresh" size={13} />Resend</button>
