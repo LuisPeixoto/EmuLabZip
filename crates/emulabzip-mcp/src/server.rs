@@ -23,7 +23,7 @@ use tokio::sync::watch;
 
 use crate::args;
 
-mod tools;
+pub(crate) mod tools;
 
 /// The longest text a tool returns. Assistants read what we send, so keep it focused.
 const MAX_TEXT: usize = 60_000;
@@ -50,6 +50,8 @@ impl EmuLabServer {
             + Self::network_router()
             + Self::watches_router()
             + Self::storage_router()
+            + Self::storage_data_router()
+            + Self::recording_router()
             + Self::quality_router()
             + Self::sessions_router()
             + Self::crashes_router()

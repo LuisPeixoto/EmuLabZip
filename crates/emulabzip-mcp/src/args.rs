@@ -633,3 +633,70 @@ pub struct WatchId {
     /// The watch's id, from `watch_start`.
     pub id: u64,
 }
+
+// ---------------------------------------------------------------------------------------------
+// Storage and sessions
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct StorageApp {
+    pub device: Option<String>,
+    /// The app: a package name or bundle id.
+    pub app: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReadDatabase {
+    pub device: Option<String>,
+    pub app: String,
+    /// The root `storage_roots` shows: `data`, `external`, `bundle`…
+    pub root: String,
+    /// The path inside the root, as `list_files` shows it: `databases/app.db`.
+    pub path: String,
+    /// A table (SQLite), class (Realm) or entity (Core Data) to read rows from. Without it, the tables and their columns.
+    pub table: Option<String>,
+    /// Where to start in the table (default 0).
+    pub offset: Option<u64>,
+    /// How many rows (default 50, at most 500).
+    pub limit: Option<u64>,
+    /// Instead of a table: one read-only SQL statement (SQLite). A statement that would change the database is refused.
+    pub sql: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReadPreferences {
+    pub device: Option<String>,
+    pub app: String,
+    pub root: String,
+    /// The path inside the root.
+    pub path: String,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct SessionStart {
+    pub device: Option<String>,
+    /// A name for the recording, such as `checkout-bug`. It is saved as `<name>.ezsession` and shown by `list_sessions`.
+    /// Left out, it is named after the time.
+    pub name: Option<String>,
+    /// The app the recording is about: its crashes are kept and its numbers sampled.
+    pub app: Option<String>,
+    /// Record the screen, in pieces of this many seconds (5 to 60).
+    pub video_seconds: Option<u32>,
+    /// Also keep the network: the proxy is started if needed and the device pointed at it. Requests already captured are
+    /// forgotten first, so the session holds only its own.
+    pub network: Option<bool>,
+    /// Record touches (Android).
+    pub touches: Option<bool>,
+    /// Take a screenshot this often, in seconds.
+    pub screenshot_every_seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SessionCompare {
+    /// The recording to compare against, as `list_sessions` shows it.
+    pub baseline: String,
+    /// The recording to judge.
+    pub run: String,
+    /// How much worse a number may get before it counts as a regression, in percent (default 10).
+    pub tolerance_percent: Option<f64>,
+}
