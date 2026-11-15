@@ -1256,7 +1256,7 @@ name = "emulabzip-cli"
 version = "0.14.0"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
+ "base64 0.23.1",
  "clap",
  "emulabzip-android",
  "emulabzip-apple",
@@ -1300,7 +1300,7 @@ dependencies = [
 name = "emulabzip-desktop"
 version = "0.14.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "emulabzip-android",
  "emulabzip-apple",
  "emulabzip-audit",
@@ -1352,7 +1352,7 @@ dependencies = [
 name = "emulabzip-mcp"
 version = "0.14.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "emulabzip-audit",
  "emulabzip-core",
  "emulabzip-frameworks",
@@ -1375,7 +1375,7 @@ dependencies = [
 name = "emulabzip-net"
 version = "0.14.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "brotli 8.0.4",
  "bytes",
  "emulabzip-core",
@@ -1429,7 +1429,7 @@ dependencies = [
 name = "emulabzip-report"
 version = "0.14.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "emulabzip-core",
  "emulabzip-net",
  "emulabzip-session",
@@ -1459,7 +1459,7 @@ name = "emulabzip-storage"
 version = "0.14.0"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "emulabzip-core",
  "plist",
  "roxmltree",
