@@ -6,6 +6,11 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **Documentation on the website.** Every guide in `docs/` is on <https://emulabzip.luispeixoto.dev/docs/> with search, in English,
+  Portuguese, Spanish and Chinese, and the landing page links each feature to its guide.
+
 ## [0.14.0] - 2026-11-14
 
 Phase 14: AI with context.
