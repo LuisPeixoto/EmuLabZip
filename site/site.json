@@ -42,6 +42,7 @@
       "lang": "zh-Hans",
       "hreflang": "zh-Hans",
       "label": "中文",
+      "docs": true,
       "og": "zh_CN"
     }
   ],
