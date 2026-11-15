@@ -13,6 +13,10 @@ on:
         description: "Only check the articles, links and images; publish nothing"
         type: boolean
         default: false
+      update:
+        description: "Re-send the text of the posts that are already live, instead of publishing new ones"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,6 +33,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Test how the text is prepared
+        run: node --test marketing/devto/reflow.test.mjs
       - name: Check the articles
         run: node marketing/devto/publish.mjs --dry-run
       - name: Publish what is due
@@ -37,4 +43,4 @@ jobs:
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
         run: |
           if [ -z "$DEVTO_API_KEY" ]; then echo "DEVTO_API_KEY is not set: nothing published."; exit 0; fi
-          node marketing/devto/publish.mjs --max 2
+          if [ "${{ inputs.update }}" = "true" ]; then node marketing/devto/publish.mjs --update; else node marketing/devto/publish.mjs --max 2; fi
