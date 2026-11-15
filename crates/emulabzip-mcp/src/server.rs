@@ -39,12 +39,18 @@ const MAX_RECORD_S: u32 = 120;
 pub struct EmuLabServer {
     lab: Lab,
     hub: std::sync::Arc<crate::hub::Hub>,
+    pub(crate) policy: crate::policy::Policy,
     tool_router: ToolRouter<EmuLabServer>,
 }
 
 impl EmuLabServer {
     pub fn new(lab: Lab) -> Self {
-        let tool_router = Self::devices_router()
+        Self::with_policy(lab, crate::policy::Policy::default())
+    }
+
+    /// The server, offering the tools that change or destroy data only when the policy allows them.
+    pub fn with_policy(lab: Lab, policy: crate::policy::Policy) -> Self {
+        let mut tool_router = Self::devices_router()
             + Self::profiling_router()
             + Self::frameworks_router()
             + Self::network_router()
@@ -58,7 +64,13 @@ impl EmuLabServer {
             + Self::crashes_router()
             + Self::controls_router()
             + Self::automation_router();
-        EmuLabServer { lab, hub: crate::hub::Hub::new(), tool_router }
+        if policy.allow_writes {
+            tool_router += Self::writes_router();
+        }
+        // The list of gated tools is what is offered with writes on, and nothing else; nothing human-only is offered.
+        debug_assert!(crate::policy::GATED.iter().all(|n| tool_router.has_route(n) == policy.allow_writes));
+        debug_assert!(crate::policy::NEVER.iter().all(|n| !tool_router.has_route(n)));
+        EmuLabServer { lab, hub: crate::hub::Hub::new(), policy, tool_router }
     }
 
     /// What the server keeps between calls.

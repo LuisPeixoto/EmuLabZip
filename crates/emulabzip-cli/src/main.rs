@@ -513,7 +513,14 @@ enum Command {
         action: PluginAction,
     },
     /// Serve the devices to an AI assistant over MCP (standard input and output)
-    Mcp,
+    Mcp {
+        /// Also offer the tools that wipe, delete, restore or rewrite data. Each call asks you to confirm first.
+        #[arg(long)]
+        allow_writes: bool,
+        /// With --allow-writes, do not ask before changing data. Only for unattended use on a disposable device.
+        #[arg(long, requires = "allow_writes")]
+        no_confirm: bool,
+    },
     /// Record and analyze traces: Perfetto, simpleperf flame graphs and Instruments
     Trace {
         #[command(subcommand)]
@@ -2047,7 +2054,11 @@ async fn run() -> ExitCode {
                 cmd::plugin::run(&lab, device, &name, app, seconds, json).await
             }
         },
-        Command::Mcp => emulabzip_mcp::serve(lab.clone()).await.map_err(|e| anyhow::anyhow!("{e}")),
+        Command::Mcp { allow_writes, no_confirm } => {
+            emulabzip_mcp::serve(lab.clone(), emulabzip_mcp::Policy { allow_writes, no_confirm })
+                .await
+                .map_err(|e| anyhow::anyhow!("{e}"))
+        }
         Command::Trace { action } => match action {
             TraceAction::Record { preset, config, duration, app, output, open } => {
                 let args = cmd::trace::RecordArgs {

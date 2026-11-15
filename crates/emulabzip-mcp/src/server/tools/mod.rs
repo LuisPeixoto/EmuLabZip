@@ -14,3 +14,4 @@ pub(crate) mod sessions_recording;
 pub(crate) mod storage;
 pub(crate) mod storage_data;
 pub(crate) mod watches;
+pub(crate) mod writes;
