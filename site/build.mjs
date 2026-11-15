@@ -4,6 +4,7 @@
 //   node site/build.mjs --check   build, then verify translations, markup and SEO rules (exit 1 on a problem)
 // No dependencies: Node 20 or newer.
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -229,6 +230,20 @@ for (const l of site.locales) strings[l.code] = JSON.parse(readFileSync(join(roo
 
 const pageUrl = (l) => `${site.url}/${l.path}`;
 
+/** The day the newest of `files` (paths from the site folder) was last committed, or today when git cannot say. */
+function lastModified(files) {
+  let newest = 0;
+  for (const f of files) {
+    try {
+      const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", join(root, f)], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      if (out) newest = Math.max(newest, Number(out));
+    } catch {
+      // No git here: the fallback below applies.
+    }
+  }
+  return new Date(newest ? newest * 1000 : Date.now()).toISOString().slice(0, 10);
+}
+
 function head(l, t) {
   const alternates = site.locales
     .map((o) => `<link rel="alternate" hreflang="${o.hreflang}" href="${pageUrl(o)}">`)
@@ -356,14 +371,16 @@ if (notFound) {
   writeFileSync(join(dist, "404.html"), html);
 }
 
-// Sitemap with the language alternates of every page
+// Sitemap with the language alternates of every page, and the day each one last changed (Google reads lastmod; it
+// ignores changefreq and priority).
 const urls = site.locales
   .map((l) => {
     const alts = site.locales
       .map((o) => `<xhtml:link rel="alternate" hreflang="${o.hreflang}" href="${pageUrl(o)}"/>`)
       .concat(`<xhtml:link rel="alternate" hreflang="x-default" href="${pageUrl(site.locales[0])}"/>`)
       .join("");
-    return `<url><loc>${pageUrl(l)}</loc><changefreq>weekly</changefreq><priority>${l.code === "en" ? "1.0" : "0.9"}</priority>${alts}</url>`;
+    const changed = lastModified(["template.html", `i18n/${l.code}.json`, "site.json", "assets/styles.css"]);
+    return `<url><loc>${pageUrl(l)}</loc><lastmod>${changed}</lastmod>${alts}</url>`;
   })
   .join("");
 writeFileSync(
@@ -444,6 +461,21 @@ if (checkMode) {
   for (const f of ["sitemap.xml", "robots.txt", "CNAME", ".nojekyll", "404.html"]) if (!existsSync(join(dist, f))) fail(`dist/${f} is missing`);
   const robots = existsSync(join(dist, "robots.txt")) ? readFileSync(join(dist, "robots.txt"), "utf8") : "";
   if (!robots.includes(`${site.url}/sitemap.xml`)) fail("robots.txt does not point to the sitemap");
+
+  // 6. The sitemap lists every built page once, each with a real date, and nothing that is not built.
+  const sitemap = existsSync(join(dist, "sitemap.xml")) ? readFileSync(join(dist, "sitemap.xml"), "utf8") : "";
+  const entries = [...sitemap.matchAll(/<url><loc>([^<]+)<\/loc>([\s\S]*?)<\/url>/g)];
+  const seen = new Set();
+  for (const [, loc, rest] of entries) {
+    if (seen.has(loc)) fail(`sitemap lists ${loc} twice`);
+    seen.add(loc);
+    const date = rest.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1];
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) fail(`sitemap: ${loc} has no valid lastmod`);
+    else if (Date.parse(date) > Date.now() + 86_400_000) fail(`sitemap: ${loc} has a lastmod in the future (${date})`);
+    const path = loc.replace(site.url, "");
+    if (!existsSync(join(dist, path, path.endsWith("/") ? "index.html" : ""))) fail(`sitemap lists ${loc}, which was not built`);
+  }
+  for (const { locale: l } of pages) if (!seen.has(pageUrl(l))) fail(`sitemap does not list ${pageUrl(l)}`);
 
   if (problems.length) {
     console.error(`\n${problems.length} problem(s):`);
