@@ -61,13 +61,21 @@ impl Net {
 /// State shared by every tool of one server.
 pub struct Hub {
     pub net: Mutex<Net>,
+    /// The background watches, by id.
+    pub watches: std::sync::Mutex<std::collections::HashMap<u64, crate::watch::Watch>>,
+    pub next_watch: std::sync::atomic::AtomicU64,
     /// What the proxy saw. It outlives the proxy, so the requests are still there after it stops.
     pub flows: Arc<FlowStore>,
 }
 
 impl Hub {
     pub fn new() -> Arc<Hub> {
-        Arc::new(Hub { net: Mutex::new(Net::new()), flows: FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY) })
+        Arc::new(Hub {
+            net: Mutex::new(Net::new()),
+            watches: Default::default(),
+            next_watch: std::sync::atomic::AtomicU64::new(1),
+            flows: FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY),
+        })
     }
 
     /// Starts the proxy on the loopback interface, unless it is running.
@@ -106,6 +114,7 @@ impl Hub {
 
     /// Called when the session ends: nothing this server changed is left behind.
     pub async fn shutdown(&self, lab: &Lab) {
+        self.watches.lock().unwrap().clear();
         let mut net = self.net.lock().await;
         self.stop_proxy(lab, &mut net).await;
     }

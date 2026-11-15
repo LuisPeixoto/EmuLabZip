@@ -8,6 +8,7 @@
 mod args;
 mod hub;
 mod server;
+mod watch;
 
 pub use server::EmuLabServer;
 

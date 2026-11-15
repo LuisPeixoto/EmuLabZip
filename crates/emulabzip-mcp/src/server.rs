@@ -48,6 +48,7 @@ impl EmuLabServer {
             + Self::profiling_router()
             + Self::frameworks_router()
             + Self::network_router()
+            + Self::watches_router()
             + Self::storage_router()
             + Self::quality_router()
             + Self::sessions_router()
