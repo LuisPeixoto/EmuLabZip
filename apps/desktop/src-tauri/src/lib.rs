@@ -1,6 +1,7 @@
 //! Tauri shell: owns the backends and exposes them to the interface as commands. Live data
 //! (logs, samples) is streamed over IPC channels in batches.
 
+mod ai;
 mod automation;
 mod commands;
 mod controls;
@@ -50,6 +51,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            ai::ai_cli_info,
             commands::host_info,
             commands::list_devices,
             commands::device_info,
