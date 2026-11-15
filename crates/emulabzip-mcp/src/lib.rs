@@ -8,6 +8,8 @@
 mod args;
 mod hub;
 mod policy;
+mod prompts;
+mod resources;
 mod server;
 mod watch;
 

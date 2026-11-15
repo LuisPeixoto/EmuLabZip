@@ -14,9 +14,16 @@ use emulabzip_trace::library::{self, Recording};
 use emulabzip_trace::perfetto::processor::{self, Processor};
 use emulabzip_trace::perfetto::summary::summarize;
 use emulabzip_trace::{simpleperf, xctrace};
+use rmcp::ErrorData as McpError;
+use rmcp::RoleServer;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, ContentBlock, InitializeResult, ServerCapabilities, ServerConfig};
+use rmcp::model::{
+    CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResponse, InitializeResult, ListPromptsResult,
+    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams,
+    ReadResourceResponse, ServerCapabilities, ServerConfig,
+};
+use rmcp::service::RequestContext;
 use rmcp::{ServerHandler, tool, tool_handler, tool_router};
 use serde::Serialize;
 use tokio::sync::watch;
@@ -37,8 +44,8 @@ const MAX_RECORD_S: u32 = 120;
 
 #[derive(Clone)]
 pub struct EmuLabServer {
-    lab: Lab,
-    hub: std::sync::Arc<crate::hub::Hub>,
+    pub(crate) lab: Lab,
+    pub(crate) hub: std::sync::Arc<crate::hub::Hub>,
     pub(crate) policy: crate::policy::Policy,
     tool_router: ToolRouter<EmuLabServer>,
 }
@@ -129,7 +136,7 @@ impl EmuLabServer {
 }
 
 /// Cuts text that is too long, and says so.
-fn cap(mut text: String, max: usize) -> String {
+pub(crate) fn cap(mut text: String, max: usize) -> String {
     if text.len() > max {
         let mut end = max;
         while !text.is_char_boundary(end) {
@@ -171,7 +178,7 @@ struct SessionEntry {
     partial: bool,
 }
 
-fn sessions_list() -> Result<String, String> {
+pub(crate) fn sessions_list() -> Result<String, String> {
     let mut out = Vec::new();
     if let Ok(entries) = std::fs::read_dir(sessions_dir()) {
         for entry in entries.flatten() {
@@ -224,7 +231,7 @@ fn state_file(name: &str) -> Result<std::path::PathBuf, String> {
     if path.is_file() { Ok(path) } else { Err(format!("no saved state is called {name}; list_states shows them")) }
 }
 
-fn states_list() -> Result<String, String> {
+pub(crate) fn states_list() -> Result<String, String> {
     let mut out = Vec::new();
     if let Ok(entries) = std::fs::read_dir(states_dir()) {
         for entry in entries.flatten() {
@@ -247,7 +254,7 @@ fn states_list() -> Result<String, String> {
 }
 
 /// A session name is a file name: nothing that could point outside the sessions folder.
-fn valid_session_id(id: &str) -> bool {
+pub(crate) fn valid_session_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 200
         && id.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
@@ -267,7 +274,7 @@ fn open_session(id: &str) -> Result<emulabzip_session::Session, String> {
     emulabzip_session::Session::open(&path).map_err(|e| e.to_string())
 }
 
-fn session_summary(id: &str) -> Result<String, String> {
+pub(crate) fn session_summary(id: &str) -> Result<String, String> {
     json(&emulabzip_session::summarize(&open_session(id)?))
 }
 
@@ -614,12 +621,64 @@ async fn open_processor(rec: &Recording) -> Result<Processor, String> {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for EmuLabServer {
     fn get_info(&self) -> ServerConfig {
-        InitializeResult::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
+        let writes = if self.policy.allow_writes {
+            "Tools that wipe, delete, restore or rewrite data are on: each one asks the person to confirm first, so say what you are about to do. "
+        } else {
+            "Tools that wipe, delete, restore or rewrite data are not offered; the person can start the server with --allow-writes to turn them on. "
+        };
+        InitializeResult::new(
+            ServerCapabilities::builder().enable_tools().enable_prompts().enable_resources().build(),
+        )
+        .with_instructions(format!(
             "EmuLabZip inspects and controls Android emulators and iOS simulators. Start with list_devices. \
              Every tool takes an optional `device`; it can be left out when only one device is running. \
-             Tools that change the device (control_*, open_url, record_trace, boot_device, shutdown_device, save_state) act on it for real. \
-             Restoring state, wiping, deleting and editing data are not offered to assistants.",
-        )
+             Tools that change the device (control_*, open_url, record_trace, boot_device, shutdown_device, save_state, net_*, session_*) act on it for real. \
+             {writes}Approving scripts and plugins, and running ci, are never offered. \
+             Read the resource emulabzip://guide for the tools by task; prompts such as explain_crash, why_is_it_slow and reproduce_bug \
+             give a ready plan for common jobs."
+        ))
+    }
+
+    async fn list_prompts(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListPromptsResult, McpError> {
+        Ok(ListPromptsResult::with_all_items(crate::prompts::list()))
+    }
+
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResponse, McpError> {
+        crate::prompts::get(&request.name, request.arguments.as_ref())
+            .map(Into::into)
+            .map_err(|e| McpError::invalid_params(e, None))
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, McpError> {
+        Ok(crate::resources::list())
+    }
+
+    async fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourceTemplatesResult, McpError> {
+        Ok(crate::resources::templates())
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, McpError> {
+        self.read_uri(&request.uri).await.map(Into::into).map_err(|e| McpError::invalid_params(e, None))
     }
 }
 
