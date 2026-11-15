@@ -7,17 +7,19 @@
 
 mod args;
 mod hub;
+mod policy;
 mod server;
 mod watch;
 
+pub use policy::Policy;
 pub use server::EmuLabServer;
 
 use emulabzip_core::Lab;
 use rmcp::ServiceExt;
 
 /// Serves the tools on stdin and stdout until the client disconnects.
-pub async fn serve(lab: Lab) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let server = EmuLabServer::new(lab.clone());
+pub async fn serve(lab: Lab, policy: Policy) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let server = EmuLabServer::with_policy(lab.clone(), policy);
     let hub = server.hub();
     let service = server.serve(rmcp::transport::stdio()).await?;
     // The client closing standard input ends the session, and so does Ctrl+C or a termination signal.

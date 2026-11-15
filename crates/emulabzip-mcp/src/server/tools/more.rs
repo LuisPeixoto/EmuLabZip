@@ -432,7 +432,7 @@ impl EmuLabServer {
 }
 
 /// The folder visual baselines are kept in.
-fn visual_dir() -> Result<std::path::PathBuf, String> {
+pub(super) fn visual_dir() -> Result<std::path::PathBuf, String> {
     let config = emulabzip_session::Config::find(&std::env::current_dir().map_err(|e| e.to_string())?)
         .map(|p| emulabzip_session::Config::load(&p))
         .transpose()

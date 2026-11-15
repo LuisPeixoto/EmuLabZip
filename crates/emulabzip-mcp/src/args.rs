@@ -856,3 +856,63 @@ pub struct PackageBudget {
     /// How much bigger than the baseline the build may be, in percent.
     pub growth_percent: Option<f64>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RestoreState {
+    pub device: Option<String>,
+    /// A saved state's name, as list_states shows it.
+    pub state: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DeviceRef {
+    /// The device's id or name. Required: these cannot guess which device is meant.
+    pub device: String,
+    /// `android` or `ios`, when the name exists on both.
+    pub platform: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct EmulatorSnapshotArgs {
+    pub device: Option<String>,
+    /// The snapshot's name, as emulator_snapshots shows it.
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WriteFile {
+    pub device: Option<String>,
+    pub app: String,
+    /// `data`, `cache` or another root storage_roots shows.
+    pub root: String,
+    /// A path inside the root, with no `..`.
+    pub path: String,
+    /// The new content, as text.
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WebviewEval {
+    pub device: Option<String>,
+    pub app: Option<String>,
+    pub socket: Option<String>,
+    pub page: Option<String>,
+    /// JavaScript to run in the page. It can change the page's data.
+    pub expression: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SessionRef {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct RemoveMapping {
+    pub app: String,
+    pub version: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ForgetLink {
+    pub url: String,
+}
