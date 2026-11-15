@@ -23,6 +23,7 @@
   <a href="https://emulabzip.luispeixoto.dev">Website</a> ·
   <a href="#install">Install</a> ·
   <a href="#features">Features</a> ·
+  <a href="https://emulabzip.luispeixoto.dev/docs/">Documentation</a> ·
   <a href="docs/getting-started.md">Getting started</a> ·
   <a href="docs/logs.md">Logs</a> ·
   <a href="docs/performance.md">Performance</a> ·
@@ -444,6 +445,7 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [CI mode](docs/ci.md) | `emulabzip ci` around your tests, with a GitHub Actions example |
 | [Comparing devices](docs/compare.md) | Two screens, two charts and the differences |
 | [Controls](docs/controls.md) | Location, appearance, status bar, battery, permissions, notifications and links |
+| [Documentation website](https://emulabzip.luispeixoto.dev/docs/) | The same guides with search, in English, Portuguese, Spanish and Chinese |
 | [MCP server](docs/mcp.md) | Connecting an AI assistant to your devices: clients, prompts, resources and the write policy |
 | [MCP reference](docs/mcp-tools.md) | Every tool, prompt and resource, generated from the server |
 | [Plugins](docs/plugins.md) | Writing your own collectors, and the approval step |

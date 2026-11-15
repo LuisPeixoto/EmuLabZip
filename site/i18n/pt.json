@@ -273,6 +273,7 @@
     "title": "Perguntas frequentes",
     "items": [
       { "q": "O que é o EmuLabZip?", "a": "O EmuLabZip é um app de desktop e uma ferramenta de linha de comando, gratuitos e de código aberto, para inspecionar, monitorar e depurar apps rodando em emuladores Android e simuladores iOS: logs, tráfego de rede, desempenho, memória, armazenamento, crashes, layout e acessibilidade." },
+      { "q": "Onde está a documentação?", "a": "Neste site: cada recurso tem um guia em Docs, com busca, em inglês, português, espanhol e chinês. As páginas em inglês também estão na pasta docs do repositório." },
       { "q": "O EmuLabZip é gratuito?", "a": "Sim. O EmuLabZip é código aberto com licença MIT. Não há conta, plano pago nem telemetria." },
       { "q": "Em quais sistemas operacionais funciona?", "a": "macOS, Windows e Linux. Os simuladores de iOS precisam de um Mac com Xcode, porque a Apple só os oferece lá. Os emuladores Android funcionam nos três sistemas." },
       { "q": "Preciso instalar algo no emulador?", "a": "Não. O EmuLabZip usa as ferramentas públicas de cada plataforma (ADB e simctl), então nada é instalado no dispositivo nem dentro do seu app." },
