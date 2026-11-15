@@ -2,17 +2,19 @@
   import { fade, scale } from "svelte/transition";
   import { app, defaultSettings, type Settings } from "../stores/app.svelte";
   import { logs } from "../stores/logs.svelte";
+  import AiSettings from "./settings/AiSettings.svelte";
   import AppearanceSettings from "./settings/AppearanceSettings.svelte";
   import GallerySettings from "./settings/GallerySettings.svelte";
   import LayoutSettings from "./settings/LayoutSettings.svelte";
   import Icon from "./Icon.svelte";
 
-  type Tab = "general" | "appearance" | "layout" | "gallery";
+  type Tab = "general" | "appearance" | "layout" | "gallery" | "ai";
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "general", label: "General", icon: "settings" },
     { id: "appearance", label: "Appearance", icon: "sun" },
     { id: "layout", label: "Layout", icon: "layers" },
     { id: "gallery", label: "Gallery", icon: "globe" },
+    { id: "ai", label: "AI assistants", icon: "zap" },
   ];
   let tab = $state<Tab>("general");
 
@@ -73,6 +75,8 @@
           <LayoutSettings />
         {:else if tab === "gallery"}
           <GallerySettings />
+        {:else if tab === "ai"}
+          <AiSettings />
         {:else}
     <div class="space-y-1 p-3">
       <p class="px-2 pt-1 pb-1 text-2xs font-semibold tracking-wider text-faint uppercase">Logs</p>

@@ -70,6 +70,10 @@ export interface LogBatch {
   ended: boolean;
 }
 
+export interface CliInfo {
+  path: string | null;
+}
+
 export interface HostInfo {
   os: string;
   arch: string;
@@ -1336,6 +1340,7 @@ export function errorText(e: unknown): string {
 
 export const api = {
   hostInfo: () => invoke<HostInfo>("host_info"),
+  aiCliInfo: () => invoke<CliInfo>("ai_cli_info"),
   listDevices: () => invoke<DevicesReport>("list_devices"),
   deviceInfo: (target: Target) => invoke<InfoSection[]>("device_info", { target }),
   listApps: (target: Target) => invoke<App[]>("list_apps", { target }),
