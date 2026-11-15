@@ -8,6 +8,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { reflow } from "./reflow.mjs";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -71,8 +72,12 @@ for (const [pair, langs] of pairs) if (langs.sort().join() !== "en,pt") fail(`pa
 const titles = articles.map((a) => a.meta.title);
 for (const t of new Set(titles.filter((v, i) => titles.indexOf(v) !== i))) fail(`two articles have the title "${t}"`);
 
+/** The line at the end of a post that points to the same post in the other language. */
+const pairNote = (lang, other) =>
+  `\n\n---\n\n${lang === "pt" ? "Também em inglês" : "Also in Portuguese"}: [${other.title}](${other.url})\n`;
+
 /** The body with images and cover made absolute, so dev.to can show them. */
-const absolute = (body) => body.replace(/\]\((docs\/images\/[^)\s]+)\)/g, (_, p) => `](${RAW}${p})`);
+const absolute = (body) => reflow(body).replace(/\]\((docs\/images\/[^)\s]+)\)/g, (_, p) => `](${RAW}${p})`);
 const coverUrl = (a) => `${RAW}${a.meta.cover}`;
 
 // ---- links and images must answer ---------------------------------------------------------------
@@ -140,6 +145,19 @@ if (!key) {
 
 const mine = await api("GET", "/articles/me/all?per_page=1000");
 const byTitle = new Map(mine.map((x) => [x.title, x]));
+if (process.argv.includes("--update")) {
+  // Re-send the text of posts that are already live (after a fix to how they are made), keeping the link to their pair.
+  for (const a of articles) {
+    const live = byTitle.get(a.meta.title);
+    if (!live) continue;
+    const other = articles.find((b) => b.meta.pair === a.meta.pair && b.meta.lang !== a.meta.lang);
+    const otherPost = other && byTitle.get(other.meta.title);
+    const note = otherPost ? pairNote(a.meta.lang, otherPost) : "";
+    await api("PUT", `/articles/${live.id}`, { article: { body_markdown: absolute(a.body.trimEnd()) + note + "\n" } });
+    console.log(`Updated ${a.file}`);
+  }
+  process.exit(0);
+}
 let made = 0;
 // English before Portuguese within a pair, in file order.
 for (const a of due) {
@@ -147,9 +165,7 @@ for (const a of due) {
   if (byTitle.has(a.meta.title)) continue;
   const other = articles.find((b) => b.meta.pair === a.meta.pair && b.meta.lang !== a.meta.lang);
   const otherPost = other && byTitle.get(other.meta.title);
-  const note = otherPost
-    ? `\n\n---\n\n${a.meta.lang === "pt" ? "Also in English" : "Também em português"}: [${otherPost.title}](${otherPost.url})\n`
-    : "";
+  const note = otherPost ? pairNote(a.meta.lang, otherPost) : "";
   if (made > 0) await new Promise((done) => setTimeout(done, 45_000));
   const created = await api("POST", "/articles", {
     article: {
@@ -169,7 +185,7 @@ for (const a of due) {
   if (otherPost) {
     const src = articles.find((b) => b.meta.title === otherPost.title);
     const full = absolute(src.body.trimEnd());
-    const backNote = `\n\n---\n\n${src.meta.lang === "pt" ? "Também em inglês" : "Also in Portuguese"}: [${created.title}](${created.url})\n`;
+    const backNote = pairNote(src.meta.lang, created);
     await api("PUT", `/articles/${otherPost.id}`, { article: { body_markdown: full + backNote + "\n" } });
     console.log(`  linked ${src.file} to it`);
   }

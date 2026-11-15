@@ -20,7 +20,7 @@ the author built the tool, and ends with a link to the website and to the docs p
   `series`, `cover` (a file of `docs/images`), `publish_after` (a date), `pair` (shared by both languages) and `lang`.
   Images in the text use `docs/images/...`; the publisher turns them into `raw.githubusercontent.com` links at the commit that is
   published, so they never break.
-- `publish.mjs`: publishes the posts that are due. No dependencies.
+- `publish.mjs`: publishes the posts that are due. No dependencies. `reflow.mjs` joins the lines of each paragraph first, because dev.to turns every single line break into a `<br>`.
 - `../../.github/workflows/devto.yml`: runs it on Tuesdays and Thursdays at 13:00 UTC, and by hand.
 
 ## How publishing works
