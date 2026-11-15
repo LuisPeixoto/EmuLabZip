@@ -60,8 +60,8 @@
       { "icon": "sessions", "title": "预算与基线", "text": "在 emulabzip.toml 中写下限制，让超出限制或比上次良好运行更慢的 CI 运行失败。" },
       { "icon": "layout", "title": "深入 Flutter 与 React Native", "text": "通过各自的调试器读取 Flutter 应用的组件树、帧耗时和内存，以及 React Native 应用的 React 组件树和 Hermes 堆。" },
       { "icon": "network", "title": "GraphQL 与 gRPC", "text": "在请求列表中显示操作与调用名称、查询及其变量、gRPC 状态与流式传输，并可使用或不使用 .proto 文件解析 protobuf。" },
-      { "icon": "sessions", "title": "时间线、录屏与回放", "text": "点击、请求、日志问题、卡顿帧和崩溃放在同一条时间轴上，旁边是屏幕录像；还有一份能在没有网络时回答应用的网络录制。" },
       { "icon": "rules", "title": "重发与慢速网络", "text": "修改后重新发送请求，或让网络变慢、延迟、丢包或断开，看看应用如何应对。" },
+      { "icon": "sessions", "title": "时间线、录屏与回放", "text": "点击、请求、日志问题、卡顿帧和崩溃放在同一条时间轴上，旁边是屏幕录像；还有一份能在没有网络时回答应用的网络录制。" },
       { "icon": "storage", "title": "把应用状态当作数据", "text": "把应用的数据保存到一个文件并恢复，查看迁移改变了什么，带撤销地编辑行和偏好设置，创建模拟器并做快照，还能读取 Redux、React Query 和 Realm。" },
       { "icon": "shield", "title": "速度之外的质量", "text": "安全与隐私审计，带 CI 预算的 APK、AAB 或 IPA 体积分析，其他语言和字号下放不下的文字，色盲模拟，视觉回归，以及分析事件检查器。" }
     ]
