@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="{{page.lang}}" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{meta.title}}</title>
+<meta name="description" content="{{meta.description}}">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="author" content="Luis Peixoto">
+<meta name="theme-color" content="#07080f">
+<link rel="canonical" href="{{page.canonical}}">
+{{{page.alternates}}}
+{{{page.verify}}}
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="EmuLabZip">
+<meta property="og:title" content="{{meta.title}}">
+<meta property="og:description" content="{{meta.description}}">
+<meta property="og:url" content="{{page.canonical}}">
+<meta property="og:image" content="{{page.og_image}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{meta.ogAlt}}">
+<meta property="og:locale" content="{{page.ogLocale}}">
+{{{page.ogAlt}}}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{meta.title}}">
+<meta name="twitter:description" content="{{meta.description}}">
+<meta name="twitter:image" content="{{page.og_image}}">
+<link rel="preload" href="{{page.font}}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{page.css}}">
+<script type="application/ld+json">{{{page.jsonld}}}</script>
+<script>document.documentElement.classList.add("js")</script>
+<script src="{{page.js}}" defer></script>
+<script src="{{page.docsJs}}" defer></script>
+</head>
+<body class="docs-page">
+{{> chrome-top}}
+
+<main id="main" class="docs-main">
+  <div class="wrap docs" data-search="{{page.searchIndex}}">
+    <button type="button" class="docs-menu" aria-expanded="false" aria-controls="docs-nav"><svg class="ico" aria-hidden="true"><use href="#i-code"/></svg><span>{{docs.menu}}</span></button>
+    <nav class="docs-nav" id="docs-nav" aria-label="{{docs.sectionsLabel}}">
+      <form class="docs-search" role="search" action="#" onsubmit="return false">
+        <label class="sr" for="docs-q">{{docs.search}}</label>
+        <input type="search" id="docs-q" placeholder="{{docs.searchPlaceholder}}" autocomplete="off" spellcheck="false" data-none="{{docs.noResults}}">
+        <ul id="docs-results" class="docs-results" hidden></ul>
+      </form>
+      {{#each sidebar}}
+      <div class="docs-sec">
+        <h2>{{title}}</h2>
+        <ul>
+          {{#each pages}}<li><a href="{{href}}"{{{current}}}>{{title}}</a></li>{{/each}}
+        </ul>
+      </div>
+      {{/each}}
+    </nav>
+
+    <article class="docs-body">
+      <nav class="crumbs" aria-label="{{docs.breadcrumb}}">
+        <ol>
+          {{#each crumbs}}<li><a href="{{href}}">{{name}}</a></li>{{/each}}
+        </ol>
+      </nav>
+      <h1>{{page.h1}}</h1>
+      {{#each isArticle}}
+      <p class="docs-meta">{{docs.updated}} <time datetime="{{page.updated}}">{{page.updated}}</time> · <a href="{{page.edit}}" rel="noopener">{{docs.edit}}</a></p>
+      <div class="prose">{{{page.body}}}</div>
+      <nav class="pager" aria-label="{{docs.pager}}">
+        {{#each prev}}<a class="prev" href="{{href}}" rel="prev"><span>{{docs.previous}}</span><b>{{title}}</b></a>{{/each}}
+        {{#each next}}<a class="next" href="{{href}}" rel="next"><span>{{docs.next}}</span><b>{{title}}</b></a>{{/each}}
+      </nav>
+      {{/each}}
+      {{#each isIndex}}
+      <p class="docs-lead">{{docs.lead}}</p>
+      {{#each sections}}
+      <section class="docs-card-sec" id="{{id}}" aria-labelledby="h-{{id}}">
+        <h2 id="h-{{id}}">{{title}}</h2>
+        <p>{{text}}</p>
+        <ul class="docs-cards">
+          {{#each pages}}<li><a href="{{href}}"><b>{{title}}</b><span>{{summary}}</span></a></li>{{/each}}
+        </ul>
+      </section>
+      {{/each}}
+      {{/each}}
+    </article>
+
+    {{#each hasToc}}
+    <aside class="docs-toc" aria-label="{{docs.onThisPage}}">
+      <h2>{{docs.onThisPage}}</h2>
+      <ul>
+        {{#each toc}}<li class="l{{level}}"><a href="#{{id}}">{{text}}</a></li>{{/each}}
+      </ul>
+    </aside>
+    {{/each}}
+  </div>
+</main>
+
+{{> chrome-bottom}}
+</body>
+</html>

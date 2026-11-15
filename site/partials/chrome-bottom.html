@@ -1,0 +1,44 @@
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="{{page.home}}"><img src="{{img.logo_svg}}" alt="EmuLabZip logo" width="32" height="32" loading="lazy"><span>EmuLabZip</span></a>
+      <p>{{footer.tagline}}</p>
+      <ul class="foot-links">
+        <li><a href="{{page.home}}#features">{{nav.features}}</a></li>
+        <li><a href="{{page.home}}#showcase">{{nav.showcase}}</a></li>
+        <li><a href="{{page.home}}#cli">{{nav.cli}}</a></li>
+        <li><a href="{{page.home}}#ai">{{nav.ai}}</a></li>
+        <li><a href="{{page.home}}#roadmap">{{nav.roadmap}}</a></li>
+        <li><a href="{{page.home}}#faq">{{nav.faq}}</a></li>
+      </ul>
+    </div>
+    <nav aria-label="{{footer.project}}">
+      <h2>{{footer.project}}</h2>
+      <ul>
+        <li><a href="{{site.repo}}" rel="noopener">GitHub</a></li>
+        <li><a href="{{site.releases}}" rel="noopener">{{footer.releases}}</a></li>
+        <li><a href="{{site.repo}}/blob/main/CHANGELOG.md" rel="noopener">{{footer.changelog}}</a></li>
+        <li><a href="{{site.repo}}/issues" rel="noopener">{{footer.issues}}</a></li>
+      </ul>
+    </nav>
+    <nav aria-label="{{footer.docs}}">
+      <h2>{{footer.docs}}</h2>
+      <ul>
+        <li><a href="{{page.docsHome}}">{{footer.docs}}</a></li>
+        <li><a href="{{page.docsBase}}getting-started/">{{footer.start}}</a></li>
+        <li><a href="{{page.docsBase}}cli/">{{footer.cli}}</a></li>
+        <li><a href="{{page.docsBase}}mcp/">MCP</a></li>
+        <li><a href="{{page.docsBase}}roadmap/">{{footer.roadmap}}</a></li>
+      </ul>
+    </nav>
+    <nav aria-label="{{nav.language}}">
+      <h2>{{nav.language}}</h2>
+      <ul>
+        {{#each switcher}}<li><a href="{{href}}" hreflang="{{hreflang}}" lang="{{lang}}">{{label}}</a></li>{{/each}}
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap legal">
+    <p>© 2026 <a href="{{site.author.github}}" rel="noopener me">Luis Peixoto</a> · {{footer.license}}</p>
+  </div>
+</footer>

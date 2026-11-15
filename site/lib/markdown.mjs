@@ -33,13 +33,13 @@ export function plain(md) {
  * Converts `source`. Options:
  *   link(href, text)            the href to use for a link (default: unchanged)
  *   image(src, alt)             {src, srcset?, width?, height?} for an image, or null to drop it
- * Returns { html, headings: [{level, id, text}], title, summary }.
+ * Returns { html, headings: [{level, id, text}], title, summary, paragraphs } (paragraphs: the plain text of the top-level ones).
  */
 export function render(source, options = {}) {
-  const ctx = { options, headings: [], ids: new Map(), summary: "", title: "" };
+  const ctx = { options, headings: [], ids: new Map(), summary: "", title: "", paragraphs: [] };
   const lines = source.replace(/\r\n?/g, "\n").replace(/\t/g, "    ").split("\n");
   const html = blocks(lines, ctx, true);
-  return { html, headings: ctx.headings, title: ctx.title, summary: ctx.summary };
+  return { html, headings: ctx.headings, title: ctx.title, summary: ctx.summary, paragraphs: ctx.paragraphs };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -140,7 +140,10 @@ function blocks(lines, ctx, top) {
     const para = [];
     while (i < lines.length && !isBlank(lines[i]) && (para.length === 0 || !startsBlock(lines, i))) para.push(lines[i++].trim());
     const text = para.join("\n");
-    if (!ctx.summary && !/^\s*[|!<]/.test(text) && top) ctx.summary = plain(text);
+    if (top && !/^\s*[|!<]/.test(text)) {
+      if (!ctx.summary) ctx.summary = plain(text);
+      if (ctx.paragraphs.length < 6) ctx.paragraphs.push(plain(text));
+    }
     out.push(`<p>${inline(text, ctx)}</p>`);
   }
   return out.join("\n");

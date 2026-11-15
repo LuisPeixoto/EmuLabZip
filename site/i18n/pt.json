@@ -10,6 +10,7 @@
     "features": "Recursos",
     "showcase": "Telas",
     "cli": "Linha de comando",
+    "docs": "Docs",
     "ai": "Assistentes de IA",
     "roadmap": "Roadmap",
     "faq": "Perguntas",
@@ -186,6 +187,52 @@
       { "label": "Claude Desktop", "hint": "Adicione ao claude_desktop_config.json, ou ao ~/.cursor/mcp.json no Cursor", "code": "{\n  \"mcpServers\": {\n    \"emulabzip\": { \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" },
       { "label": "VS Code", "hint": "Adicione ao .vscode/mcp.json", "code": "{\n  \"servers\": {\n    \"emulabzip\": { \"type\": \"stdio\", \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" }
     ]
+  },
+  "docs": {
+    "title": "Documentação",
+    "indexTitle": "Documentação do EmuLabZip: guias, CLI e referência MCP",
+    "indexDescription": "Aprenda a inspecionar emuladores Android e simuladores iOS com o EmuLabZip: logs, rede, desempenho, storage, crashes, sessões, linha de comando e MCP.",
+    "lead": "Tudo o que o EmuLabZip faz, um guia por recurso: do primeiro uso à linha de comando e ao servidor MCP para assistentes de IA.",
+    "titleSuffixes": [
+      "Documentação do EmuLabZip",
+      "Docs do EmuLabZip",
+      "EmuLabZip"
+    ],
+    "menu": "Menu",
+    "sectionsLabel": "Seções da documentação",
+    "search": "Buscar na documentação",
+    "searchPlaceholder": "Buscar nas docs…",
+    "noResults": "Nada encontrado",
+    "breadcrumb": "Trilha de navegação",
+    "updated": "Atualizado em",
+    "edit": "Editar esta página no GitHub",
+    "pager": "Página anterior e próxima",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "onThisPage": "Nesta página",
+    "read": "Leia o guia",
+    "sections": {
+      "start": "Primeiros passos",
+      "inspect": "Inspecione seu app",
+      "performance": "Desempenho",
+      "network": "Rede",
+      "quality": "Qualidade",
+      "sessions": "Sessões e CI",
+      "automation": "Automação e IA",
+      "customizing": "Personalização",
+      "reference": "Referência"
+    },
+    "sectionText": {
+      "start": "Instale, conecte seu primeiro emulador ou simulador e resolva os problemas comuns.",
+      "inspect": "Logs, layout, storage, crashes, stacks legíveis, frameworks e web views.",
+      "performance": "CPU, memória, vazamentos, traces, energia, tempo de início e orçamentos.",
+      "network": "Capture, simule e altere requisições; GraphQL, gRPC, WebSockets, replay e analytics.",
+      "quality": "Segurança e privacidade, tamanho da build, idioma e tamanho de texto, regressão visual.",
+      "sessions": "Grave uma execução, leia sua linha do tempo, compare dispositivos, salve o estado do app, reporte bugs e rode no CI.",
+      "automation": "Entrada e fluxos, deep links, controles do dispositivo, o servidor MCP para assistentes de IA e plugins.",
+      "customizing": "Temas e layout.",
+      "reference": "A linha de comando, a arquitetura, a distribuição e o roadmap."
+    }
   },
   "why": {
     "kicker": "Por que o EmuLabZip",
