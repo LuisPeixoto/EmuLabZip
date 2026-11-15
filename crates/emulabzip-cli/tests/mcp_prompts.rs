@@ -60,7 +60,10 @@ fn every_tool_a_prompt_or_the_guide_names_exists() {
     // Names that look like tools: lowercase words joined by underscores. Prompt argument names are not tools.
     let not_tools: HashSet<&str> = ["crash_id", "session_id", "url_or_host", "video_seconds"].into();
     for text in &texts {
-        for word in text.split(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')).filter(|w| w.contains('_')) {
+        for word in text
+            .split(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
+            .filter(|w| w.contains('_'))
+        {
             let word = word.trim_matches('_');
             if not_tools.contains(word) || word.is_empty() {
                 continue;
