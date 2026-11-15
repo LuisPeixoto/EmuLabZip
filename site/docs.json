@@ -209,5 +209,8 @@
     "customizing": {
       "description": "Resize panes, collapse and reorder the sidebar, and tune text size, density and scale in EmuLabZip's Settings so the app fits how you work."
     }
-  }
+  },
+  "englishOnly": [
+    "mcp-tools"
+  ]
 }

@@ -61,8 +61,9 @@ export function buildDocs(env) {
   const config = JSON.parse(readFileSync(join(root, "docs.json"), "utf8"));
   const problems = [];
   const entries = config.sections.flatMap((s) => s.pages.map((entry) => ({ entry, slug: basename(entry), section: s.id })));
-  const locales = site.locales.filter((l) => l.docs);
-  const template = loadTemplate("docs.html");
+  const englishOnly = new Set(config.englishOnly ?? []);
+  const locales = site.locales.filter((l) => (env.only ? env.only.includes(l.code) || l.code === site.locales[0].code : l.docs));
+  const template = env.dry ? "" : loadTemplate("docs.html");
 
   // Every Markdown file in docs/ is listed once, and nothing listed is missing.
   const listed = new Set(entries.map((e) => e.entry));
@@ -83,6 +84,7 @@ export function buildDocs(env) {
         sources[l.code][e.slug] = { text: enText, meta: {}, rel: `docs/${e.entry}.md`, abs: enAbs, enText };
         continue;
       }
+      if (englishOnly.has(e.slug)) continue;
       const abs = join(root, "docs", l.code, `${e.slug}.md`);
       if (!existsSync(abs)) {
         problems.push(`${l.code}: docs/${e.slug} is not translated (site/docs/${l.code}/${e.slug}.md)`);
@@ -133,6 +135,7 @@ export function buildDocs(env) {
   // ---- second pass: render ---------------------------------------------------------------------
   const pages = [];
   const searchData = {};
+  const enRendered = {};
   const imageCache = new Map();
   const imageFor = (name) => {
     if (imageCache.has(name)) return imageCache.get(name);
@@ -167,6 +170,7 @@ export function buildDocs(env) {
               problems.push(`${l.code}: ${from} links to ${href}, which is not a page`);
               return href;
             }
+            if (l.code !== en && englishOnly.has(target.slug)) return `${docsBase(site.locales[0])}${target.slug}/${anchor ? `#${anchorIn(site.locales[0], target.slug, anchor, from)}` : ""}`;
             return `${base}${target.slug}/${anchor ? `#${anchorIn(l, target.slug, anchor, from)}` : ""}`;
           }
           if (resolved.startsWith("..")) {
@@ -184,6 +188,10 @@ export function buildDocs(env) {
       });
       rendered[e.slug] = { ...result, e, src };
     }
+
+    // A translation keeps the English page's structure: the same code, links, images, rows and items.
+    if (l.code !== en) for (const r of Object.values(rendered)) for (const p of sameStructure(enRendered[r.e.slug], r, l)) problems.push(`${l.code}: docs/${r.e.slug}: ${p}`);
+    if (l.code === en) Object.assign(enRendered, rendered);
 
     // Titles and descriptions: from the page, with front matter or docs.json to override.
     const sectionTitle = (id) => t.docs.sections[id];
@@ -209,12 +217,20 @@ export function buildDocs(env) {
       if (!r.title) problems.push(`${l.code}: docs/${r.e.slug} has no h1`);
     }
 
+    if (env.dry) continue;
     const order = entries.filter((e) => rendered[e.slug]);
     const navModel = config.sections.map((s) => ({
       id: s.id,
       title: sectionTitle(s.id),
       text: t.docs.sectionText[s.id],
-      pages: s.pages.map((p) => basename(p)).filter((slug) => rendered[slug]).map((slug) => ({ slug, title: rendered[slug].title, href: `${base}${slug}/`, summary: rendered[slug].description })),
+      pages: s.pages
+        .map((p) => basename(p))
+        .filter((slug) => rendered[slug] || (l.code !== en && englishOnly.has(slug) && enRendered[slug]))
+        .map((slug) =>
+          rendered[slug]
+            ? { slug, title: rendered[slug].title, href: `${base}${slug}/`, summary: rendered[slug].description }
+            : { slug, title: enRendered[slug].title, href: `${docsBase(site.locales[0])}${slug}/`, summary: enRendered[slug].description },
+        ),
     }));
 
     const switcherFor = (slug) =>
@@ -346,6 +362,42 @@ export function buildDocs(env) {
   }
 
   return { pages, problems, config, entries, locales };
+}
+
+/** What a translation must keep from the English page. Returns the differences. */
+function sameStructure(en, tr, l) {
+  const out = [];
+  const blocks = (h) => [...h.matchAll(/<pre class="code"[^>]*>[\s\S]*?<\/pre>/g)].map((m) => m[0]);
+  const a = blocks(en.html);
+  const b = blocks(tr.html);
+  if (a.length !== b.length) out.push(`has ${b.length} code blocks, English has ${a.length}`);
+  else a.forEach((x, i) => x !== b[i] && out.push(`code block ${i + 1} was changed: code stays exactly as in English`));
+  const prose = (h) => h.replace(/<pre[\s\S]*?<\/pre>/g, "");
+  const multiset = (h, re) => [...prose(h).matchAll(re)].map((m) => m[1]).sort();
+  for (const [name, re] of [["inline code", /<code>([\s\S]*?)<\/code>/g], ["key", /<kbd>([\s\S]*?)<\/kbd>/g]]) {
+    const x = multiset(en.html, re);
+    const y = multiset(tr.html, re);
+    if (x.join("\u0000") !== y.join("\u0000")) {
+      const missing = x.filter((v) => !y.includes(v)).slice(0, 3);
+      const extra = y.filter((v) => !x.includes(v)).slice(0, 3);
+      out.push(`${name} differs (${missing.length ? `missing ${JSON.stringify(missing)}` : ""}${extra.length ? ` extra ${JSON.stringify(extra)}` : ""}${!missing.length && !extra.length ? "counts differ" : ""})`);
+    }
+  }
+  const count = (h, re) => (h.match(re) || []).length;
+  for (const [name, re] of [["list items", /<li>/g], ["table rows", /<tr>/g], ["tables", /<table>/g], ["images", /<img /g], ["block quotes", /<blockquote>/g], ["lists", /<(ul|ol)[ >]/g]]) {
+    if (count(en.html, re) !== count(tr.html, re)) out.push(`has ${count(tr.html, re)} ${name}, English has ${count(en.html, re)}`);
+  }
+  const hrefs = (h) => [...prose(h).matchAll(/<a href="([^"#]*)[^"]*"/g)].map((m) => m[1].replace(/^\/(?:[a-z]{2}\/)?docs\//, "/docs/")).sort();
+  const x = hrefs(en.html);
+  const y = hrefs(tr.html);
+  if (x.join("\n") !== y.join("\n")) {
+    const missing = x.filter((v) => !y.includes(v)).slice(0, 3);
+    const extra = y.filter((v) => !x.includes(v)).slice(0, 3);
+    out.push(`links differ (missing ${JSON.stringify(missing)}, extra ${JSON.stringify(extra)})`);
+  }
+  const srcs = (h) => [...h.matchAll(/<img src="([^"]*)"/g)].map((m) => m[1]);
+  if (srcs(en.html).join() !== srcs(tr.html).join()) out.push("images differ");
+  return out;
 }
 
 function walkMd(dir, prefix = "") {

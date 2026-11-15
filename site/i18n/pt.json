@@ -60,8 +60,8 @@
       { "icon": "sessions", "title": "Orçamentos e linhas de base", "text": "Escreva limites no emulabzip.toml e faça falhar uma execução de CI que os quebre ou que ficou mais lenta que a última boa." },
       { "icon": "layout", "title": "Por dentro do Flutter e do React Native", "text": "A árvore de widgets, os tempos de quadros e a memória de apps Flutter, e a árvore React e o heap do Hermes de apps React Native, lidos pelos próprios depuradores." },
       { "icon": "network", "title": "GraphQL e gRPC", "text": "Operações e chamadas com nome na lista, consultas com suas variáveis, status e streaming do gRPC, e protobuf lido com ou sem seus arquivos .proto." },
-      { "icon": "sessions", "title": "Linha do tempo, vídeo e replay", "text": "Toques, requisições, problemas do log, quadros lentos e crashes num só eixo de tempo, com a gravação da tela ao lado, e uma gravação da rede que responde ao app sem internet." },
       { "icon": "rules", "title": "Reenviar e redes lentas", "text": "Reenvie uma requisição com mudanças, ou deixe a rede lenta, com atraso, com perdas ou sem conexão para ver como o app se comporta." },
+      { "icon": "sessions", "title": "Linha do tempo, vídeo e replay", "text": "Toques, requisições, problemas do log, quadros lentos e crashes num só eixo de tempo, com a gravação da tela ao lado, e uma gravação da rede que responde ao app sem internet." },
       { "icon": "storage", "title": "O estado do app como dado", "text": "Salve os dados de um app em um arquivo e restaure, veja o que uma migração mudou, edite linhas e preferências com Desfazer, crie e tire snapshots de emuladores, e leia Redux, React Query e Realm." },
       { "icon": "shield", "title": "Qualidade além da velocidade", "text": "Auditoria de segurança e privacidade, tamanho de APK, AAB ou IPA com orçamento para CI, texto que não cabe em outros idiomas e tamanhos, daltonismo, regressão visual e um inspetor de analytics." }
     ]

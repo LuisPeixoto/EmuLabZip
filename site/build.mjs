@@ -473,6 +473,17 @@ if (checkMode) {
     for (const k of own) if (!reference.has(k)) fail(`${l.code}: extra ${k}`);
   }
 
+  // The cards and tabs are matched to their guides by position and id, so every language keeps English's order.
+  for (const l of site.locales.slice(1)) {
+    const own = strings[l.code];
+    strings.en.features.items.forEach((item, i) => {
+      if (own.features.items[i]?.icon !== item.icon) fail(`${l.code}: feature card ${i + 1} is not "${item.title}" (the order must match English)`);
+    });
+    if (own.features.items.length !== strings.en.features.items.length) fail(`${l.code}: has ${own.features.items.length} feature cards, English has ${strings.en.features.items.length}`);
+    const ids = (t) => t.showcase.tabs.map((x) => x.id).join();
+    if (ids(own) !== ids(strings.en)) fail(`${l.code}: showcase tabs are not the same, in the same order, as English`);
+  }
+
   for (const { locale: l, html } of pages) {
     const t = strings[l.code];
     const at = (msg) => fail(`${l.code}: ${msg}`);
