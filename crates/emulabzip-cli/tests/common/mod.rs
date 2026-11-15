@@ -76,6 +76,7 @@ impl Server {
         writeln!(self.stdin, "{}", json!({ "jsonrpc": "2.0", "method": method })).unwrap();
     }
 
+    #[allow(dead_code)]
     pub fn start_session() -> Server {
         Server::start_session_with(&[], None)
     }
