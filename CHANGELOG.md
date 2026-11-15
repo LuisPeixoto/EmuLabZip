@@ -6,6 +6,33 @@ All notable changes to EmuLabZip are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-14
+
+Phase 14: AI with context.
+
+### Added
+
+- **A much bigger MCP server.** 118 tools (130 with writes on), 8 prompts and 13 resources, up from 67 tools. It now keeps state
+  while it runs, so an assistant can start the proxy and read captured requests (`net_*`), follow streams (`watch_start`,
+  `watch_read`), record a session (`session_start`, `session_stop`, `session_compare`), read app data without changing it
+  (`read_database`, `read_preferences`, `storage_roots`), read crashes with stored mappings (`symbolicate_stack`,
+  `list_mappings`, `add_mapping`), create devices, write flows, keep visual baselines, sweep languages and text sizes, and
+  check a build against size limits. The device's proxy setting is put back when the assistant disconnects.
+- **Prompts and resources.** `explain_crash`, `why_is_it_slow`, `summarize_session`, `reproduce_bug`, `debug_request`,
+  `release_check`, `check_deep_link` and `mock_backend`; and `emulabzip://` resources for devices, sessions, flows, states,
+  link history, rules, the live capture and a guide. Addresses can never name a path.
+- **Titles and annotations** on every tool: whether it only reads, changes something, or destroys data.
+- **Opt-in writes.** `emulabzip mcp --allow-writes` offers `restore_state`, `wipe_device`, `delete_device`,
+  `load_emulator_snapshot`, `delete_emulator_snapshot`, `write_file`, `webview_eval`, `delete_session`, `remove_flow`,
+  `remove_mapping`, `forget_link` and `visual_update`. Each call asks the person to confirm through the client (MCP
+  elicitation), saying exactly what will happen; `--no-confirm` skips it for unattended use. Approving scripts and plugins, and
+  `ci`, are never offered.
+- **AI assistants** in Settings: the configuration for Claude Code, Claude Desktop, Cursor and VS Code with a Copy button and your
+  path filled in.
+- A generated [MCP reference](docs/mcp-tools.md), checked against the server by a test, and a rewritten
+  [MCP guide](docs/mcp.md).
+- `create_bug_report` takes `without` to leave out the screenshot, log, requests, crashes or video.
+
 ## [0.13.0] - 2026-11-14
 
 Phase 13: automation and hybrid apps.

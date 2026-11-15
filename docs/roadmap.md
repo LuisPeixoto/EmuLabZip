@@ -150,11 +150,25 @@ check on a simulator cannot verify domains the way a device does; OpenAPI checks
 local and Map remote do not apply to gRPC calls; scripts keep nothing between calls; assistants can list WebViews, read their
 console, check links and play flows, but cannot run JavaScript in a page or approve a script.
 
-## Phase 14: AI with context (v0.14)
+## ✅ Phase 14: AI with context (v0.14)
 
-The timeline, network replay, state snapshots and input as **MCP tools** · **MCP prompts** for the common questions:
-explain this crash, why this screen got slow, summarize this session · an assistant that reproduces a bug through
-input, records it as a session and opens the issue, with every action shown to the user before it runs.
+The MCP server grew from 67 stateless tools to **118 tools, 8 prompts and 13 resources** (130 tools with changes turned on) that
+keep state while they run: the **proxy and captured requests** (start, connect a device, filter and read requests, rules,
+conditions, replay, breakpoints, HAR export, OpenAPI checks), **live watches** for logs, performance, touches and WebView and
+React Native streams, **recording a session** and comparing two, **read-only app data** (SQLite, Realm, Core Data, preferences,
+DataStore, MMKV, AsyncStorage), crash reading with stored mappings, device creation, flows, visual baselines, language sweeps
+and build budgets · every tool has a title and says whether it reads, changes or destroys · **prompts** for the common jobs
+(explain a crash, why it is slow, summarize a session, reproduce a bug, debug a request, check a release, check a link, mock a
+backend) and **resources** an assistant can read (devices, sessions, flows, the live capture, a guide) · **writes are opt-in**:
+`emulabzip mcp --allow-writes` offers the tools that wipe, delete, restore or rewrite data, and each call asks the person to
+confirm through the client; approving scripts and plugins, and `ci`, are never offered · an **AI assistants** card in Settings
+with the configuration for Claude Code, Claude Desktop, Cursor and VS Code · a generated [MCP reference](mcp-tools.md) that a
+test keeps in step with the server. See [MCP server](mcp.md).
+
+Limits: editing rows and preferences, undoing an edit, recording a flow by touch and importing a packet capture are not offered
+over MCP (they stay in the app and the command line); a long tool does not report progress yet; a session's video frames are
+not returned as images; a client that cannot ask for confirmation cannot use the write tools unless `--no-confirm` is given;
+the watches keep the last 5,000 items and end after ten idle minutes.
 
 ## Phase 15: Devices and platforms (v0.15)
 
