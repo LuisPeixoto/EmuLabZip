@@ -32,8 +32,9 @@ one-line result.
 | `--visual NAME` | Compare the screen after the command with a baseline. See [Visual regression](visual-regression.md) |
 | `--fail-on-visual` | With `--visual`: fail the run when the screen differs more than the limit |
 
-The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, a [budget](budgets.md) is broken or a regression was asked to fail the run, it is 1; if you press Ctrl+C,
-130. When the `GITHUB_STEP_SUMMARY` environment variable is set (GitHub Actions), the Markdown report is appended to it
+The exit code is the command's. If the command passed but `--fail-on-crash` found a crash, a [budget](budgets.md) is broken or a regression was asked to fail the run, it is 1; if you press Ctrl+C, it is 130.
+
+When the `GITHUB_STEP_SUMMARY` environment variable is set (GitHub Actions), the Markdown report is appended to it
 and shows on the run's page without extra steps.
 
 ## GitHub Actions
