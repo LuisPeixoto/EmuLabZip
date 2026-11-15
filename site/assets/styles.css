@@ -343,3 +343,23 @@ h3 { font: 600 19px/1.3 var(--display); letter-spacing: -0.01em; }
   .hero .window { transform: none; }
 }
 .lost{min-height:100vh;justify-content:center;text-align:center}
+
+/* AI assistants */
+.hero-ai { margin-top: 22px; display: flex; justify-content: center; }
+.hero-ai a { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--violet) 50%, var(--line)); background: color-mix(in srgb, var(--violet) 12%, var(--panel)); color: var(--fg); font-size: 14.5px; font-weight: 600; transition: border-color 0.2s, transform 0.2s; }
+.hero-ai a:hover { border-color: var(--cyan); transform: translateY(-1px); }
+.hero-ai .ico { color: var(--cyan); }
+.ai-more { margin-top: 64px; }
+.ai-h { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; font: 600 22px/1.3 var(--display); }
+.ai-h .ico { color: var(--cyan); }
+.ai-groups { margin-bottom: 56px; }
+.ai-prompts { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 56px; }
+.ai-prompts li { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); }
+.ai-prompts code { color: var(--cyan); font-size: 14px; }
+.ai-prompts span { color: var(--muted); font-size: 15px; }
+.ai-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; align-items: start; }
+.ai-cols .sub { margin: 0 0 8px; }
+.ai-conf { margin-top: 16px; }
+.ai-conf p { margin: 0 0 6px; font-size: 14.5px; color: var(--muted); }
+.ai-conf b { color: var(--fg); }
+.ai-conf pre { margin: 0; padding: 14px 16px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); font: 13.5px/1.55 var(--mono, ui-monospace, monospace); }

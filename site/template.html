@@ -78,6 +78,7 @@
     <p class="eyebrow"><span class="pulse" aria-hidden="true"></span>{{hero.eyebrow}}</p>
     <h1 id="h-hero">{{hero.titleLead}} <span class="grad">{{hero.titleAccent}}</span></h1>
     <p class="lead">{{{hero.lead}}}</p>
+    <p class="hero-ai"><a href="{{page.home}}#ai"><svg class="ico" aria-hidden="true"><use href="#i-mcp"/></svg><span>{{hero.aiLine}}</span></a></p>
     <div class="cta">
       <a class="btn primary" id="dl" href="{{site.releases}}" rel="noopener"
          data-mac="https://github.com/LuisPeixoto/EmuLabZip/releases/download/v{{site.version}}/EmuLabZip_{{site.version}}_aarch64.dmg"
@@ -180,6 +181,39 @@
       <p class="sub">{{ai.lead}}</p>
       <ul class="ticks">{{#each ai.points}}<li><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>{{this}}</li>{{/each}}</ul>
       <p><a class="more" href="{{site.repo}}/blob/main/docs/mcp.md" rel="noopener">{{ai.more}} <svg class="ico" aria-hidden="true"><use href="#i-external"/></svg></a></p>
+    </div>
+  </div>
+  <div class="wrap ai-more">
+    <h3 class="ai-h">{{ai.groupsTitle}}</h3>
+    <ul class="cards ai-groups">
+      {{#each ai.groups}}
+      <li class="card reveal">
+        <span class="chip"><svg class="ico" aria-hidden="true"><use href="#i-{{icon}}"/></svg></span>
+        <h3>{{title}}</h3>
+        <p>{{text}}</p>
+      </li>
+      {{/each}}
+    </ul>
+    <h3 class="ai-h">{{ai.promptsTitle}}</h3>
+    <ul class="ai-prompts">
+      {{#each ai.prompts}}<li><code>{{name}}</code><span>{{text}}</span></li>{{/each}}
+    </ul>
+    <div class="ai-cols">
+      <div class="ai-safety">
+        <h3 class="ai-h"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>{{ai.safetyTitle}}</h3>
+        <p class="sub">{{ai.safetyLead}}</p>
+        <ul class="ticks">{{#each ai.safety}}<li><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>{{this}}</li>{{/each}}</ul>
+      </div>
+      <div class="ai-connect">
+        <h3 class="ai-h"><svg class="ico" aria-hidden="true"><use href="#i-code"/></svg>{{ai.connectTitle}}</h3>
+        <p class="sub">{{ai.connectLead}}</p>
+        {{#each ai.connect}}
+        <div class="ai-conf">
+          <p><b>{{label}}</b> <span>{{hint}}</span></p>
+          <pre><code>{{code}}</code></pre>
+        </div>
+        {{/each}}
+      </div>
     </div>
   </div>
 </section>
