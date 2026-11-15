@@ -98,13 +98,20 @@ async function checkLinks(list) {
 }
 
 // ---- dev.to ---------------------------------------------------------------------------------------
-async function api(method, path, body) {
+async function api(method, path, body, attempt = 0) {
   const r = await fetch(`${API}${path}`, {
     method,
     headers: { "api-key": key, accept: "application/vnd.forem.api-v1+json", "content-type": "application/json", "user-agent": "emulabzip-devto-publisher" },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
+  // dev.to limits how fast articles are made: wait and try again instead of giving up.
+  if (r.status === 429 && attempt < 6) {
+    const wait = Number(r.headers.get("retry-after")) || 30 * (attempt + 1);
+    console.log(`  dev.to asked to wait (${r.status}); trying again in ${wait} s`);
+    await new Promise((done) => setTimeout(done, wait * 1000));
+    return api(method, path, body, attempt + 1);
+  }
   if (!r.ok) throw new Error(`${method} ${path} answered ${r.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
 }
@@ -143,6 +150,7 @@ for (const a of due) {
   const note = otherPost
     ? `\n\n---\n\n${a.meta.lang === "pt" ? "Also in English" : "Também em português"}: [${otherPost.title}](${otherPost.url})\n`
     : "";
+  if (made > 0) await new Promise((done) => setTimeout(done, 45_000));
   const created = await api("POST", "/articles", {
     article: {
       title: a.meta.title,
