@@ -10,3 +10,4 @@ pub(super) mod profiling;
 pub(super) mod quality;
 pub(super) mod sessions;
 pub(super) mod storage;
+pub(super) mod watches;

@@ -589,3 +589,47 @@ pub struct OpenapiCheck {
     /// Only requests to this host.
     pub host: Option<String>,
 }
+
+// ---------------------------------------------------------------------------------------------
+// Watches
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WatchStart {
+    /// What to follow: `logs` (device log lines), `perf` (CPU, memory and frame samples), `touches` (what is touched on an
+    /// Android screen), `webview_console` and `webview_network` (a WebView's console, and its requests, which also appear
+    /// in `net_flows`), `react_console` and `react_actions` (a React Native app's console, and its Redux actions).
+    pub kind: String,
+    pub device: Option<String>,
+    /// The app: a package name or bundle id. Needed for `react_*`, optional for `logs`, `perf` and the WebView kinds.
+    pub app: Option<String>,
+    /// For `logs`: the minimum level (verbose, debug, info, warn, error, fatal).
+    pub level: Option<String>,
+    /// For `logs`: only tags that contain this text.
+    pub tag: Option<String>,
+    /// For `logs`: only lines whose tag or message contains this text.
+    pub grep: Option<String>,
+    /// For `perf`: seconds between samples (default 1, at least 1).
+    pub interval_seconds: Option<u32>,
+    /// For the WebView kinds: the DevTools socket and page, as `webview_list` shows them (optional when there is one).
+    pub socket: Option<String>,
+    pub page: Option<String>,
+    /// For the `react_*` kinds: Metro's port on this computer (default 8081).
+    pub metro_port: Option<u16>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WatchRead {
+    /// The watch's id, from `watch_start`.
+    pub id: u64,
+    /// Only what came after this number: the `next` of the last read. Without it, everything kept.
+    pub since: Option<u64>,
+    /// At most this many items (default 200, at most 1000).
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WatchId {
+    /// The watch's id, from `watch_start`.
+    pub id: u64,
+}
