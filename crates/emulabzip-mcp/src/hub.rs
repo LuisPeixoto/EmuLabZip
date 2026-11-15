@@ -61,6 +61,8 @@ impl Net {
 /// State shared by every tool of one server.
 pub struct Hub {
     pub net: Mutex<Net>,
+    /// The session being recorded, if any.
+    pub recording: Mutex<Option<crate::server::tools::sessions_recording::Active>>,
     /// The background watches, by id.
     pub watches: std::sync::Mutex<std::collections::HashMap<u64, crate::watch::Watch>>,
     pub next_watch: std::sync::atomic::AtomicU64,
@@ -72,6 +74,7 @@ impl Hub {
     pub fn new() -> Arc<Hub> {
         Arc::new(Hub {
             net: Mutex::new(Net::new()),
+            recording: Mutex::new(None),
             watches: Default::default(),
             next_watch: std::sync::atomic::AtomicU64::new(1),
             flows: FlowStore::new(emulabzip_net::store::DEFAULT_CAPACITY),
@@ -115,6 +118,10 @@ impl Hub {
     /// Called when the session ends: nothing this server changed is left behind.
     pub async fn shutdown(&self, lab: &Lab) {
         self.watches.lock().unwrap().clear();
+        // A recording that is still open is saved, so nothing it caught is lost.
+        if let Some(active) = self.recording.lock().await.take() {
+            let _ = active.recorder.finish().await;
+        }
         let mut net = self.net.lock().await;
         self.stop_proxy(lab, &mut net).await;
     }
