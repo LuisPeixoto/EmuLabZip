@@ -5,6 +5,7 @@ pub(crate) mod controls;
 pub(crate) mod crashes;
 pub(crate) mod devices;
 pub(crate) mod frameworks;
+pub(crate) mod more;
 pub(crate) mod network;
 pub(crate) mod profiling;
 pub(crate) mod quality;
