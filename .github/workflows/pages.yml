@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "docs/**"
       - "docs/images/**"
       - "apps/desktop/src/lib/theme/**"
       - ".github/workflows/pages.yml"

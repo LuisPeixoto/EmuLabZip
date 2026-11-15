@@ -7,10 +7,12 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildDocs, checkDocs, docsBase } from "./lib/docs.mjs";
 
 const root = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(root, "..");
 const dist = join(root, "dist");
 const site = JSON.parse(readFileSync(join(root, "site.json"), "utf8"));
 const checkMode = process.argv.includes("--check");
@@ -224,18 +226,22 @@ const asset = (rel) => {
   return assetNames[rel];
 };
 
-const template = readFileSync(join(root, "template.html"), "utf8");
+/** A template with its {{> partial}} includes filled in from partials/. */
+const loadTemplate = (file) =>
+  readFileSync(join(root, file), "utf8").replace(/\{\{> ([\w-]+)\}\}/g, (_, name) => readFileSync(join(root, "partials", `${name}.html`), "utf8"));
+const template = loadTemplate("template.html");
 const strings = {};
 for (const l of site.locales) strings[l.code] = JSON.parse(readFileSync(join(root, "i18n", `${l.code}.json`), "utf8"));
 
 const pageUrl = (l) => `${site.url}/${l.path}`;
+const docsConfig = JSON.parse(readFileSync(join(root, "docs.json"), "utf8"));
 
 /** The day the newest of `files` (paths from the site folder) was last committed, or today when git cannot say. */
 function lastModified(files) {
   let newest = 0;
   for (const f of files) {
     try {
-      const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", join(root, f)], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", resolve(root, f)], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
       if (out) newest = Math.max(newest, Number(out));
     } catch {
       // No git here: the fallback below applies.
@@ -331,9 +337,18 @@ for (const l of site.locales) {
   const scope = {
     ...t,
     nav: { ...t.nav, current: l.label },
+    features: {
+      ...t.features,
+      items: t.features.items.map((item, i) => ({ ...item, docHref: `${docsBase(l.docs ? l : site.locales[0])}${docsConfig.features[i]}/` })),
+    },
     showcase: {
       ...t.showcase,
-      tabs: t.showcase.tabs.map((tab) => ({ ...tab, src: asset(`img/${tab.shot}.webp`), srcSm: asset(`img/${tab.shot}-sm.webp`) })),
+      tabs: t.showcase.tabs.map((tab) => ({
+        ...tab,
+        src: asset(`img/${tab.shot}.webp`),
+        srcSm: asset(`img/${tab.shot}-sm.webp`),
+        docHref: `${docsBase(l.docs ? l : site.locales[0])}${docsConfig.tabs[tab.id]}/`,
+      })),
     },
     site: { ...site, version: site.version },
     page: {
@@ -351,6 +366,9 @@ for (const l of site.locales) {
       js: asset("main.js"),
       font: asset("fonts/display.woff2"),
       home: `/${l.path}`,
+      // The docs are in this language when they are translated, and in English until then.
+      docsBase: docsBase(l.docs ? l : site.locales[0]),
+      docsHome: docsBase(l.docs ? l : site.locales[0]),
     },
     switcher,
     img: Object.fromEntries(
@@ -364,6 +382,35 @@ for (const l of site.locales) {
   pages.push({ locale: l, html, file: join(outDir, "index.html") });
 }
 
+/** What every page of a language shares: the strings, the chrome's data and the asset paths. */
+function baseScope(l) {
+  const t = strings[l.code];
+  const { verify } = head(l, t);
+  return {
+    ...t,
+    nav: { ...t.nav, current: l.label },
+    site,
+    page: {
+      lang: l.lang,
+      code: l.code,
+      ogLocale: l.og,
+      verify,
+      og_image: `${site.url}${asset(`img/og-${l.code}.png`)}`,
+      css: asset("styles.css"),
+      js: asset("main.js"),
+      font: asset("fonts/display.woff2"),
+      home: `/${l.path}`,
+      docsBase: docsBase(l),
+      docsHome: docsBase(l),
+    },
+    img: Object.fromEntries(readdirSync(join(root, "assets", "img")).map((n) => [n.replace(/[.-]/g, "_"), asset(`img/${n}`)])),
+  };
+}
+
+// The documentation: every docs/*.md in each language that has it.
+const docs = buildDocs({ root, repoRoot, dist, site, strings, asset, assetNames, renderTemplate: render, minifyHtml, lastModified, baseScope, loadTemplate });
+if (!checkMode) for (const p of docs.problems) console.warn(`docs: ${p}`);
+
 // 404 (English, not indexed)
 const notFound = existsSync(join(root, "404.html")) ? readFileSync(join(root, "404.html"), "utf8") : null;
 if (notFound) {
@@ -371,21 +418,30 @@ if (notFound) {
   writeFileSync(join(dist, "404.html"), html);
 }
 
-// Sitemap with the language alternates of every page, and the day each one last changed (Google reads lastmod; it
-// ignores changefreq and priority).
-const urls = site.locales
-  .map((l) => {
-    const alts = site.locales
-      .map((o) => `<xhtml:link rel="alternate" hreflang="${o.hreflang}" href="${pageUrl(o)}"/>`)
-      .concat(`<xhtml:link rel="alternate" hreflang="x-default" href="${pageUrl(site.locales[0])}"/>`)
-      .join("");
-    const changed = lastModified(["template.html", `i18n/${l.code}.json`, "site.json", "assets/styles.css"]);
-    return `<url><loc>${pageUrl(l)}</loc><lastmod>${changed}</lastmod>${alts}</url>`;
-  })
-  .join("");
+// Sitemaps: an index, one for the pages and one for the documentation. Each URL has the day it last changed (Google reads
+// lastmod; it ignores changefreq and priority) and its language alternates.
+const alternatesXml = (list, xdefault) =>
+  list
+    .map((a) => `<xhtml:link rel="alternate" hreflang="${a.hreflang}" href="${a.href}"/>`)
+    .concat(`<xhtml:link rel="alternate" hreflang="x-default" href="${xdefault}"/>`)
+    .join("");
+const urlset = (entries) =>
+  `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${entries
+    .map((e) => `<url><loc>${e.loc}</loc><lastmod>${e.lastmod}</lastmod>${alternatesXml(e.alternates, e.xdefault)}</url>`)
+    .join("")}</urlset>\n`;
+const pageEntries = site.locales.map((l) => ({
+  loc: pageUrl(l),
+  lastmod: lastModified(["template.html", `i18n/${l.code}.json`, "site.json", "assets/styles.css"]),
+  alternates: site.locales.map((o) => ({ hreflang: o.hreflang, href: pageUrl(o) })),
+  xdefault: pageUrl(site.locales[0]),
+}));
+const docEntries = docs.pages.map((p) => ({ loc: p.loc, lastmod: p.lastmod, alternates: p.alternates.list, xdefault: p.alternates.xdefault }));
+writeFileSync(join(dist, "sitemap-pages.xml"), urlset(pageEntries));
+writeFileSync(join(dist, "sitemap-docs.xml"), urlset(docEntries));
+const newest = (entries) => entries.map((e) => e.lastmod).sort().at(-1);
 writeFileSync(
   join(dist, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${urls}</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${site.url}/sitemap-pages.xml</loc><lastmod>${newest(pageEntries)}</lastmod></sitemap><sitemap><loc>${site.url}/sitemap-docs.xml</loc><lastmod>${newest(docEntries)}</lastmod></sitemap></sitemapindex>\n`,
 );
 
 // Static files (CNAME, robots.txt, manifest, .nojekyll) are copied as they are
@@ -396,7 +452,7 @@ const gallery = await import("./themes.mjs").then((m) => m.loadGallery());
 mkdirSync(join(dist, "themes"), { recursive: true });
 writeFileSync(join(dist, "themes", "index.json"), JSON.stringify({ schema: 1, themes: gallery.themes }) + "\n");
 
-console.log(`Built ${pages.length} pages into ${relative(process.cwd(), dist) || "."}`);
+console.log(`Built ${pages.length} pages and ${docs.pages.length} documentation pages into ${relative(process.cwd(), dist) || "."}`);
 
 // ---------------------------------------------------------------------------------------------
 // Checks
@@ -458,13 +514,22 @@ if (checkMode) {
   }
 
   // 5. Files that have to exist.
-  for (const f of ["sitemap.xml", "robots.txt", "CNAME", ".nojekyll", "404.html"]) if (!existsSync(join(dist, f))) fail(`dist/${f} is missing`);
+  for (const f of ["sitemap.xml", "sitemap-pages.xml", "sitemap-docs.xml", "robots.txt", "CNAME", ".nojekyll", "404.html"]) if (!existsSync(join(dist, f))) fail(`dist/${f} is missing`);
   const robots = existsSync(join(dist, "robots.txt")) ? readFileSync(join(dist, "robots.txt"), "utf8") : "";
   if (!robots.includes(`${site.url}/sitemap.xml`)) fail("robots.txt does not point to the sitemap");
 
-  // 6. The sitemap lists every built page once, each with a real date, and nothing that is not built.
-  const sitemap = existsSync(join(dist, "sitemap.xml")) ? readFileSync(join(dist, "sitemap.xml"), "utf8") : "";
-  const entries = [...sitemap.matchAll(/<url><loc>([^<]+)<\/loc>([\s\S]*?)<\/url>/g)];
+  // 6. The sitemaps list every built page once, each with a real date, and nothing that is not built.
+  const index = existsSync(join(dist, "sitemap.xml")) ? readFileSync(join(dist, "sitemap.xml"), "utf8") : "";
+  const children = [...index.matchAll(/<sitemap><loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod><\/sitemap>/g)].map((m) => m[1].replace(site.url, ""));
+  if (children.length !== 2) fail(`the sitemap index lists ${children.length} sitemaps, not 2`);
+  const entries = children.flatMap((c) => {
+    const file = join(dist, c);
+    if (!existsSync(file)) {
+      fail(`the sitemap index lists ${c}, which was not built`);
+      return [];
+    }
+    return [...readFileSync(file, "utf8").matchAll(/<url><loc>([^<]+)<\/loc>([\s\S]*?)<\/url>/g)];
+  });
   const seen = new Set();
   for (const [, loc, rest] of entries) {
     if (seen.has(loc)) fail(`sitemap lists ${loc} twice`);
@@ -476,6 +541,11 @@ if (checkMode) {
     if (!existsSync(join(dist, path, path.endsWith("/") ? "index.html" : ""))) fail(`sitemap lists ${loc}, which was not built`);
   }
   for (const { locale: l } of pages) if (!seen.has(pageUrl(l))) fail(`sitemap does not list ${pageUrl(l)}`);
+  for (const p of docs.pages) if (!seen.has(p.loc)) fail(`sitemap does not list ${p.loc}`);
+
+  // 7. The documentation: every page of every language is there, and its links, images and metadata are sound.
+  for (const p of docs.problems) fail(`docs: ${p}`);
+  for (const p of checkDocs({ pages: docs.pages, dist, site })) fail(`docs: ${p}`);
 
   if (problems.length) {
     console.error(`\n${problems.length} problem(s):`);
