@@ -1,0 +1,40 @@
+name: dev.to articles
+
+# Publishes the next due article pair from marketing/devto/articles to dev.to (see marketing/devto/README.md). dev.to has no
+# scheduling in its API, so this runs on a timer. It needs the repository secret DEVTO_API_KEY and does nothing without it.
+# To pause the series, disable this workflow.
+
+on:
+  schedule:
+    - cron: "0 13 * * 2,4" # Tuesdays and Thursdays, 13:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only check the articles, links and images; publish nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devto
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check the articles
+        run: node marketing/devto/publish.mjs --dry-run
+      - name: Publish what is due
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+        run: |
+          if [ -z "$DEVTO_API_KEY" ]; then echo "DEVTO_API_KEY is not set: nothing published."; exit 0; fi
+          node marketing/devto/publish.mjs --max 2
