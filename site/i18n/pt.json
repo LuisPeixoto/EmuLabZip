@@ -17,7 +17,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Código aberto · MIT · v0.12",
+    "eyebrow": "Código aberto · MIT · v0.14",
     "titleLead": "O laboratório de depuração do seu",
     "titleAccent": "emulador Android e simulador iOS",
     "lead": "O <strong>EmuLabZip</strong> reúne logs, tráfego de rede, desempenho, memória, armazenamento, crashes e acessibilidade dos seus <strong>emuladores Android e simuladores iOS</strong> em um único app nativo e rápido. Nada para instalar no dispositivo.",
@@ -29,6 +29,7 @@
     "installLabel": "Instalar a ferramenta de linha de comando",
     "copy": "Copiar",
     "copied": "Copiado",
+    "aiLine": "Novo: 118 ferramentas, 8 prompts e dados ao vivo para o seu assistente de IA",
     "badges": ["Rust + Tauri", "macOS · Windows · Linux", "Android + iOS", "MCP para assistentes de IA"],
     "shotAlt": "App de desktop EmuLabZip mostrando a visão geral de um emulador Android: build, hardware, tela, bateria e uma prévia ao vivo"
   },
@@ -74,6 +75,7 @@
       { "id": "layout", "shot": "layout", "label": "Layout", "title": "Cada view da tela", "text": "Uma captura com a árvore de views ao lado: nomes, tamanhos, ids e o que pode ser tocado.", "alt": "Tela de layout com uma captura do Chrome em um emulador Android e a árvore das suas views" },
       { "id": "a11y", "shot": "layout-audit", "label": "Acessibilidade", "title": "Descubra no que um leitor de tela tropeçaria", "text": "Rótulos ausentes, áreas de toque pequenas e texto com pouco contraste, cada um com a view, o critério WCAG e a correção.", "alt": "Auditoria de acessibilidade listando áreas de toque pequenas e texto de baixo contraste em uma tela Android" },
       { "id": "sessions", "shot": "sessions", "label": "Sessões", "title": "Uma execução inteira em um arquivo", "text": "Erros, crashes, requisições, CPU e memória de uma execução, guardados em um arquivo que você abre depois ou coleta do CI.", "alt": "Tela de sessões resumindo uma execução gravada, com um crash, erros repetidos e requisições lentas" },
+      { "id": "ai", "shot": "ai-assistants", "label": "Assistentes de IA", "title": "Conecte qualquer assistente em um minuto", "text": "As Configurações trazem a configuração exata para Claude Code, Claude Desktop, Cursor e VS Code, com o seu caminho preenchido e uma chave para permitir mudanças.", "alt": "Página de Configurações chamada AI assistants, com o comando que adiciona o EmuLabZip ao Claude Code e uma chave para o assistente poder alterar dados" },
       { "id": "traces", "shot": "traces-flame", "label": "Traces", "title": "Para onde vai o tempo de CPU", "text": "Um perfil de CPU do sistema inteiro como flame graph, colorido conforme de quem é o código.", "alt": "Flame graph de um perfil de CPU de um emulador Android" },
       { "id": "crashes", "shot": "crashes", "label": "Crashes", "title": "Crashes, com o que tentar a seguir", "text": "Stacks agrupadas por thread, os detalhes do próprio dispositivo e dicas de simbolização.", "alt": "Tela de crashes mostrando um ANR com a thread principal bloqueada e dicas" },
       { "id": "compare", "shot": "compare", "label": "Comparar", "title": "Dois dispositivos lado a lado", "text": "Um emulador Android ao lado de um simulador de iPhone, com gráficos e uma tabela de diferenças.", "alt": "Tela de comparação com um emulador Android e um simulador iOS lado a lado" },
@@ -130,20 +132,59 @@
   },
   "ai": {
     "kicker": "Feito para assistentes de IA",
-    "title": "Deixe seu assistente de IA olhar o emulador",
-    "lead": "O EmuLabZip inclui um servidor MCP. Conecte o Claude, ou qualquer cliente MCP, e ele poderá ler logs e crashes, tirar capturas de tela, auditar uma tela e controlar o dispositivo.",
+    "title": "Dê ao seu assistente de IA um laboratório próprio",
+    "lead": "O EmuLabZip inclui um servidor MCP com 118 ferramentas, 8 prompts e 13 recursos. Conecte o Claude, o Cursor, o VS Code ou qualquer cliente MCP e ele poderá ler crashes, acompanhar logs e tráfego ao vivo, controlar a tela, gravar uma execução e reproduzir um bug.",
     "points": [
-      "29 ferramentas: logs, crashes, traces, layout, sessões e controles do dispositivo",
-      "Fala apenas por entrada e saída padrão, sem abrir nenhuma porta de rede",
-      "As ações são validadas e os plugins só rodam depois que você os ativa"
+      "118 ferramentas para crashes, logs, rede, desempenho, dados do app, sessões e verificações de qualidade",
+      "Ao vivo: acompanha logs, desempenho e requisições enquanto você usa o app",
+      "Somente leitura, a menos que você permita mudanças, e cada mudança pergunta antes",
+      "Apenas entrada e saída padrão, sem porta de rede"
     ],
-    "more": "Veja como conectar um assistente",
-    "alt": "Uma conversa em que um assistente de IA lê um crash e audita a acessibilidade de uma tela usando o EmuLabZip",
+    "more": "Leia o guia do MCP",
+    "alt": "Uma conversa em que um assistente de IA reproduz um bug em um emulador, lê a requisição que falhou e o crash, e escreve um relatório pelo EmuLabZip",
     "chat": [
-      { "role": "you", "who": "Você", "text": "Por que a tela de pagamento fecha no emulador Pixel?" },
-      { "role": "ai", "who": "IA", "text": "list_crashes encontrou 1 crash: NumberFormatException em CheckoutViewModel.parse, linha 84." },
-      { "role": "you", "who": "Você", "text": "Verifique essa tela em busca de problemas de acessibilidade." },
-      { "role": "ai", "who": "IA", "text": "audit_accessibility: o botão Pagar não tem rótulo e 2 áreas de toque têm menos de 48 dp." }
+      { "role": "you", "who": "Você", "text": "O botão Pagar não faz nada no Pixel. Reproduza e escreva o relatório." },
+      { "role": "ai", "who": "IA", "text": "session_start e depois tap em Pagar: POST /orders voltou 500 em 212 ms." },
+      { "role": "ai", "who": "IA", "text": "get_crash: NumberFormatException em CheckoutViewModel.parse, linha 84, lido com o mapping guardado." },
+      { "role": "you", "who": "Você", "text": "Faça o carrinho voltar vazio e tente de novo." },
+      { "role": "ai", "who": "IA", "text": "net_rules_set: api.shop.dev/cart agora responde 200 com uma lista vazia. A tela fica em branco, sem estado vazio." },
+      { "role": "ai", "who": "IA", "text": "session_stop, create_bug_report: salvo com o vídeo, a requisição que falhou e o crash." }
+    ],
+    "groupsTitle": "O que um assistente pode fazer",
+    "groups": [
+      { "icon": "layout", "title": "Ver e controlar a tela", "text": "Capturas de tela, árvore de views, verificações de acessibilidade e texto, toques, deslizes, digitação e fluxos salvos." },
+      { "icon": "crashes", "title": "Explicar crashes", "text": "Crashes e ANRs lidos com seu mapping, source map ou dSYM, ao lado do log em volta." },
+      { "icon": "network", "title": "Trabalhar com a rede", "text": "Iniciar o proxy, ler requisições com corpos decodificados, simular, atrasar ou bloquear respostas, reproduzir uma sessão, exportar um HAR." },
+      { "icon": "logs", "title": "Acompanhar ao vivo", "text": "Observar logs, desempenho, toques e fluxos de WebView e React Native enquanto você usa o app." },
+      { "icon": "sessions", "title": "Gravar e comparar", "text": "Gravar uma execução com vídeo e requisições, ler sua linha do tempo, compará-la com uma anterior." },
+      { "icon": "storage", "title": "Ler dados do app", "text": "SQLite, Realm, Core Data, preferências, DataStore, MMKV e AsyncStorage, com SQL somente leitura." },
+      { "icon": "shield", "title": "Verificar uma build", "text": "Auditoria de segurança, limites de tamanho, varreduras de idioma e tamanho de texto, regressão visual e deep links." },
+      { "icon": "performance", "title": "Achar o que está lento", "text": "Traces de CPU, tempos de início, crescimento de memória e heap dumps." }
+    ],
+    "promptsTitle": "Prompts para as tarefas de sempre",
+    "prompts": [
+      { "name": "explain_crash", "text": "Achar o crash, lê-lo com o mapping e dizer como corrigir" },
+      { "name": "why_is_it_slow", "text": "Medir, rastrear a parte lenta e apontar a causa" },
+      { "name": "summarize_session", "text": "Contar a história de uma execução gravada" },
+      { "name": "reproduce_bug", "text": "Seguir uma descrição no dispositivo e escrever o relatório" },
+      { "name": "debug_request", "text": "Capturar o tráfego e dizer por que uma requisição falhou" },
+      { "name": "release_check", "text": "Segurança, tamanho, texto e idioma de uma vez" },
+      { "name": "check_deep_link", "text": "Verificar um link e ver onde ele cai" },
+      { "name": "mock_backend", "text": "Responder a um host com resposta, atraso ou erro fixos" }
+    ],
+    "safetyTitle": "Seguro por padrão",
+    "safetyLead": "Um assistente pode olhar tudo. Ele não destrói nada, a menos que você diga que pode.",
+    "safety": [
+      "Apagar, excluir e reescrever dados não é oferecido. Inicie o servidor com --allow-writes e cada ação pergunta se você confirma, com palavras que dizem exatamente o que vai acontecer.",
+      "Aprovar scripts e plugins, e rodar comandos de CI, ficam sempre com você.",
+      "Arquivos só são gravados nas pastas do próprio EmuLabZip, e o proxy do dispositivo é desfeito quando o assistente se desconecta."
+    ],
+    "connectTitle": "Conecte em um minuto",
+    "connectLead": "O app mostra o mesmo texto com o seu caminho preenchido, em Configurações, Assistentes de IA.",
+    "connect": [
+      { "label": "Claude Code", "hint": "Rode em um terminal", "code": "claude mcp add emulabzip -- emulabzip mcp" },
+      { "label": "Claude Desktop", "hint": "Adicione ao claude_desktop_config.json, ou ao ~/.cursor/mcp.json no Cursor", "code": "{\n  \"mcpServers\": {\n    \"emulabzip\": { \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" },
+      { "label": "VS Code", "hint": "Adicione ao .vscode/mcp.json", "code": "{\n  \"servers\": {\n    \"emulabzip\": { \"type\": \"stdio\", \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" }
     ]
   },
   "why": {
@@ -162,7 +203,7 @@
   "roadmap": {
     "kicker": "Roadmap",
     "title": "Para onde o EmuLabZip está indo",
-    "lead": "Doze fases já foram concluídas. As quatro próximas levam a uma versão 1.0 estável.",
+    "lead": "Catorze fases estão prontas. As próximas duas levam a um 1.0 estável.",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "Observar", "text": "Dispositivos, logs, desempenho, memória, armazenamento e o proxy de rede." },
       { "state": "done", "version": "v0.4", "title": "Traces", "text": "Perfetto, simpleperf e Instruments, com flame graphs e SQL." },
@@ -175,8 +216,8 @@
       { "state": "done", "version": "v0.11", "title": "O estado do app como dado", "text": "Snapshots do sandbox e dos emuladores, modo de escrita no Storage e mais visualizadores." },
       { "state": "done", "version": "v0.12", "title": "Qualidade além do desempenho", "text": "Auditoria de segurança, tamanho de APK e IPA, localização, regressão visual e analytics." },
       { "state": "done", "version": "v0.13", "title": "Automação e apps híbridos", "text": "Console e requisições de WebView, toques e fluxos para o Maestro, checagem de deep links e regras com arquivos, OpenAPI e scripts." },
-      { "state": "next", "version": "v0.14", "title": "IA com contexto", "text": "A linha do tempo, o replay e os snapshots como ferramentas MCP, e prompts para perguntas comuns." },
-      { "state": "later", "version": "v0.15", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas Apple." },
+      { "state": "done", "version": "v0.14", "title": "IA com contexto", "text": "Um servidor MCP com 118 ferramentas, prompts e recursos que guardam estado: o proxy, observações ao vivo e sessões. Mudanças em dados são opcionais e perguntam antes." },
+      { "state": "next", "version": "v0.15", "title": "Dispositivos e plataformas", "text": "iPhones físicos, Android por Wi-Fi, Wear OS, TV e plataformas Apple." },
       { "state": "later", "version": "v1.0", "title": "Equipe e ecossistema", "text": "Relatórios para compartilhar, bibliotecas de regras, uma extensão do VS Code e uma promessa de estabilidade." }
     ]
   },
@@ -189,7 +230,7 @@
       { "q": "Em quais sistemas operacionais funciona?", "a": "macOS, Windows e Linux. Os simuladores de iOS precisam de um Mac com Xcode, porque a Apple só os oferece lá. Os emuladores Android funcionam nos três sistemas." },
       { "q": "Preciso instalar algo no emulador?", "a": "Não. O EmuLabZip usa as ferramentas públicas de cada plataforma (ADB e simctl), então nada é instalado no dispositivo nem dentro do seu app." },
       { "q": "Ele consegue ver o tráfego HTTPS do meu app?", "a": "Sim. O proxy embutido descriptografa o HTTPS quando o emulador confia no certificado do EmuLabZip, que o app instala para você. Apps que fixam o certificado passam sem alteração." },
-      { "q": "Funciona com assistentes de IA?", "a": "Sim. O EmuLabZip inclui um servidor MCP, então assistentes como o Claude podem ler logs e crashes, tirar capturas de tela, auditar acessibilidade e controlar o dispositivo." },
+      { "q": "Funciona com assistentes de IA?", "a": "Sim. O EmuLabZip inclui um servidor MCP com 118 ferramentas, 8 prompts e 13 recursos, então assistentes como Claude, Cursor e Copilot podem ler crashes, acompanhar logs e requisições ao vivo, controlar a tela, gravar uma execução e reproduzir um bug. Ele não apaga nem reescreve dados a menos que você o inicie com --allow-writes, e então cada mudança pergunta antes." },
       { "q": "Posso usar no CI?", "a": "Sim. O comando emulabzip ci grava uma sessão em volta do seu comando de testes, mantém o código de saída dele e pode reprovar a execução quando o app dá crash ou a tela tem problemas de acessibilidade." },
       { "q": "Suporta dispositivos físicos?", "a": "Ainda não. Hoje há suporte a emuladores Android e simuladores iOS. iPhones físicos e Android por Wi-Fi estão previstos para a v0.15." }
     ]

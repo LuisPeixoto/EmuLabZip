@@ -17,7 +17,7 @@
     "language": "语言"
   },
   "hero": {
-    "eyebrow": "开源 · MIT · v0.12",
+    "eyebrow": "开源 · MIT · v0.14",
     "titleLead": "专为你的",
     "titleAccent": "Android 模拟器和 iOS 模拟器打造的调试实验室",
     "lead": "<strong>EmuLabZip</strong> 把 <strong>Android 模拟器和 iOS 模拟器</strong> 的日志、网络流量、性能、内存、存储、崩溃和无障碍检查集中到一个快速的原生应用里。无需在设备上安装任何东西。",
@@ -29,6 +29,7 @@
     "installLabel": "安装命令行工具",
     "copy": "复制",
     "copied": "已复制",
+    "aiLine": "新增：118 个工具、8 个提示词和实时数据，供你的 AI 助手使用",
     "badges": ["Rust + Tauri", "macOS · Windows · Linux", "Android + iOS", "支持 AI 助手的 MCP"],
     "shotAlt": "EmuLabZip 桌面应用显示 Android 模拟器的概览：版本、硬件、屏幕、电量和实时屏幕预览"
   },
@@ -74,6 +75,7 @@
       { "id": "layout", "shot": "layout", "label": "布局", "title": "屏幕上的每个视图", "text": "截图旁边就是视图树：名称、尺寸、标识符，以及哪些可以点击。", "alt": "布局视图：Android 模拟器上的 Chrome 截图和它的视图树" },
       { "id": "a11y", "shot": "layout-audit", "label": "无障碍", "title": "找出屏幕阅读器会卡住的地方", "text": "缺失的标签、过小的点击区域和低对比度文字，每项都附视图、WCAG 条款和修复建议。", "alt": "无障碍审计列出 Android 屏幕上过小的点击区域和低对比度文字" },
       { "id": "sessions", "shot": "sessions", "label": "会话", "title": "一次完整运行，一个文件", "text": "一次运行的错误、崩溃、请求、CPU 和内存都保存为文件，之后可随时打开，也可从 CI 收集。", "alt": "会话视图汇总一次录制的运行：一次崩溃、重复出现的错误和较慢的请求" },
+      { "id": "ai", "shot": "ai-assistants", "label": "AI 助手", "title": "一分钟接入任何助手", "text": "“设置”中提供 Claude Code、Claude Desktop、Cursor 和 VS Code 的准确配置，已填好你的路径，并带有允许修改的开关。", "alt": "名为 AI assistants 的设置页面，显示把 EmuLabZip 添加到 Claude Code 的命令，以及允许助手修改数据的开关" },
       { "id": "traces", "shot": "traces-flame", "label": "追踪", "title": "CPU 时间都花在哪里", "text": "整个系统的 CPU 分析以火焰图呈现，并按代码归属着色。", "alt": "Android 模拟器 CPU 分析的火焰图" },
       { "id": "crashes", "shot": "crashes", "label": "崩溃", "title": "崩溃，以及下一步该试什么", "text": "按线程分组的调用栈、设备自己记录的详情和符号化提示。", "alt": "崩溃视图显示一次 ANR、被阻塞的主线程和提示" },
       { "id": "compare", "shot": "compare", "label": "对比", "title": "两台设备并排", "text": "Android 模拟器和 iPhone 模拟器并排，附图表和差异表。", "alt": "对比视图：Android 模拟器和 iOS 模拟器并排显示" },
@@ -129,21 +131,60 @@
     ]
   },
   "ai": {
-    "kicker": "为 AI 助手而生",
-    "title": "让你的 AI 助手直接查看模拟器",
-    "lead": "EmuLabZip 内置 MCP 服务器。连接 Claude 或任何 MCP 客户端后，它就能读取日志和崩溃、截屏、审计屏幕并控制设备。",
+    "kicker": "为 AI 助手打造",
+    "title": "给你的 AI 助手一个专属实验室",
+    "lead": "EmuLabZip 内置 MCP 服务器，提供 118 个工具、8 个提示词和 13 个资源。连接 Claude、Cursor、VS Code 或任何 MCP 客户端后，它就能读取崩溃、实时跟踪日志和流量、操作屏幕、录制一次运行并复现问题。",
     "points": [
-      "29 个工具：日志、崩溃、追踪、布局、会话和设备控制",
-      "仅通过标准输入输出通信，不开放任何网络端口",
-      "所有操作都经过校验，插件只有在你启用后才会运行"
+      "118 个工具，覆盖崩溃、日志、网络、性能、应用数据、会话和质量检查",
+      "实时：在你使用应用时跟踪日志、性能和请求",
+      "默认只读，除非你允许修改，且每次修改都会先询问你",
+      "只使用标准输入输出，不开放网络端口"
     ],
-    "more": "了解如何连接 AI 助手",
-    "alt": "AI 助手通过 EmuLabZip 读取崩溃并审计屏幕无障碍的对话",
+    "more": "阅读 MCP 指南",
+    "alt": "一段对话：AI 助手在模拟器上复现问题，读取失败的请求和崩溃，并通过 EmuLabZip 写出报告",
     "chat": [
-      { "role": "you", "who": "你", "text": "为什么结账页面在 Pixel 模拟器上会崩溃？" },
-      { "role": "ai", "who": "AI", "text": "list_crashes 发现 1 次崩溃：CheckoutViewModel.parse 第 84 行出现 NumberFormatException。" },
-      { "role": "you", "who": "你", "text": "检查这个页面有没有无障碍问题。" },
-      { "role": "ai", "who": "AI", "text": "audit_accessibility：“支付”按钮没有标签，另有 2 个点击区域小于 48 dp。" }
+      { "role": "you", "who": "你", "text": "Pixel 上的“支付”按钮没反应。请复现并写成报告。" },
+      { "role": "ai", "who": "AI", "text": "session_start，然后点击“支付”：POST /orders 在 212 毫秒后返回 500。" },
+      { "role": "ai", "who": "AI", "text": "get_crash：CheckoutViewModel.parse 第 84 行抛出 NumberFormatException，已用保存的 mapping 还原。" },
+      { "role": "you", "who": "你", "text": "让购物车返回空，再试一次。" },
+      { "role": "ai", "who": "AI", "text": "net_rules_set：api.shop.dev/cart 现在返回 200 和空列表。屏幕一片空白，没有空状态。" },
+      { "role": "ai", "who": "AI", "text": "session_stop、create_bug_report：已保存，包含视频、失败的请求和崩溃。" }
+    ],
+    "groupsTitle": "助手能做什么",
+    "groups": [
+      { "icon": "layout", "title": "查看并操作屏幕", "text": "截图、视图树、无障碍和文字检查、点按、滑动、输入以及保存的流程。" },
+      { "icon": "crashes", "title": "解释崩溃", "text": "用你的 mapping、source map 或 dSYM 读取崩溃和 ANR，并附上前后的日志。" },
+      { "icon": "network", "title": "处理网络", "text": "启动代理、读取已解码正文的请求、模拟、延迟或拦截响应、回放会话、导出 HAR。" },
+      { "icon": "logs", "title": "实时跟踪", "text": "在你使用应用时观察日志、性能、触摸以及 WebView 和 React Native 的数据流。" },
+      { "icon": "sessions", "title": "录制与对比", "text": "录制带视频和请求的运行，查看时间线，并与之前的运行对比。" },
+      { "icon": "storage", "title": "读取应用数据", "text": "SQLite、Realm、Core Data、偏好设置、DataStore、MMKV 和 AsyncStorage，SQL 只读。" },
+      { "icon": "shield", "title": "检查构建", "text": "安全审计、体积预算、语言和字号扫描、视觉回归以及深层链接。" },
+      { "icon": "performance", "title": "找出慢的地方", "text": "CPU 追踪、启动时间、内存增长和堆转储。" }
+    ],
+    "promptsTitle": "常见任务的提示词",
+    "prompts": [
+      { "name": "explain_crash", "text": "找到崩溃，用 mapping 还原，并说明如何修复" },
+      { "name": "why_is_it_slow", "text": "测量、追踪慢的部分并指出原因" },
+      { "name": "summarize_session", "text": "讲述一次录制运行的经过" },
+      { "name": "reproduce_bug", "text": "在设备上按描述操作并写出报告" },
+      { "name": "debug_request", "text": "抓取流量并说明请求为何失败" },
+      { "name": "release_check", "text": "一次完成安全、体积、文字和语言检查" },
+      { "name": "check_deep_link", "text": "验证链接并查看它落在哪里" },
+      { "name": "mock_backend", "text": "让某个主机返回固定的响应、延迟或错误" }
+    ],
+    "safetyTitle": "默认安全",
+    "safetyLead": "助手可以查看一切，但除非你允许，否则不能破坏任何东西。",
+    "safety": [
+      "不提供清除、删除和改写数据的工具。用 --allow-writes 启动服务器后，每一项操作都会请你确认，并明确说明将发生什么。",
+      "批准脚本和插件、运行 CI 命令，始终由你自己决定。",
+      "文件只写入 EmuLabZip 自己的文件夹，助手断开连接时会恢复设备的代理设置。"
+    ],
+    "connectTitle": "一分钟接入",
+    "connectLead": "应用在“设置”的“AI 助手”中显示同样的内容，并已填好你的路径。",
+    "connect": [
+      { "label": "Claude Code", "hint": "在终端中运行", "code": "claude mcp add emulabzip -- emulabzip mcp" },
+      { "label": "Claude Desktop", "hint": "添加到 claude_desktop_config.json；Cursor 则添加到 ~/.cursor/mcp.json", "code": "{\n  \"mcpServers\": {\n    \"emulabzip\": { \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" },
+      { "label": "VS Code", "hint": "添加到 .vscode/mcp.json", "code": "{\n  \"servers\": {\n    \"emulabzip\": { \"type\": \"stdio\", \"command\": \"emulabzip\", \"args\": [\"mcp\"] }\n  }\n}" }
     ]
   },
   "why": {
@@ -162,7 +203,7 @@
   "roadmap": {
     "kicker": "路线图",
     "title": "EmuLabZip 的下一步",
-    "lead": "十二个阶段已经完成，接下来的四个阶段将通向稳定的 1.0。",
+    "lead": "十四个阶段已完成。接下来的两个阶段通往稳定的 1.0。",
     "phases": [
       { "state": "done", "version": "v0.1 – v0.3", "title": "观察", "text": "设备、日志、性能、内存、存储和网络代理。" },
       { "state": "done", "version": "v0.4", "title": "追踪", "text": "Perfetto、simpleperf 和 Instruments，支持火焰图和 SQL。" },
@@ -175,8 +216,8 @@
       { "state": "done", "version": "v0.11", "title": "把应用状态当作数据", "text": "沙盒与模拟器快照、存储的写入模式，以及更多查看器。" },
       { "state": "done", "version": "v0.12", "title": "性能之外的质量", "text": "安全审计、APK 与 IPA 体积、本地化、视觉回归和分析事件。" },
       { "state": "done", "version": "v0.13", "title": "自动化与混合应用", "text": "WebView 控制台与请求、触摸输入与 Maestro 流程、深层链接检查，以及文件、OpenAPI 和脚本规则。" },
-      { "state": "next", "version": "v0.14", "title": "带上下文的 AI", "text": "时间线、回放和快照作为 MCP 工具，以及常见问题的提示词。" },
-      { "state": "later", "version": "v0.15", "title": "设备与平台", "text": "真机 iPhone、Wi-Fi 上的 Android、Wear OS、电视和 Apple 各平台。" },
+      { "state": "done", "version": "v0.14", "title": "带上下文的 AI", "text": "MCP 服务器提供 118 个工具、提示词和资源，并能保持状态：代理、实时监视和会话。修改数据需主动开启，且每次先询问。" },
+      { "state": "next", "version": "v0.15", "title": "设备与平台", "text": "真机 iPhone、通过 Wi-Fi 的 Android、Wear OS、电视和 Apple 各平台。" },
       { "state": "later", "version": "v1.0", "title": "团队与生态", "text": "可分享的报告、规则库、VS Code 扩展和稳定性承诺。" }
     ]
   },
@@ -189,7 +230,7 @@
       { "q": "支持哪些操作系统？", "a": "macOS、Windows 和 Linux。iOS 模拟器需要装有 Xcode 的 Mac，因为 Apple 只在 Mac 上提供它。Android 模拟器在三个系统上都能用。" },
       { "q": "需要在模拟器里安装什么吗？", "a": "不需要。EmuLabZip 使用各平台的公开工具（ADB 和 simctl），所以设备上和你的应用里都不会安装任何东西。" },
       { "q": "能看到我的应用的 HTTPS 流量吗？", "a": "可以。当模拟器信任 EmuLabZip 证书后（应用会替你安装），内置代理就能解密 HTTPS。固定了证书的应用会原样放行。" },
-      { "q": "能配合 AI 助手使用吗？", "a": "可以。EmuLabZip 内置 MCP 服务器，因此 Claude 等助手可以读取日志和崩溃、截屏、审计无障碍并控制设备。" },
+      { "q": "能配合 AI 助手使用吗？", "a": "可以。EmuLabZip 内置 MCP 服务器，提供 118 个工具、8 个提示词和 13 个资源，因此 Claude、Cursor 和 Copilot 等助手可以读取崩溃、实时跟踪日志和请求、操作屏幕、录制运行并复现问题。除非你用 --allow-writes 启动，否则它不能清除或改写数据，开启后每次修改都会先询问你。" },
       { "q": "能用在 CI 里吗？", "a": "可以。emulabzip ci 命令会围绕你的测试命令录制会话、保留它的退出码，并能在应用崩溃或屏幕有无障碍问题时让运行失败。" },
       { "q": "支持真机吗？", "a": "暂时不支持。目前支持 Android 模拟器和 iOS 模拟器，真机 iPhone 和 Wi-Fi 连接的 Android 计划在 v0.15 提供。" }
     ]
