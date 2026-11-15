@@ -55,6 +55,7 @@ impl EmuLabServer {
         reply(
             async {
                 let device = self.find_device(&a.device, a.platform.as_deref()).await?;
+                stopped(&device)?;
                 self.authorize(&context, &format!("Wipe {}? All its apps and data are deleted.", device.name)).await?;
                 self.lab.wipe_device(&device.target(), true).await.map_err(|e| e.to_string())?;
                 Ok(format!("Wiped {}", device.name))
@@ -76,6 +77,7 @@ impl EmuLabServer {
         reply(
             async {
                 let device = self.find_device(&a.device, a.platform.as_deref()).await?;
+                stopped(&device)?;
                 self.authorize(&context, &format!("Delete {} for good, with all its apps and data?", device.name))
                     .await?;
                 self.lab.delete_device(&device.target(), true).await.map_err(|e| e.to_string())?;
@@ -305,6 +307,15 @@ impl EmuLabServer {
             }
             .await,
         )
+    }
+}
+
+/// A device is only wiped or deleted while it is off, and the person is not asked about something that cannot happen.
+fn stopped(device: &emulabzip_core::Device) -> Result<(), String> {
+    if device.state == emulabzip_core::DeviceState::Shutdown {
+        Ok(())
+    } else {
+        Err(format!("{} is running. Shut it down first (shutdown_device).", device.name))
     }
 }
 

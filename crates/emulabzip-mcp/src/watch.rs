@@ -38,13 +38,20 @@ impl Ring {
         }
     }
 
-    /// The items after `since` (everything kept when `None`), at most `limit`, and the sequence number to ask for next.
-    pub fn read(&self, since: Option<u64>, limit: usize) -> (Vec<&Value>, u64, bool) {
+    /// The items after `since` (everything kept when `None`), at most `limit` and about `budget` bytes, and the sequence
+    /// number to ask for next. What does not fit stays for the next read, so a reply is never cut in the middle.
+    pub fn read(&self, since: Option<u64>, limit: usize, budget: usize) -> (Vec<&Value>, u64, bool) {
         let after = since.unwrap_or(0);
         let missed = since.is_some_and(|s| self.items.front().is_some_and(|(first, _)| *first > s + 1));
         let mut out = Vec::new();
         let mut last = after;
+        let mut size = 0;
         for (seq, item) in self.items.iter().filter(|(seq, _)| *seq > after).take(limit) {
+            size += item.to_string().len();
+            // One item always goes, so a single large one cannot block the watch.
+            if size > budget && !out.is_empty() {
+                break;
+            }
             out.push(item);
             last = *seq;
         }
@@ -131,20 +138,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_read_stops_before_it_gets_too_big_and_the_rest_waits() {
+        let mut ring = Ring::default();
+        for i in 0..10 {
+            ring.push(json!({ "line": "x".repeat(100), "n": i }));
+        }
+        let (items, next, _) = ring.read(None, 100, 350);
+        assert!(items.len() < 10 && !items.is_empty(), "{}", items.len());
+        let (rest, _, _) = ring.read(Some(next), 100, usize::MAX);
+        assert_eq!(items.len() + rest.len(), 10, "nothing is lost");
+        // One big item still goes, so a watch cannot get stuck.
+        let (one, _, _) = ring.read(None, 100, 1);
+        assert_eq!(one.len(), 1);
+    }
+
+    #[test]
     fn a_read_hands_over_what_is_new_and_says_where_to_continue() {
         let mut ring = Ring::default();
         for n in 1..=5 {
             ring.push(json!(n));
         }
-        let (items, next, missed) = ring.read(None, 3);
+        let (items, next, missed) = ring.read(None, 3, usize::MAX);
         assert_eq!((items.len(), next, missed), (3, 3, false));
-        let (items, next, _) = ring.read(Some(next), 10);
+        let (items, next, _) = ring.read(Some(next), 10, usize::MAX);
         assert_eq!((items, next), (vec![&json!(4), &json!(5)], 5));
-        let (items, next, _) = ring.read(Some(next), 10);
+        let (items, next, _) = ring.read(Some(next), 10, usize::MAX);
         assert!(items.is_empty());
         assert_eq!(next, 5, "an empty read keeps its place");
         ring.push(json!(6));
-        assert_eq!(ring.read(Some(next), 10).0, vec![&json!(6)]);
+        assert_eq!(ring.read(Some(next), 10, usize::MAX).0, vec![&json!(6)]);
     }
 
     #[test]
@@ -154,9 +176,9 @@ mod tests {
             ring.push(json!(n));
         }
         assert_eq!((ring.len(), ring.dropped()), (CAPACITY, 10));
-        let (items, _, missed) = ring.read(Some(2), 5);
+        let (items, _, missed) = ring.read(Some(2), 5, usize::MAX);
         assert!(missed, "the reader asked from before the oldest kept item");
         assert_eq!(items[0], &json!(10));
-        assert!(!ring.read(Some(20), 5).2);
+        assert!(!ring.read(Some(20), 5, usize::MAX).2);
     }
 }

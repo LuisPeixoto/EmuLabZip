@@ -15,6 +15,9 @@ fn finish(ring: &Mutex<Ring>, why: &str) {
     ring.lock().unwrap().ended.get_or_insert_with(|| why.to_string());
 }
 
+/// A reply stays well under the size a tool result is cut at, so it is always whole JSON.
+const WATCH_REPLY_BYTES: usize = 40_000;
+
 #[tool_router(router = watches_router, vis = "pub(in crate::server)")]
 impl EmuLabServer {
     #[tool(
@@ -44,7 +47,8 @@ impl EmuLabServer {
                     watches.get(&a.id).ok_or_else(|| format!("no watch has the id {}; watch_list shows them", a.id))?;
                 *w.last_read.lock().unwrap() = Instant::now();
                 let ring = w.ring.lock().unwrap();
-                let (items, next, missed) = ring.read(a.since, a.limit.unwrap_or(200).clamp(1, 1000));
+                let (items, next, missed) =
+                    ring.read(a.since, a.limit.unwrap_or(200).clamp(1, 1000), WATCH_REPLY_BYTES);
                 json(&serde_json::json!({
                     "watch": a.id,
                     "kind": w.kind,
