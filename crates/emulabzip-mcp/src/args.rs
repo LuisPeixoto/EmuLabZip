@@ -150,6 +150,8 @@ pub struct BugReport {
     /// Also return a link that opens a new issue: `github:owner/repo`, `gitlab:[host/]group/project` or
     /// `jira:site/PROJECTID/ISSUETYPEID`.
     pub issue: Option<String>,
+    /// Leave parts out: any of `screenshot`, `logs`, `requests`, `crashes`, `video`.
+    pub without: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -699,4 +701,158 @@ pub struct SessionCompare {
     pub run: String,
     /// How much worse a number may get before it counts as a regression, in percent (default 10).
     pub tolerance_percent: Option<f64>,
+}
+
+// ---------------------------------------------------------------------------------------------
+// Crashes, React Native, devices, links, flows and quality
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct SymbolicateStack {
+    /// The stack as text: Java frames (read with a `mapping.txt`) or JavaScript frames (with a source map).
+    pub stack: String,
+    /// The app the stack is from.
+    pub app: String,
+    /// The version of that build, exactly as `list_mappings` shows it. A mapping of another build would read worse than none.
+    pub version: String,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct ListMappings {
+    /// Only this app's.
+    pub app: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AddMapping {
+    pub app: String,
+    pub version: String,
+    /// The full path of a `mapping.txt`, a source map or a `.dSYM` on this computer. It is copied into EmuLabZip's store.
+    pub file: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReactConsole {
+    /// The app, to pick its runtime among those Metro lists.
+    pub app: String,
+    /// Metro's port on this computer (default 8081).
+    pub metro_port: Option<u16>,
+    /// How long to listen, 1 to 60 seconds (default 8).
+    pub seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ReactApp {
+    pub app: String,
+    pub metro_port: Option<u16>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct DeviceOptionsArgs {
+    /// `android` or `ios`.
+    pub platform: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CreateDeviceArgs {
+    /// `android` or `ios`.
+    pub platform: String,
+    /// A name for the new device: letters, digits, `_`, `-` and `.`.
+    pub name: String,
+    /// A system image (Android) or runtime (iOS), by the id `device_options` shows.
+    pub image: String,
+    /// A device model, by the id `device_options` shows (`pixel_6`).
+    pub model: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CompareDevices {
+    /// A device by id or name.
+    pub a: String,
+    pub b: String,
+    /// Also list the facts that are the same (default: only the differences).
+    pub all: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VerifyLinks {
+    pub device: Option<String>,
+    /// The app whose domains Android should verify again.
+    pub app: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct FlowId {
+    /// A saved flow's id, as `list_flows` shows it.
+    pub flow: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct FlowExport {
+    pub flow: String,
+    /// `maestro` (a Maestro YAML flow) or `script` (a shell script of emulabzip commands).
+    pub format: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct FlowCreate {
+    /// A name for the flow.
+    pub name: String,
+    /// The app it is for: a package name or bundle id.
+    pub app: Option<String>,
+    /// The steps: `{"type":"launch"}`, `{"type":"tap","x","y"}`, `{"type":"longPress","x","y","ms"}`,
+    /// `{"type":"swipe","x1","y1","x2","y2","ms"}`, `{"type":"text","text"}`, `{"type":"key","key"}`, `{"type":"wait","ms"}`.
+    pub steps: Vec<serde_json::Value>,
+    /// The screen size in pixels the coordinates are for, so the flow can be scaled to another screen.
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct WebviewReload {
+    pub device: Option<String>,
+    pub app: Option<String>,
+    pub socket: Option<String>,
+    pub page: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct VisualCapture {
+    pub device: Option<String>,
+    /// A name for the baseline: letters, digits, `.`, `_` and `-`. It is saved in the project's `visual` folder.
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct I18nSweep {
+    pub device: Option<String>,
+    /// The app whose language is changed (Android changes one app at a time).
+    pub app: Option<String>,
+    /// Language tags to try, such as `de-DE`, `ar-SA`, or the pseudo-locales `en-XA` and `ar-XB`.
+    pub locales: Option<Vec<String>>,
+    /// Text sizes to try, in percent of normal (50 to 300), such as `[130, 200]`.
+    pub text_sizes: Option<Vec<u32>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct MemoryDiff {
+    pub device: Option<String>,
+    pub app: String,
+    /// How long to wait between the two readings while you use the app, 1 to 120 seconds (default 15).
+    pub seconds: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PackageBudget {
+    /// The full path of an `.apk`, `.aab` or `.ipa`.
+    pub file: String,
+    /// The build to measure growth against.
+    pub baseline: Option<String>,
+    pub total_mb: Option<f64>,
+    pub dex_mb: Option<f64>,
+    pub native_mb: Option<f64>,
+    pub resources_mb: Option<f64>,
+    pub methods: Option<u32>,
+    /// How much bigger than the baseline the build may be, in percent.
+    pub growth_percent: Option<f64>,
 }

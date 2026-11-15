@@ -52,6 +52,7 @@ impl EmuLabServer {
             + Self::storage_router()
             + Self::storage_data_router()
             + Self::recording_router()
+            + Self::more_router()
             + Self::quality_router()
             + Self::sessions_router()
             + Self::crashes_router()
@@ -622,6 +623,20 @@ impl EmuLabServer {
             return Err("`app` is for a report of the device as it is now; a session already knows its app".into());
         }
         let mut options = Options::everything();
+        for part in a.without.iter().flatten() {
+            match part.as_str() {
+                "screenshot" => options.include_screenshot = false,
+                "logs" => options.include_logs = false,
+                "requests" => options.include_requests = false,
+                "crashes" => options.include_crashes = false,
+                "video" => options.include_video = false,
+                other => {
+                    return Err(format!(
+                        "`{other}` is not a part of a report: use screenshot, logs, requests, crashes or video"
+                    ));
+                }
+            }
+        }
         options.title = a.title.clone().unwrap_or_default();
         options.description = a.description.clone().unwrap_or_default();
         let store = Store::default();
