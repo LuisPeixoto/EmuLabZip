@@ -1,18 +1,24 @@
 # MCP server
 
-`emulabzip mcp` lets an AI assistant read and control your emulators and simulators. It speaks the
-[Model Context Protocol](https://modelcontextprotocol.io) over standard input and output, and uses the same code as the
-app and the command line, so a device behaves the same everywhere.
+`emulabzip mcp` lets an AI assistant look at your emulators and simulators, and work with them: read logs, crashes and
+requests, drive the screen, record a session, check a build. It speaks the
+[Model Context Protocol](https://modelcontextprotocol.io) over standard input and output, and uses the same code as the app
+and the command line, so a device behaves the same everywhere.
+
+It offers **118 tools** (130 with changes turned on), **8 prompts** and **13 resources**. The full list, written from the
+server itself so it cannot drift, is the [MCP reference](mcp-tools.md).
 
 ## Connect an assistant
 
-Claude Code:
+The desktop app shows the exact text for your computer under **Settings, AI assistants**, with a Copy button. By hand:
+
+**Claude Code**
 
 ```bash
 claude mcp add emulabzip -- emulabzip mcp
 ```
 
-Claude Desktop, in `claude_desktop_config.json`:
+**Claude Desktop**, in `claude_desktop_config.json` (Settings, Developer, Edit Config):
 
 ```json
 {
@@ -22,85 +28,103 @@ Claude Desktop, in `claude_desktop_config.json`:
 }
 ```
 
-Any other client that starts a stdio server works the same way. Give `command` the full path of `emulabzip` if it is not
-on the client's PATH.
+**Cursor**, in `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project): the same `mcpServers` block as Claude Desktop.
 
-## The tools
+**VS Code**, in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "emulabzip": { "type": "stdio", "command": "emulabzip", "args": ["mcp"] }
+  }
+}
+```
+
+Any other client that starts a stdio server works the same way. Give `command` the full path of `emulabzip` if it is not on
+the client's PATH.
+
+## What an assistant can do
 
 Every tool takes an optional `device` (an id or a name). When only one device is running it can be left out.
 
-**Read**
+| Ask for | It uses |
+|---------|---------|
+| "What is on the screen? Is it accessible?" | `screenshot`, `get_layout`, `audit_accessibility`, `check_text`, `simulate_color_blindness` |
+| "Open the app and log in" | `launch_app`, `tap`, `swipe`, `input_text`, `press_key`, `open_url`, `play_flow`, `flow_create` |
+| "Why did it crash?" | `list_crashes`, `get_crash`, `symbolicate_stack`, `read_logs`, `watch_start` |
+| "Why is it slow?" | `perf_snapshot`, `record_trace`, `trace_summary`, `measure_startup`, `memory_diff`, `analyze_heap` |
+| "What is it sending to the server?" | `net_start`, `net_connect_device`, `net_flows`, `net_flow`, `net_export_har`, `openapi_check` |
+| "Make the backend fail" | `net_rules_set` (mock, delay, block, map), `net_conditions`, `net_replay`, `net_breakpoints` |
+| "Follow the logs while I use the app" | `watch_start` with `logs`, `perf`, `touches`, `webview_console`, `webview_network`, `react_console` or `react_actions`, then `watch_read` |
+| "Record this and compare it with last week" | `session_start`, `session_stop`, `session_summary`, `session_timeline`, `session_compare` |
+| "What is in the database?" | `storage_roots`, `read_database` (read-only SQL), `read_preferences`, `list_files`, `read_file` |
+| "Is this build ready?" | `audit_security`, `analyze_package`, `package_budget`, `i18n_sweep`, `visual_compare`, `check_link` |
+| "Write this up" | `create_bug_report` (leave out the video, requests or logs with `without`) |
 
-| Tool | Returns |
-|------|---------|
-| `list_devices` | The running emulators, simulators and attached devices |
-| `device_info` | Build, hardware, display, battery, memory and locale |
-| `list_apps` | Installed and running apps, with versions and process ids |
-| `read_logs` | A snapshot of recent log lines, filtered by app, level, tag or text (at most 1,000 lines) |
-| `screenshot` | The screen, as an image |
-| `perf_snapshot` | A few samples of CPU, memory, frame rate and battery |
-| `memory_report` | Where an app's memory goes |
-| `measure_startup` | The median and every run of cold, warm or hot start times (stops and opens the app) |
-| `measure_energy` | The energy an app uses over a few seconds, at most 120 |
-| `detect_frameworks` | The UI frameworks an app is built with |
-| `webview_list`, `webview_console` | The WebViews and browsers of an Android device that can be inspected with their pages, and what a page writes to its console over a few seconds (at most 60) |
-| `flutter_widget_tree`, `flutter_frames`, `flutter_memory` | Inside a running Flutter debug or profile app: its widgets with their source lines, frame times over a few seconds (at most 30), and the Dart heap |
-| `react_tree` | The component tree of a React Native development app, through Metro |
-| `react_state` | The [state](react-native-state.md) of a React Native development app: Redux, React Query, contexts and registered stores, cut to a size an assistant can read |
-| `audit_security` | The [security and privacy audit](security-audit.md) of an installed app: secrets and personal data in the log and storage, flags, exposed components, App Transport Security. Secrets are cut down |
-| `analyze_package`, `diff_packages` | An `.apk`, `.aab` or `.ipa` taken apart by kind, ABI and dex file, and what changed between two ([Build size](package-size.md)). Only files with those extensions are read |
-| `check_text` | Text that is cut off, off screen, clipped or not mirrored on the screen ([localization](localization.md)) |
-| `simulate_color_blindness` | The screen as someone with colour blindness sees it, and the text that stops being readable: the picture and the findings |
-| `visual_compare` | The screen against a baseline made with `emulabzip visual capture`: how much changed, where, and a picture of it ([Visual regression](visual-regression.md)) |
-| `list_all_devices` | Every emulator and simulator, running or not |
-| `list_states`, `diff_state` | The saved [app states](app-state.md) by name, and what changed in the structure of the data between two of them, or between one and the app now |
-| `list_emulator_snapshots` | The snapshots of a running Android emulator |
-| `analyze_heap` | Takes a heap dump of an Android app and lists leaked Activities and Fragments with their paths |
-| `list_files`, `read_file` | An app's storage roots, folders and files (text, or base64 for binary; cut at 256 KB) |
-| `list_crashes`, `get_crash` | Crashes, native crashes and ANRs, and one with its stacks and hints, read with the [mapping, source map or dSYM](symbolication.md) kept for its app and version (`original: true` keeps the device's names) |
-| `create_bug_report` | One [HTML bug report](bug-reports.md) written to EmuLabZip's `reports` folder: path, a Markdown summary, and with `issue` a pre-filled issue link. Nothing is sent |
-| `list_traces`, `trace_summary`, `trace_query` | Recorded traces, their summary or hot functions, and PerfettoSQL |
-| `get_layout` | The views on screen as a tree, with names, sizes and positions |
-| `audit_accessibility` | Missing labels, small touch targets, low contrast and duplicate names on the screen |
-| `list_sessions`, `session_summary` | Recorded [sessions](sessions.md), and the summary of one |
-| `session_timeline` | What a session recorded on one [time axis](timeline.md): touches, log problems, requests, slow frames, garbage collections, crashes, screenshots and video, oldest first, by lane and capped |
-| `control_info` | What the device supports changing, and an app's permissions |
-| `list_plugins` | The installed plugins and whether each is enabled |
+### Live watches
 
-**Act**
+Streams (logs, performance, touches, WebView and React Native) are *watches*: `watch_start` returns an id, `watch_read` returns
+what arrived since the last read (and what was missed if the assistant was slow), and `watch_stop` ends it. A watch keeps the
+last 5,000 items, ends by itself after ten minutes without a read, and at most eight run at once.
 
-| Tool | Does |
-|------|------|
-| `record_trace` | Records a Perfetto trace, a CPU profile or an Instruments template (up to 120 seconds) and keeps it |
-| `control_location`, `control_appearance`, `control_status_bar`, `control_battery` | Changes the device, or puts it back |
-| `check_link` | Checks a [deep link](deep-links.md): the domain's `assetlinks.json` or `apple-app-site-association`, the app's claim on the domain, and who opens it, with what to fix |
-| `launch_app`, `list_flows`, `play_flow` | Starts an app, lists the saved [flows](automation.md) and plays one (at most two minutes) |
-| `tap`, `swipe`, `input_text`, `press_key` | Touches, drags, types and presses keys on an Android device (iOS has no public way to send them) |
-| `control_permission`, `control_notification`, `open_url` | Grants or revokes a permission, posts a notification or push, opens a link |
-| `run_plugin` | Runs a plugin you enabled |
-| `control_locale`, `control_font_scale`, `control_display_size` | Show an app in another language (including `en-XA` and `ar-XB`), change the text size, change the Android display size; each can be put back |
-| `boot_device`, `shutdown_device` | Starts a [device](devices.md) that is not running (never wiping it), or stops one |
-| `save_state` | Saves an app's data to a state file kept by EmuLabZip (stops the app) |
-| `save_emulator_snapshot` | Saves the running emulator's state as a snapshot |
+### Network, session and device state that stays
 
-Mistakes come back as tool errors with the same plain messages the app shows, so the assistant can read them and try
-again.
+The server keeps state while it runs: the proxy, the captured requests, the rules, a recording and the watches. Everything it
+changed on a device is put back when the assistant disconnects: the device's proxy setting is cleared and an open recording
+is finished. If a session ends badly, `net_status` shows what is still on and `net_disconnect_device` puts it back.
+
+The network rules are the ones the desktop app uses (one shared file), so a rule an assistant sets shows up in the app.
+
+## Prompts
+
+Prompts are plans an assistant can start from. Pick one in the client (in Claude Code, type `/` and the prompt's name).
+
+| Prompt | For |
+|--------|-----|
+| `explain_crash` | Find the latest crash, read it with its mapping, say what failed and how to fix it |
+| `why_is_it_slow` | Measure, trace the slow part, and name the cause |
+| `summarize_session` | Tell the story of a recorded session |
+| `reproduce_bug` | Follow a description on the device, record it and write the report |
+| `debug_request` | Capture the traffic and say why a request failed |
+| `release_check` | Security, accessibility, size, text and language checks in one pass |
+| `check_deep_link` | Verify a link and see where it lands |
+| `mock_backend` | Answer a host with a fixed response, delay or error |
+
+## Resources
+
+An assistant can also *read* these without calling a tool: `emulabzip://devices`, `sessions`, `flows`, `states`,
+`links/history`, `rules`, `network/flows` and `guide` (how to use the server, by task), plus `emulabzip://sessions/{id}`,
+`emulabzip://flows/{id}` (and `/maestro`, `/script`) and `emulabzip://network/flows/{id}`. An address can never name a
+path: ids are checked the way the tools check theirs.
 
 ## What an assistant can and cannot do
 
-The **Act** tools change the device for real, and they are always on: that is what the server is for. They are limited by
-the same checks as the app (see [Controls](controls.md#safety)): a link to `file:` is refused, values are validated,
-and nothing reaches a shell unquoted.
+The tools that look are always on. The tools that **act** on a device (tap, record, connect the proxy…) change it for real:
+that is what the server is for. They are limited by the same checks as the app (see [Controls](controls.md#safety)): a link
+to `file:` is refused, values are validated, and nothing reaches a shell unquoted.
 
-- It cannot run a plugin you have not enabled. `run_plugin` refuses it and says so.
-- It cannot throw data away or rewrite it. Restoring a state, wiping or deleting a device, loading or deleting an emulator
-  snapshot, and every [edit](storage-editing.md) are **not** offered. `diff_state` takes the names `list_states` shows, never a path.
-- It cannot run JavaScript in a web page. `webview_eval` is not offered, because a script can change what the app stores.
+**Destroying or rewriting data is off by default.** Wiping or deleting a device, restoring a state, loading or deleting an
+emulator snapshot, writing a file in an app's storage, running script in a web page, and deleting sessions, flows, mappings
+and baselines are not offered at all. Start the server with `--allow-writes` and they appear (marked destructive), and
+**each call asks you first**: the client shows what will happen ("Wipe Pixel_Test? All its apps and data are deleted.") and
+nothing runs until you accept. Restoring a state saves the data as it is now first.
+
+```bash
+claude mcp add emulabzip -- emulabzip mcp --allow-writes
+```
+
+- A client that cannot ask you (no MCP *elicitation*) is refused, with the reason. For an unattended run on a disposable
+  device, `--allow-writes --no-confirm` skips the question; do not use it anywhere you have data you care about.
+- **Approving scripts and plugins, and running `ci`, are never offered**, with or without `--allow-writes`: they run code,
+  so they stay with you. `run_plugin` refuses a plugin you have not enabled, and a network rule that runs a script is
+  accepted only for a script you approved in the app.
+- Files are written only into EmuLabZip's own folders (`exports`, `reports`, `sessions`, `states`, `flows`, `mappings`); an assistant
+  never gives a path to write to.
 - It cannot download anything. `trace_summary` and `trace_query` need the Perfetto trace processor, which is only
   downloaded after you agree in the app or run `emulabzip trace summary` once.
-- It reads only what the device exposes to the tools above: the files of apps you can already browse, and only when
-  they are debuggable on Android.
-- It speaks only on standard input and output. There is no network port.
+- It reads only what the device exposes: the files of apps you can already browse, and only when they are debuggable on
+  Android. Storage tools are read-only (SQL that writes is refused).
+- It speaks only on standard input and output. There is no network port for the protocol itself.
 
 Treat an assistant like a colleague with your terminal: do not point it at a device that has data you cannot afford to
 change.

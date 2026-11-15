@@ -32,6 +32,7 @@
   <a href="docs/crashes.md">Crashes</a> ·
   <a href="docs/layout.md">Layout</a> ·
   <a href="docs/sessions.md">Sessions</a> ·
+  <a href="#-use-it-from-your-ai-assistant">AI assistants</a> ·
   <a href="docs/mcp.md">MCP</a> ·
   <a href="docs/cli.md">CLI</a> ·
   <a href="docs/webviews.md">WebViews</a> ·
@@ -53,8 +54,50 @@ debugging into one window: what the device is, what it is logging, how fast your
 what it keeps on disk and what it says to the internet; and then it lets you change that: mock a response, stop a
 request, record a whole run and compare two devices. It ships as a native desktop app and as a command-line tool, and as an MCP server for AI assistants.
 
+## 🤖 Use it from your AI assistant
+
+`emulabzip mcp` turns your emulators and simulators into something an assistant can work with. Ask Claude, Cursor or Copilot
+*"why did the app crash?"* and it reads the crash with its mapping, the log around it and the requests that failed, then points
+at the line. Ask it to *"reproduce this bug"* and it taps through the app, records the run and writes the report.
+
+- **118 tools, 8 prompts and 13 resources.** Screen, logs, crashes, performance, network, sessions, app data, build and
+  language checks, input and flows. See the [full reference](docs/mcp-tools.md).
+- **Live, not just snapshots.** Follow the logs, the performance and the traffic as you use the app; capture and mock
+  requests; record a session and compare it with last week's.
+- **Read-only unless you say so.** Wiping, deleting and rewriting data are not offered. Start with `--allow-writes` and each
+  one asks you first. Approving scripts and plugins always stays with you.
+
+```bash
+# Claude Code
+claude mcp add emulabzip -- emulabzip mcp
+```
+
+<details>
+<summary>Claude Desktop, Cursor and VS Code</summary>
+
+Claude Desktop (`claude_desktop_config.json`) and Cursor (`~/.cursor/mcp.json`):
+
+```json
+{ "mcpServers": { "emulabzip": { "command": "emulabzip", "args": ["mcp"] } } }
+```
+
+VS Code (`.vscode/mcp.json`):
+
+```json
+{ "servers": { "emulabzip": { "type": "stdio", "command": "emulabzip", "args": ["mcp"] } } }
+```
+
+The desktop app shows these with your path filled in, under **Settings, AI assistants**.
+
+</details>
+
+[MCP guide](docs/mcp.md) · [Tools, prompts and resources](docs/mcp-tools.md)
+
 ## Highlights
 
+- **Works with your AI assistant.** An [MCP server](docs/mcp.md) with 118 tools, prompts and resources: an assistant can
+  read crashes, follow logs and traffic live, drive the screen, record a session and reproduce a bug. Changes to data stay
+  off until you allow them, and each asks first.
 - **Android and iOS, side by side.** Android emulators and devices through a pure-Rust ADB client, iOS simulators
   through `simctl`. Switch between them in one click.
 - **Zero setup.** Start an emulator or boot a simulator and it shows up. Nothing is installed on the device.
@@ -290,7 +333,7 @@ request, record a whole run and compare two devices. It ships as a native deskto
 | CPU flame graphs (simpleperf, Time Profiler) and Instruments recordings | ✅ | ✅ |
 | Crashes, native crashes and ANRs, with stacks and hints | ✅ | ✅ (crashes) |
 | Device controls: location, dark mode, status bar, permissions, push | ✅ | ✅ |
-| MCP server for AI assistants, and plugins | ✅ | ✅ |
+| MCP server for AI assistants (118 tools, prompts, resources), and plugins | ✅ | ✅ |
 | Mocks, delays, blocks and breakpoints; WebSocket messages; HTTP/3; packet capture import | ✅ | ✅ |
 | Layout inspection and accessibility audit | ✅ | ✅ (Simulator.app open) |
 | Sessions, CI mode and comparing two devices | ✅ | ✅ |
@@ -401,7 +444,8 @@ In the desktop app, pick the device in the top-left corner, then your app next t
 | [CI mode](docs/ci.md) | `emulabzip ci` around your tests, with a GitHub Actions example |
 | [Comparing devices](docs/compare.md) | Two screens, two charts and the differences |
 | [Controls](docs/controls.md) | Location, appearance, status bar, battery, permissions, notifications and links |
-| [MCP server](docs/mcp.md) | Letting an AI assistant read and control your devices |
+| [MCP server](docs/mcp.md) | Connecting an AI assistant to your devices: clients, prompts, resources and the write policy |
+| [MCP reference](docs/mcp-tools.md) | Every tool, prompt and resource, generated from the server |
 | [Plugins](docs/plugins.md) | Writing your own collectors, and the approval step |
 | [Command line](docs/cli.md) | Every `emulabzip` command and option |
 | [Architecture](docs/architecture.md) | Crates, the backend trait, streams and design rules |

@@ -329,9 +329,15 @@ Runs your own collectors. See [Plugins](plugins.md).
 | `plugin enable <name>` / `plugin disable <name>` | Allows or stops allowing a plugin to run. |
 | `plugin run <name> [-a <app>] [--seconds <n>] [--json]` | Runs a plugin on the device and prints what it reports. |
 
-### `emulabzip mcp`
+### `emulabzip mcp [--allow-writes [--no-confirm]]`
 
-Serves the devices to an AI assistant over MCP on standard input and output. See [MCP server](mcp.md).
+Serves the devices to an AI assistant over MCP on standard input and output. See [MCP server](mcp.md) and the
+[MCP reference](mcp-tools.md).
+
+| Flag | Does |
+|------|------|
+| `--allow-writes` | Also offers the tools that wipe, delete, restore or rewrite data. Each call asks you to confirm first |
+| `--no-confirm` | With `--allow-writes`, skips the question. Only for unattended use on a disposable device |
 
 ### `emulabzip trace`
 
