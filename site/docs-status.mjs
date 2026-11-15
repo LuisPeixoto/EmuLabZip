@@ -48,7 +48,7 @@ const result = buildDocs({
   root, repoRoot, dist: join(root, "dist"), site, strings, dry: true, only: [code],
   asset: (rel) => `/assets/${rel}`, assetNames, lastModified: () => "2026-01-01", baseScope: () => ({}), loadTemplate: () => "", renderTemplate: () => "", minifyHtml: (h) => h,
 });
-const mine = result.problems.filter((p) => p.startsWith(`${code}:`) && (!arg || p.includes(`docs/${arg}`) || p.includes(` ${arg} `)));
+const mine = result.problems.filter((p) => p.startsWith(`${code}:`) && (!arg || new RegExp(`docs/${arg}[: ]|: ${arg} `).test(p)));
 const done = entries.filter((e) => existsSync(join(root, "docs", code, `${basename(e)}.md`))).length;
 console.log(`${code}: ${done} of ${entries.length} pages written`);
 for (const p of mine) console.log(`  - ${p.slice(code.length + 2)}`);
