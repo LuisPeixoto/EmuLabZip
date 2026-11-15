@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 
 pub struct Server {
     child: std::process::Child,
-    stdin: std::process::ChildStdin,
+    stdin: Option<std::process::ChildStdin>,
     lines: mpsc::Receiver<String>,
     /// How this client answers a request to confirm: `accept` or `decline`. None means it cannot be asked.
     answer: Option<&'static str>,
@@ -48,12 +48,12 @@ impl Server {
                 }
             }
         });
-        Server { child, stdin, lines, answer: None, asked: Vec::new() }
+        Server { child, stdin: Some(stdin), lines, answer: None, asked: Vec::new() }
     }
 
     pub fn call(&mut self, id: u32, method: &str, params: Value) -> Value {
         let request = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
-        writeln!(self.stdin, "{request}").unwrap();
+        writeln!(self.stdin.as_mut().unwrap(), "{request}").unwrap();
         loop {
             let line = self.lines.recv_timeout(Duration::from_secs(60)).expect("the server answers");
             let value: Value = serde_json::from_str(&line).expect("every line of stdout is JSON");
@@ -63,7 +63,12 @@ impl Server {
                     Some("accept") => json!({ "action": "accept", "content": { "confirm": true } }),
                     _ => json!({ "action": "decline" }),
                 };
-                writeln!(self.stdin, "{}", json!({ "jsonrpc": "2.0", "id": value["id"], "result": result })).unwrap();
+                writeln!(
+                    self.stdin.as_mut().unwrap(),
+                    "{}",
+                    json!({ "jsonrpc": "2.0", "id": value["id"], "result": result })
+                )
+                .unwrap();
                 continue;
             }
             if value["id"] == id && value.get("method").is_none() {
@@ -72,8 +77,15 @@ impl Server {
         }
     }
 
+    /// Closes standard input and waits for the server to finish, the way a client that disconnects does.
+    #[allow(dead_code)]
+    pub fn finish(mut self) {
+        drop(self.stdin.take());
+        let _ = self.child.wait();
+    }
+
     pub fn notify(&mut self, method: &str) {
-        writeln!(self.stdin, "{}", json!({ "jsonrpc": "2.0", "method": method })).unwrap();
+        writeln!(self.stdin.as_mut().unwrap(), "{}", json!({ "jsonrpc": "2.0", "method": method })).unwrap();
     }
 
     #[allow(dead_code)]
