@@ -1,0 +1,213 @@
+{
+  "sections": [
+    {
+      "id": "start",
+      "pages": [
+        "getting-started",
+        "android",
+        "ios-simulator",
+        "devices",
+        "troubleshooting"
+      ]
+    },
+    {
+      "id": "inspect",
+      "pages": [
+        "logs",
+        "layout",
+        "storage",
+        "storage-editing",
+        "crashes",
+        "symbolication",
+        "frameworks",
+        "react-native-state",
+        "webviews"
+      ]
+    },
+    {
+      "id": "performance",
+      "pages": [
+        "performance",
+        "memory",
+        "leaks",
+        "traces",
+        "energy",
+        "startup",
+        "budgets"
+      ]
+    },
+    {
+      "id": "network",
+      "pages": [
+        "network",
+        "mocks",
+        "network-rules",
+        "rule-scripts",
+        "network-conditions",
+        "graphql",
+        "grpc",
+        "websockets",
+        "pcap",
+        "replay",
+        "analytics"
+      ]
+    },
+    {
+      "id": "quality",
+      "pages": [
+        "security-audit",
+        "package-size",
+        "localization",
+        "visual-regression"
+      ]
+    },
+    {
+      "id": "sessions",
+      "pages": [
+        "sessions",
+        "timeline",
+        "compare",
+        "app-state",
+        "bug-reports",
+        "ci"
+      ]
+    },
+    {
+      "id": "automation",
+      "pages": [
+        "automation",
+        "deep-links",
+        "controls",
+        "mcp",
+        "mcp-tools",
+        "plugins"
+      ]
+    },
+    {
+      "id": "customizing",
+      "pages": [
+        "themes",
+        "customizing"
+      ]
+    },
+    {
+      "id": "reference",
+      "pages": [
+        "cli",
+        "architecture",
+        "distribution",
+        "roadmap",
+        "research/how-the-official-tools-work"
+      ]
+    }
+  ],
+  "features": [
+    "logs",
+    "performance",
+    "memory",
+    "storage",
+    "network",
+    "mocks",
+    "traces",
+    "crashes",
+    "controls",
+    "layout",
+    "sessions",
+    "compare",
+    "leaks",
+    "startup",
+    "budgets",
+    "frameworks",
+    "graphql",
+    "network-conditions",
+    "timeline",
+    "app-state",
+    "security-audit"
+  ],
+  "tabs": {
+    "network": "network",
+    "rules": "network-rules",
+    "layout": "layout",
+    "a11y": "layout",
+    "sessions": "sessions",
+    "ai": "mcp",
+    "traces": "traces",
+    "crashes": "crashes",
+    "compare": "compare",
+    "flutter": "frameworks",
+    "react-native": "react-native-state",
+    "compose": "layout",
+    "graphql": "graphql",
+    "grpc": "grpc",
+    "conditions": "network-conditions",
+    "readable": "symbolication",
+    "report-dialog": "bug-reports",
+    "report-html": "bug-reports",
+    "timeline": "timeline",
+    "replay": "replay",
+    "report-video": "bug-reports",
+    "state-compare": "app-state",
+    "storage-edit": "storage-editing",
+    "storage-realm": "storage",
+    "devices-manage": "devices",
+    "audit-security": "security-audit",
+    "audit-text": "localization",
+    "size-diff": "package-size",
+    "visual-diff": "visual-regression",
+    "analytics": "analytics",
+    "themes": "themes",
+    "theme-editor": "themes",
+    "theme-gallery": "themes",
+    "layout-custom": "customizing",
+    "webviews": "webviews",
+    "webview-network": "webviews",
+    "automation": "automation",
+    "deep-links": "deep-links",
+    "contract": "network-rules",
+    "rule-scripts": "rule-scripts"
+  },
+  "overrides": {
+    "android": {
+      "description": "How EmuLabZip connects to Android emulators and USB or wireless devices with its built-in ADB client, what it collects and what each device state means."
+    },
+    "app-state": {
+      "description": "Save everything an app keeps (databases, preferences, files) into one .ezstate file, restore it later, and compare two states to see what changed."
+    },
+    "budgets": {
+      "description": "Set limits for CPU, memory, start time, size and crashes in one config file, and make emulabzip ci fail a run when it costs more than the baseline."
+    },
+    "distribution": {
+      "description": "How EmuLabZip releases are built by GitHub Actions from a version tag, what each release attaches (installers, SHA256SUMS), code signing and in-app updates."
+    },
+    "getting-started": {
+      "description": "Install EmuLabZip, connect your first Android emulator or iOS simulator and read your app's logs in a couple of minutes, in the desktop app or the CLI."
+    },
+    "mcp-tools": {
+      "description": "Every tool, prompt and resource of the EmuLabZip MCP server for AI assistants, by area, with its arguments and whether it reads, changes or asks first."
+    },
+    "network-rules": {
+      "description": "Map requests to local files or other servers, check responses against an OpenAPI contract, run sandboxed WebAssembly scripts and chain rules in EmuLabZip."
+    },
+    "react-native-state": {
+      "description": "Read the live state of a React Native development app from EmuLabZip: Redux, React Query, React context and registered stores, in the app or the CLI."
+    },
+    "roadmap": {
+      "description": "What EmuLabZip has shipped, phase by phase, and what is planned next: devices and platforms, team features and the 1.0 promise of stable interfaces."
+    },
+    "troubleshooting": {
+      "description": "Fixes for the usual problems: a device that does not show up, a log that is too busy, apps that cannot be read, a proxy that does not decrypt HTTPS."
+    },
+    "devices": {
+      "description": "Create, start, stop, wipe and delete Android emulators and iOS simulators from EmuLabZip, and keep emulator snapshots, in the Devices view or the CLI."
+    },
+    "how-the-official-tools-work": {
+      "description": "What we learned about how Xcode Instruments and the Android Studio profilers collect their data, and which of those public interfaces EmuLabZip uses."
+    },
+    "ci": {
+      "description": "Record a session around any command, usually your test run, with emulabzip ci: it keeps the exit code, saves a session file and can fail on regressions."
+    },
+    "customizing": {
+      "description": "Resize panes, collapse and reorder the sidebar, and tune text size, density and scale in EmuLabZip's Settings so the app fits how you work."
+    }
+  }
+}
